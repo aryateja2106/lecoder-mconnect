@@ -1,0 +1,32 @@
+# Source code (only publish compiled dist/)
+src/
+tsconfig.json
+vitest.config.ts
+
+# Tests
+__tests__/
+coverage/
+*.test.ts
+*.spec.ts
+
+# Development configs
+.eslintrc*
+.prettierrc*
+*.tsbuildinfo
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# CI/CD
+.github/
+
+# Misc
+.DS_Store
+*.log

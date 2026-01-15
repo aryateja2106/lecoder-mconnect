@@ -1,0 +1,51 @@
+{
+  "name": "lecoder-mconnect-monorepo",
+  "version": "0.1.2",
+  "description": "Mobile terminal control for AI coding agents - Terminal in your pocket",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@lecoder/web",
+    "dev:cli": "npm run dev --workspace=lecoder-mconnect",
+    "build": "npm run build --workspaces --if-present",
+    "build:cli": "npm run build --workspace=lecoder-mconnect",
+    "build:web": "npm run build --workspace=@lecoder/web",
+    "start": "node packages/cli/dist/index.js",
+    "cli": "node packages/cli/dist/index.js",
+    "setup": "./scripts/setup-pty.sh",
+    "test": "npm run test --workspaces --if-present",
+    "test:cli": "npm run test --workspace=lecoder-mconnect",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
+    "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache"
+  },
+  "keywords": [
+    "ai",
+    "terminal",
+    "mobile",
+    "claude-code",
+    "gemini-cli",
+    "aider",
+    "coding-agents",
+    "remote-terminal"
+  ],
+  "author": "Arya Teja Rudraraju <aryateja2106@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aryateja2106/lecoder-mconnect.git"
+  },
+  "homepage": "https://github.com/aryateja2106/lecoder-mconnect#readme",
+  "bugs": {
+    "url": "https://github.com/aryateja2106/lecoder-mconnect/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "node-pty": "^1.1.0"
+  }
+}

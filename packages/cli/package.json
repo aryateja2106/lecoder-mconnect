@@ -1,0 +1,82 @@
+{
+  "name": "lecoder-mconnect",
+  "version": "0.1.2",
+  "description": "Mobile terminal control for AI coding agents - Terminal in your pocket",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mconnect": "./dist/index.js",
+    "lecoder-mconnect": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "keywords": [
+    "cli",
+    "terminal",
+    "mobile",
+    "ai-agents",
+    "claude-code",
+    "gemini-cli",
+    "aider",
+    "remote-terminal",
+    "pty",
+    "websocket"
+  ],
+  "author": "Arya Teja Rudraraju <aryateja2106@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aryateja2106/lecoder-mconnect.git"
+  },
+  "homepage": "https://github.com/aryateja2106/lecoder-mconnect#readme",
+  "bugs": {
+    "url": "https://github.com/aryateja2106/lecoder-mconnect/issues"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "execa": "^8.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.16.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^20.10.0",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/ws": "^8.5.10",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "eslint": "^9.39.2",
+    "tsup": "^8.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.53.0",
+    "vitest": "^1.6.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
