@@ -309,7 +309,7 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
  * Print diagnostic results
  */
 export function printDiagnostics(results: DiagnosticResult[]): void {
-  console.log(`\n${chalk.bold('MConnect v0.1.2 - System Diagnostics')}\n`);
+  console.log(`\n${chalk.bold('MConnect v0.1.3 - System Diagnostics')}\n`);
 
   let hasErrors = false;
   let hasWarnings = false;

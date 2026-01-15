@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * MConnect CLI v0.1.2 - Multi-Agent Terminal Control
+ * MConnect CLI v0.1.3 - Multi-Agent Terminal Control
  *
  * Shell-first architecture: Spawn shells, then run commands inside them.
  * "Spin up multiple AI agents, go for a walk, and manage them from your phone"
@@ -21,7 +21,7 @@ const program = new Command();
 program
   .name('mconnect')
   .description('Control AI coding agents from your mobile device')
-  .version('0.1.2');
+  .version('0.1.3');
 
 program
   .command('start', { isDefault: true })
@@ -85,7 +85,7 @@ program
 async function runWizard(options: any): Promise<void> {
   console.clear();
 
-  p.intro(chalk.bgCyan(chalk.black(' MConnect v0.1.2 ')));
+  p.intro(chalk.bgCyan(chalk.black(' MConnect v0.1.3 ')));
   console.log(chalk.dim('  Multi-Agent Terminal Control\n'));
 
   // Agent preset selection
