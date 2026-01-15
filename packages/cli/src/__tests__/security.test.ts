@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+  detectInjection,
   generateSecureToken,
   generateSessionId,
   hashForLogging,
   isValidToken,
   RateLimiter,
   sanitizeInput,
-  detectInjection,
 } from '../security.js';
 
 describe('Security Module', () => {

@@ -23,23 +23,23 @@ export function loadGuardrails(level: string): GuardrailConfig {
       return {
         level: 'strict',
         blockedPatterns: [
-          /rm\s+(-rf?|--recursive)\s+[\/~]/i,  // rm -rf on root or home
-          /rm\s+-rf?\s+\.\/?$/i,                // rm -rf .
-          /mkfs/i,                               // Format disk
-          /dd\s+if=/i,                           // Direct disk write
-          /:\(\)\{\s*:\|:&\s*\};:/,             // Fork bomb
-          /chmod\s+-R\s+777/i,                   // Dangerous permissions
-          />\s*\/dev\/sd/i,                      // Write to disk device
+          /rm\s+(-rf?|--recursive)\s+[/~]/i, // rm -rf on root or home
+          /rm\s+-rf?\s+\.\/?$/i, // rm -rf .
+          /mkfs/i, // Format disk
+          /dd\s+if=/i, // Direct disk write
+          /:\(\)\{\s*:\|:&\s*\};:/, // Fork bomb
+          /chmod\s+-R\s+777/i, // Dangerous permissions
+          />\s*\/dev\/sd/i, // Write to disk device
         ],
         approvalPatterns: [
-          /rm\s/i,                               // Any rm command
-          /git\s+push/i,                         // All git push
-          /git\s+reset/i,                        // All git reset
-          /npm\s+publish/i,                      // npm publish
-          /docker\s+rm/i,                        // docker remove
-          /kubectl\s+delete/i,                   // k8s delete
-          /DROP\s+TABLE/i,                       // SQL drop
-          /DELETE\s+FROM/i,                      // SQL delete
+          /rm\s/i, // Any rm command
+          /git\s+push/i, // All git push
+          /git\s+reset/i, // All git reset
+          /npm\s+publish/i, // npm publish
+          /docker\s+rm/i, // docker remove
+          /kubectl\s+delete/i, // k8s delete
+          /DROP\s+TABLE/i, // SQL drop
+          /DELETE\s+FROM/i, // SQL delete
         ],
       };
 
@@ -47,14 +47,14 @@ export function loadGuardrails(level: string): GuardrailConfig {
       return {
         level: 'permissive',
         blockedPatterns: [
-          /rm\s+(-rf?|--recursive)\s+[\/~]/i,  // rm -rf on root or home
-          /mkfs/i,                               // Format disk
-          /dd\s+if=/i,                           // Direct disk write
-          /:\(\)\{\s*:\|:&\s*\};:/,             // Fork bomb
+          /rm\s+(-rf?|--recursive)\s+[/~]/i, // rm -rf on root or home
+          /mkfs/i, // Format disk
+          /dd\s+if=/i, // Direct disk write
+          /:\(\)\{\s*:\|:&\s*\};:/, // Fork bomb
         ],
         approvalPatterns: [
-          /git\s+push\s+.*--force/i,            // Only force push
-          /git\s+reset\s+--hard/i,              // Only hard reset
+          /git\s+push\s+.*--force/i, // Only force push
+          /git\s+reset\s+--hard/i, // Only hard reset
         ],
       };
 
@@ -64,24 +64,22 @@ export function loadGuardrails(level: string): GuardrailConfig {
         blockedPatterns: [],
         approvalPatterns: [],
       };
-
-    case 'default':
     default:
       return {
         level: 'default',
         blockedPatterns: [
-          /rm\s+(-rf?|--recursive)\s+[\/~]/i,  // rm -rf on root or home
-          /rm\s+-rf?\s+\.\/?$/i,                // rm -rf .
-          /mkfs/i,                               // Format disk
-          /dd\s+if=/i,                           // Direct disk write
-          /:\(\)\{\s*:\|:&\s*\};:/,             // Fork bomb
+          /rm\s+(-rf?|--recursive)\s+[/~]/i, // rm -rf on root or home
+          /rm\s+-rf?\s+\.\/?$/i, // rm -rf .
+          /mkfs/i, // Format disk
+          /dd\s+if=/i, // Direct disk write
+          /:\(\)\{\s*:\|:&\s*\};:/, // Fork bomb
         ],
         approvalPatterns: [
-          /git\s+push\s+.*--force/i,            // Force push
-          /git\s+reset\s+--hard/i,              // Hard reset
-          /rm\s+-rf?\s+/i,                       // rm -rf (not root)
-          /npm\s+publish/i,                      // npm publish
-          /DROP\s+TABLE/i,                       // SQL drop
+          /git\s+push\s+.*--force/i, // Force push
+          /git\s+reset\s+--hard/i, // Hard reset
+          /rm\s+-rf?\s+/i, // rm -rf (not root)
+          /npm\s+publish/i, // npm publish
+          /DROP\s+TABLE/i, // SQL drop
         ],
       };
   }

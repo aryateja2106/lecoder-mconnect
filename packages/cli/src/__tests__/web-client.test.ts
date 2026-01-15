@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { getWebClientHTML } from '../web/web-client.js';
 
 describe('Web Client Module', () => {

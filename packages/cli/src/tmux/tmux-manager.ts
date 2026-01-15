@@ -6,24 +6,24 @@
  * all agents on their laptop terminal while controlling from mobile.
  */
 
-import { execSync, spawn, ChildProcess } from 'child_process';
-import { existsSync } from 'fs';
+import { type ChildProcess, execSync, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import type {
-  TmuxSessionConfig,
+  TmuxManagerConfig,
   TmuxPaneConfig,
   TmuxPaneInfo,
-  TmuxWindowInfo,
+  TmuxSessionConfig,
   TmuxSessionInfo,
-  TmuxManagerConfig,
+  TmuxWindowInfo,
 } from './types.js';
 
 /**
  * Known tmux installation paths
  */
 const TMUX_PATHS = [
-  '/opt/homebrew/bin/tmux',   // Homebrew Apple Silicon
-  '/usr/local/bin/tmux',      // Homebrew Intel Mac
-  '/usr/bin/tmux',            // Linux package manager
+  '/opt/homebrew/bin/tmux', // Homebrew Apple Silicon
+  '/usr/local/bin/tmux', // Homebrew Intel Mac
+  '/usr/bin/tmux', // Linux package manager
 ];
 
 /**
@@ -123,13 +123,7 @@ export class TmuxManager {
     }
 
     // Create new session (detached)
-    this.exec([
-      'new-session',
-      '-d',
-      '-s', sessionName,
-      '-n', windowName,
-      '-c', config.cwd,
-    ]);
+    this.exec(['new-session', '-d', '-s', sessionName, '-n', windowName, '-c', config.cwd]);
 
     this.currentSession = sessionName;
     return sessionName;
@@ -147,29 +141,15 @@ export class TmuxManager {
     const sizeArg = config.size ? ['-p', config.size.toString()] : [];
 
     // Split the current pane
-    this.exec([
-      'split-window',
-      direction,
-      ...sizeArg,
-      '-t', this.currentSession,
-      config.command,
-    ]);
+    this.exec(['split-window', direction, ...sizeArg, '-t', this.currentSession, config.command]);
 
     // Set pane title if provided
     if (config.name) {
-      this.exec([
-        'select-pane',
-        '-t', this.currentSession,
-        '-T', config.name,
-      ]);
+      this.exec(['select-pane', '-t', this.currentSession, '-T', config.name]);
     }
 
     // Get the new pane ID
-    const paneId = this.exec([
-      'display-message',
-      '-t', this.currentSession,
-      '-p', '#{pane_id}',
-    ]);
+    const paneId = this.exec(['display-message', '-t', this.currentSession, '-p', '#{pane_id}']);
 
     return paneId;
   }
@@ -186,7 +166,8 @@ export class TmuxManager {
 
     this.exec([
       'send-keys',
-      '-t', target,
+      '-t',
+      target,
       `"${keys.replace(/"/g, '\\"')}"`,
       ...(enter ? ['Enter'] : []),
     ]);
@@ -205,8 +186,10 @@ export class TmuxManager {
       const sessionFormat = '#{session_name}:#{session_id}:#{session_attached}:#{session_created}';
       const sessionData = this.exec([
         'display-message',
-        '-t', this.currentSession,
-        '-p', sessionFormat,
+        '-t',
+        this.currentSession,
+        '-p',
+        sessionFormat,
       ]);
 
       const [name, id, attached, created] = sessionData.split(':');
@@ -215,19 +198,24 @@ export class TmuxManager {
       const windowFormat = '#{window_index}:#{window_name}:#{window_active}';
       const windowsData = this.exec([
         'list-windows',
-        '-t', this.currentSession,
-        '-F', windowFormat,
+        '-t',
+        this.currentSession,
+        '-F',
+        windowFormat,
       ]);
 
-      const windows: TmuxWindowInfo[] = windowsData.split('\n').filter(Boolean).map((line) => {
-        const [index, windowName, active] = line.split(':');
-        return {
-          index: parseInt(index, 10),
-          name: windowName,
-          active: active === '1',
-          panes: this.getPanes(`${this.currentSession}:${index}`),
-        };
-      });
+      const windows: TmuxWindowInfo[] = windowsData
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => {
+          const [index, windowName, active] = line.split(':');
+          return {
+            index: parseInt(index, 10),
+            name: windowName,
+            active: active === '1',
+            panes: this.getPanes(`${this.currentSession}:${index}`),
+          };
+        });
 
       return {
         name,
@@ -246,25 +234,25 @@ export class TmuxManager {
    */
   private getPanes(windowTarget: string): TmuxPaneInfo[] {
     try {
-      const paneFormat = '#{pane_index}:#{pane_id}:#{pane_title}:#{pane_active}:#{pane_width}:#{pane_height}:#{pane_current_command}';
-      const panesData = this.exec([
-        'list-panes',
-        '-t', windowTarget,
-        '-F', paneFormat,
-      ]);
+      const paneFormat =
+        '#{pane_index}:#{pane_id}:#{pane_title}:#{pane_active}:#{pane_width}:#{pane_height}:#{pane_current_command}';
+      const panesData = this.exec(['list-panes', '-t', windowTarget, '-F', paneFormat]);
 
-      return panesData.split('\n').filter(Boolean).map((line) => {
-        const [index, id, title, active, width, height, command] = line.split(':');
-        return {
-          index: parseInt(index, 10),
-          id,
-          title: title || undefined,
-          active: active === '1',
-          width: parseInt(width, 10),
-          height: parseInt(height, 10),
-          command: command || undefined,
-        };
-      });
+      return panesData
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => {
+          const [index, id, title, active, width, height, command] = line.split(':');
+          return {
+            index: parseInt(index, 10),
+            id,
+            title: title || undefined,
+            active: active === '1',
+            width: parseInt(width, 10),
+            height: parseInt(height, 10),
+            command: command || undefined,
+          };
+        });
     } catch {
       return [];
     }

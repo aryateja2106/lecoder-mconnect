@@ -4,9 +4,9 @@
  * Checks all dependencies and provides clear guidance on what's missing.
  */
 
-import { execSync } from 'child_process';
-import { existsSync } from 'fs';
-import { createRequire } from 'module';
+import { execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import chalk from 'chalk';
 
 // Use createRequire to load CommonJS modules in ESM
@@ -53,8 +53,8 @@ async function checkNodePty(): Promise<DiagnosticResult> {
 
     // On macOS, also check for spawn-helper
     if (process.platform === 'darwin') {
-      const path = await import('path');
-      const fs = await import('fs');
+      const path = await import('node:path');
+      const fs = await import('node:fs');
 
       // Try to find spawn-helper in node-pty directory
       const nodePtyPath = require.resolve('node-pty');
@@ -179,9 +179,8 @@ function checkPython(): DiagnosticResult {
     name: 'Python',
     status: 'error',
     message: 'Python 3 not found',
-    fix: process.platform === 'darwin'
-      ? 'Run: brew install python3'
-      : 'Run: sudo apt install python3',
+    fix:
+      process.platform === 'darwin' ? 'Run: brew install python3' : 'Run: sudo apt install python3',
   };
 }
 
@@ -239,9 +238,7 @@ function checkTmux(): DiagnosticResult {
     name: 'tmux',
     status: 'warning',
     message: 'tmux not found (optional - for server visualization)',
-    fix: process.platform === 'darwin'
-      ? 'Run: brew install tmux'
-      : 'Run: sudo apt install tmux',
+    fix: process.platform === 'darwin' ? 'Run: brew install tmux' : 'Run: sudo apt install tmux',
   };
 }
 
@@ -261,9 +258,10 @@ function checkCloudflared(): DiagnosticResult {
     name: 'cloudflared',
     status: 'warning',
     message: 'cloudflared not found (optional - for remote access)',
-    fix: process.platform === 'darwin'
-      ? 'Run: brew install cloudflared'
-      : 'See: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/',
+    fix:
+      process.platform === 'darwin'
+        ? 'Run: brew install cloudflared'
+        : 'See: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/',
   };
 }
 
@@ -311,7 +309,7 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
  * Print diagnostic results
  */
 export function printDiagnostics(results: DiagnosticResult[]): void {
-  console.log('\n' + chalk.bold('MConnect v0.1.2 - System Diagnostics') + '\n');
+  console.log(`\n${chalk.bold('MConnect v0.1.2 - System Diagnostics')}\n`);
 
   let hasErrors = false;
   let hasWarnings = false;

@@ -4,7 +4,7 @@
  * Protocol for multiplexed multi-agent terminal control
  */
 
-import type { AgentInfo, AgentConfig, AgentStatus } from '../agents/types.js';
+import type { AgentConfig, AgentInfo, AgentStatus } from '../agents/types.js';
 
 // ============================================
 // Client -> Server Messages

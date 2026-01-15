@@ -5,13 +5,13 @@
  * and provides guidance for missing requirements.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  runDiagnostics,
-  printDiagnostics,
-  isNodePtyAvailable,
-  tryInstallNodePty,
   type DiagnosticResult,
+  isNodePtyAvailable,
+  printDiagnostics,
+  runDiagnostics,
+  tryInstallNodePty,
 } from '../doctor.js';
 
 // Mock child_process for controlled testing
@@ -144,9 +144,7 @@ describe('Doctor Module', () => {
     });
 
     it('should print header', () => {
-      const results: DiagnosticResult[] = [
-        { name: 'Test', status: 'ok', message: 'All good' },
-      ];
+      const results: DiagnosticResult[] = [{ name: 'Test', status: 'ok', message: 'All good' }];
       printDiagnostics(results);
       expect(consoleLogSpy).toHaveBeenCalled();
       const output = consoleLogSpy.mock.calls.flat().join(' ');
@@ -155,9 +153,7 @@ describe('Doctor Module', () => {
     });
 
     it('should print ok results with checkmark', () => {
-      const results: DiagnosticResult[] = [
-        { name: 'TestCheck', status: 'ok', message: 'Working' },
-      ];
+      const results: DiagnosticResult[] = [{ name: 'TestCheck', status: 'ok', message: 'Working' }];
       printDiagnostics(results);
       const output = consoleLogSpy.mock.calls.flat().join(' ');
       expect(output).toContain('TestCheck');

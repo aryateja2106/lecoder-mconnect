@@ -1,6 +1,6 @@
-import { spawn, ChildProcess, execSync } from 'child_process';
-import { existsSync } from 'fs';
-import { EventEmitter } from 'events';
+import { type ChildProcess, execSync, spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { existsSync } from 'node:fs';
 import * as p from '@clack/prompts';
 
 export interface TunnelConfig {
@@ -15,10 +15,10 @@ export interface TunnelResult {
 
 // Common cloudflared installation paths
 const CLOUDFLARED_PATHS = [
-  'cloudflared',                          // In PATH
-  '/usr/local/bin/cloudflared',           // Homebrew Intel Mac
-  '/opt/homebrew/bin/cloudflared',        // Homebrew Apple Silicon
-  '/usr/bin/cloudflared',                 // Linux package manager
+  'cloudflared', // In PATH
+  '/usr/local/bin/cloudflared', // Homebrew Intel Mac
+  '/opt/homebrew/bin/cloudflared', // Homebrew Apple Silicon
+  '/usr/bin/cloudflared', // Linux package manager
   `${process.env.HOME}/.cloudflared/cloudflared`, // User install
 ];
 
@@ -28,7 +28,10 @@ const CLOUDFLARED_PATHS = [
 function findCloudflared(): string | null {
   // First try using 'command -v' which is more portable than 'which'
   try {
-    const result = execSync('command -v cloudflared', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const result = execSync('command -v cloudflared', {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     if (result.trim()) {
       return result.trim();
     }
@@ -81,20 +84,15 @@ export class TunnelManager extends EventEmitter {
       if (!found) {
         throw new Error(
           'cloudflared not found. Install it:\n' +
-          '  macOS: brew install cloudflared\n' +
-          '  Linux: See https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/'
+            '  macOS: brew install cloudflared\n' +
+            '  Linux: See https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/'
         );
       }
     }
 
     return new Promise((resolve, reject) => {
       // Start cloudflared quick tunnel (trycloudflare.com - no config needed)
-      const args = [
-        'tunnel',
-        '--url',
-        `http://localhost:${config.localPort}`,
-        '--no-autoupdate',
-      ];
+      const args = ['tunnel', '--url', `http://localhost:${config.localPort}`, '--no-autoupdate'];
 
       this.process = spawn(this.cloudflaredPath!, args, {
         stdio: ['ignore', 'pipe', 'pipe'],

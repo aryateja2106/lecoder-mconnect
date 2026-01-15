@@ -9,8 +9,8 @@
  * Note: These tests mock execSync since tmux may not be available.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { existsSync } from 'fs';
+import { existsSync } from 'node:fs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child_process
 vi.mock('child_process', () => ({
@@ -27,8 +27,8 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(),
 }));
 
-import { TmuxManager, getTmuxManager } from '../tmux/tmux-manager.js';
-import { execSync } from 'child_process';
+import { execSync } from 'node:child_process';
+import { getTmuxManager, TmuxManager } from '../tmux/tmux-manager.js';
 
 describe('Tmux Manager Module', () => {
   beforeEach(() => {
@@ -106,7 +106,9 @@ describe('Tmux Manager Module', () => {
 
       // Mock session check (not exists) and creation
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('session not found'); })
+        .mockImplementationOnce(() => {
+          throw new Error('session not found');
+        })
         .mockReturnValue('');
 
       const sessionName = await manager.createSession({
@@ -147,17 +149,18 @@ describe('Tmux Manager Module', () => {
       (existsSync as any).mockReturnValue(false);
 
       const manager = new TmuxManager();
-      await expect(manager.createSession({ name: 'test', cwd: '/tmp' }))
-        .rejects.toThrow('not installed');
+      await expect(manager.createSession({ name: 'test', cwd: '/tmp' })).rejects.toThrow(
+        'not installed'
+      );
     });
   });
 
   describe('createPane', () => {
     it('should throw when no active session', async () => {
       const manager = new TmuxManager();
-      await expect(
-        manager.createPane({ command: 'echo test' })
-      ).rejects.toThrow('No active session');
+      await expect(manager.createPane({ command: 'echo test' })).rejects.toThrow(
+        'No active session'
+      );
     });
 
     it('should create pane in current session', async () => {
@@ -169,7 +172,9 @@ describe('Tmux Manager Module', () => {
 
       // Setup session
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
@@ -199,7 +204,9 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
@@ -210,18 +217,14 @@ describe('Tmux Manager Module', () => {
         split: 'vertical',
       });
 
-      expect(execSync).toHaveBeenCalledWith(
-        expect.stringContaining('-v'),
-        expect.any(Object)
-      );
+      expect(execSync).toHaveBeenCalledWith(expect.stringContaining('-v'), expect.any(Object));
     });
   });
 
   describe('sendKeys', () => {
     it('should throw when no active session', () => {
       const manager = new TmuxManager();
-      expect(() => manager.sendKeys('0', 'echo test'))
-        .toThrow('No active session');
+      expect(() => manager.sendKeys('0', 'echo test')).toThrow('No active session');
     });
 
     it('should send keys to pane', async () => {
@@ -232,7 +235,9 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
@@ -253,7 +258,9 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
@@ -283,7 +290,9 @@ describe('Tmux Manager Module', () => {
 
       // Setup session
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockImplementationOnce(() => '') // new-session
         .mockImplementationOnce(() => 'mconnect-test:$1:0:1704067200') // display-message
         .mockImplementationOnce(() => '0:agents:1') // list-windows
@@ -311,7 +320,9 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
@@ -336,16 +347,15 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
       manager.evenLayout('tiled');
 
-      expect(execSync).toHaveBeenCalledWith(
-        expect.stringContaining('tiled'),
-        expect.any(Object)
-      );
+      expect(execSync).toHaveBeenCalledWith(expect.stringContaining('tiled'), expect.any(Object));
     });
 
     it('should support horizontal layout', async () => {
@@ -356,7 +366,9 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
@@ -376,7 +388,9 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       (execSync as any)
-        .mockImplementationOnce(() => { throw new Error('no session'); })
+        .mockImplementationOnce(() => {
+          throw new Error('no session');
+        })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });

@@ -144,10 +144,13 @@ export const AGENT_PRESETS: AgentPreset[] = [
  * These define what command to run INSIDE the shell for each agent type.
  * The shell itself is always spawned first.
  */
-export const AGENT_COMMANDS: Record<AgentType, {
-  shellCommand: string;  // Command to run inside shell (empty = just shell)
-  description: string;
-}> = {
+export const AGENT_COMMANDS: Record<
+  AgentType,
+  {
+    shellCommand: string; // Command to run inside shell (empty = just shell)
+    description: string;
+  }
+> = {
   claude: {
     shellCommand: 'claude',
     description: 'Claude Code CLI',
@@ -178,7 +181,7 @@ export const AGENT_COMMANDS: Record<AgentType, {
  * Check if a command is available in PATH
  */
 export async function isCommandAvailable(command: string): Promise<boolean> {
-  const { execSync } = await import('child_process');
+  const { execSync } = await import('node:child_process');
   try {
     execSync(`command -v ${command}`, { stdio: 'pipe' });
     return true;

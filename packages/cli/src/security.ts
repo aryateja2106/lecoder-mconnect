@@ -1,4 +1,4 @@
-import { randomBytes, createHash } from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 /**
  * Generate a cryptographically secure session token
@@ -89,15 +89,15 @@ export function sanitizeInput(input: string): string {
  */
 export function detectInjection(input: string): boolean {
   const suspiciousPatterns = [
-    /\$\(.*\)/,           // Command substitution
-    /`.*`/,               // Backtick command substitution
-    /;\s*rm\s/i,          // Injection attempt
-    /\|\s*sh\b/i,         // Piping to shell
-    /\|\s*bash\b/i,       // Piping to bash
-    />\s*\/etc\//i,       // Writing to system files
-    /curl.*\|\s*sh/i,     // Remote code execution
-    /wget.*\|\s*sh/i,     // Remote code execution
+    /\$\(.*\)/, // Command substitution
+    /`.*`/, // Backtick command substitution
+    /;\s*rm\s/i, // Injection attempt
+    /\|\s*sh\b/i, // Piping to shell
+    /\|\s*bash\b/i, // Piping to bash
+    />\s*\/etc\//i, // Writing to system files
+    /curl.*\|\s*sh/i, // Remote code execution
+    /wget.*\|\s*sh/i, // Remote code execution
   ];
 
-  return suspiciousPatterns.some(pattern => pattern.test(input));
+  return suspiciousPatterns.some((pattern) => pattern.test(input));
 }

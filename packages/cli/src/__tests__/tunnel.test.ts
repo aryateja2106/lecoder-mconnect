@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TunnelManager } from '../tunnel.js';
 
 // Mock child_process
@@ -12,8 +12,8 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(),
 }));
 
-import { execSync } from 'child_process';
-import { existsSync } from 'fs';
+import { execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 describe('Tunnel Module', () => {
   beforeEach(() => {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /**
  * MConnect CLI v0.1.2 - Multi-Agent Terminal Control
  *
@@ -6,14 +7,14 @@
  * "Spin up multiple AI agents, go for a walk, and manage them from your phone"
  */
 
-import { Command } from 'commander';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { existsSync } from 'fs';
-import { resolve } from 'path';
-import { startSession } from './session.js';
+import { Command } from 'commander';
 import { AGENT_PRESETS, getDefaultShell } from './agents/types.js';
-import { runDiagnostics, printDiagnostics, isNodePtyAvailable, getNodePtyError } from './doctor.js';
+import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
+import { startSession } from './session.js';
 
 const program = new Command();
 
@@ -26,7 +27,10 @@ program
   .command('start', { isDefault: true })
   .description('Start a new MConnect session')
   .option('-d, --dir <directory>', 'Working directory')
-  .option('-p, --preset <name>', 'Agent preset (single, research-spec-test, dev-review, shell-only)')
+  .option(
+    '-p, --preset <name>',
+    'Agent preset (single, research-spec-test, dev-review, shell-only)'
+  )
   .option('-g, --guardrails <level>', 'Guardrails level (default, strict, permissive, none)')
   .option('--port <number>', 'Server port (default: 8765)')
   .option('--no-tmux', 'Disable tmux visualization')
@@ -69,11 +73,11 @@ program
   .command('presets')
   .description('List available agent presets')
   .action(() => {
-    console.log('\n' + chalk.bold('Available Agent Presets:') + '\n');
+    console.log(`\n${chalk.bold('Available Agent Presets:')}\n`);
     for (const preset of AGENT_PRESETS) {
       console.log(chalk.cyan(`  ${preset.name}`));
       console.log(chalk.dim(`    ${preset.description}`));
-      console.log(chalk.dim(`    Agents: ${preset.agents.map(a => a.name).join(', ')}`));
+      console.log(chalk.dim(`    Agents: ${preset.agents.map((a) => a.name).join(', ')}`));
       console.log('');
     }
   });
@@ -85,36 +89,38 @@ async function runWizard(options: any): Promise<void> {
   console.log(chalk.dim('  Multi-Agent Terminal Control\n'));
 
   // Agent preset selection
-  const preset = options.preset || await p.select({
-    message: 'Select agent configuration',
-    options: [
-      {
-        value: 'shell-only',
-        label: 'Shell Session',
-        hint: 'Single interactive shell (recommended to start)',
-      },
-      {
-        value: 'single',
-        label: 'Single Agent (Claude)',
-        hint: 'Shell that runs Claude Code',
-      },
-      {
-        value: 'research-spec-test',
-        label: 'Research + Spec + Tests',
-        hint: '3 shells for parallel ideation',
-      },
-      {
-        value: 'dev-review',
-        label: 'Dev + Reviewer',
-        hint: '2 shells for development workflow',
-      },
-      {
-        value: 'custom',
-        label: 'Custom Setup',
-        hint: 'Configure multiple shells manually',
-      },
-    ],
-  });
+  const preset =
+    options.preset ||
+    (await p.select({
+      message: 'Select agent configuration',
+      options: [
+        {
+          value: 'shell-only',
+          label: 'Shell Session',
+          hint: 'Single interactive shell (recommended to start)',
+        },
+        {
+          value: 'single',
+          label: 'Single Agent (Claude)',
+          hint: 'Shell that runs Claude Code',
+        },
+        {
+          value: 'research-spec-test',
+          label: 'Research + Spec + Tests',
+          hint: '3 shells for parallel ideation',
+        },
+        {
+          value: 'dev-review',
+          label: 'Dev + Reviewer',
+          hint: '2 shells for development workflow',
+        },
+        {
+          value: 'custom',
+          label: 'Custom Setup',
+          hint: 'Configure multiple shells manually',
+        },
+      ],
+    }));
 
   if (p.isCancel(preset)) {
     p.cancel('Session cancelled.');
@@ -127,45 +133,49 @@ async function runWizard(options: any): Promise<void> {
   if (preset === 'custom') {
     agents = await configureCustomAgents();
   } else {
-    const presetConfig = AGENT_PRESETS.find(p => p.name === preset);
+    const presetConfig = AGENT_PRESETS.find((p) => p.name === preset);
     if (presetConfig) {
       agents = [...presetConfig.agents]; // Clone the array
     } else {
       // Default to shell-only if preset not found
-      agents = [{
-        type: 'shell',
-        name: 'Shell',
-        command: getDefaultShell(),
-      }];
+      agents = [
+        {
+          type: 'shell',
+          name: 'Shell',
+          command: getDefaultShell(),
+        },
+      ];
     }
   }
 
   // Guardrails selection
-  const guardrails = options.guardrails || await p.select({
-    message: 'Configure guardrails',
-    options: [
-      {
-        value: 'default',
-        label: 'Default',
-        hint: 'Block dangerous commands, approve risky ones',
-      },
-      {
-        value: 'strict',
-        label: 'Strict',
-        hint: 'Require approval for most operations',
-      },
-      {
-        value: 'permissive',
-        label: 'Permissive',
-        hint: 'Only block critical operations',
-      },
-      {
-        value: 'none',
-        label: 'None',
-        hint: 'No restrictions (use with caution)',
-      },
-    ],
-  });
+  const guardrails =
+    options.guardrails ||
+    (await p.select({
+      message: 'Configure guardrails',
+      options: [
+        {
+          value: 'default',
+          label: 'Default',
+          hint: 'Block dangerous commands, approve risky ones',
+        },
+        {
+          value: 'strict',
+          label: 'Strict',
+          hint: 'Require approval for most operations',
+        },
+        {
+          value: 'permissive',
+          label: 'Permissive',
+          hint: 'Only block critical operations',
+        },
+        {
+          value: 'none',
+          label: 'None',
+          hint: 'No restrictions (use with caution)',
+        },
+      ],
+    }));
 
   if (p.isCancel(guardrails)) {
     p.cancel('Session cancelled.');
@@ -195,7 +205,7 @@ async function runWizard(options: any): Promise<void> {
   // Summary
   p.note(
     [
-      `${chalk.bold('Agents:')} ${agents.map(a => a.name).join(', ')}`,
+      `${chalk.bold('Agents:')} ${agents.map((a) => a.name).join(', ')}`,
       `${chalk.bold('Guardrails:')} ${guardrails}`,
       `${chalk.bold('Directory:')} ${finalDir}`,
       `${chalk.bold('Tmux:')} ${options.tmux === false ? 'Disabled' : 'Enabled'}`,
@@ -237,7 +247,7 @@ async function configureCustomAgents(): Promise<any[]> {
     initialValue: '2',
     validate: (value) => {
       const num = parseInt(value, 10);
-      if (isNaN(num) || num < 1 || num > 5) {
+      if (Number.isNaN(num) || num < 1 || num > 5) {
         return 'Enter a number between 1 and 5';
       }
       return undefined;

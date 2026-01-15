@@ -8,15 +8,15 @@
  * - Utility functions
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
-  AGENT_PRESETS,
   AGENT_COMMANDS,
-  getDefaultShell,
-  isCommandAvailable,
-  type AgentType,
+  AGENT_PRESETS,
   type AgentConfig,
   type AgentPreset,
+  type AgentType,
+  getDefaultShell,
+  isCommandAvailable,
 } from '../agents/types.js';
 
 describe('Agent Types Module', () => {

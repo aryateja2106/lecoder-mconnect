@@ -11,7 +11,7 @@
  * should be run separately with node-pty installed.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AgentInstance,
   AgentManager,
@@ -260,7 +260,14 @@ describe('Agent Manager Module', () => {
 
 describe('AgentConfig Type Validation', () => {
   it('should accept all valid agent types', () => {
-    const types: Array<AgentConfig['type']> = ['claude', 'gemini', 'codex', 'aider', 'shell', 'custom'];
+    const types: Array<AgentConfig['type']> = [
+      'claude',
+      'gemini',
+      'codex',
+      'aider',
+      'shell',
+      'custom',
+    ];
     types.forEach((type) => {
       const config: AgentConfig = {
         type,
@@ -294,7 +301,14 @@ describe('AgentConfig Type Validation', () => {
 
 describe('AgentStatus Type Validation', () => {
   it('should recognize all valid statuses', () => {
-    const validStatuses: AgentStatus[] = ['starting', 'running', 'idle', 'waiting', 'exited', 'error'];
+    const validStatuses: AgentStatus[] = [
+      'starting',
+      'running',
+      'idle',
+      'waiting',
+      'exited',
+      'error',
+    ];
     expect(validStatuses).toHaveLength(6);
   });
 });

@@ -5,15 +5,11 @@
  * then optionally run commands inside that shell.
  */
 
-import { randomBytes } from 'crypto';
-import { getPTYManager, PTYManager } from '../pty/pty-manager.js';
+import { randomBytes } from 'node:crypto';
+import { getPTYManager, type PTYManager } from '../pty/pty-manager.js';
 import type { PTYInstance } from '../pty/types.js';
-import type {
-  AgentConfig,
-  AgentInfo,
-  AgentStatus,
-} from './types.js';
-import { getDefaultShell, AGENT_COMMANDS } from './types.js';
+import type { AgentConfig, AgentInfo, AgentStatus } from './types.js';
+import { AGENT_COMMANDS, getDefaultShell } from './types.js';
 
 /**
  * Generate unique agent ID
@@ -116,7 +112,10 @@ export class AgentInstance {
    * Write to agent stdin
    */
   write(data: string): void {
-    if (this.ptyInstance && (this.status === 'running' || this.status === 'idle' || this.status === 'waiting')) {
+    if (
+      this.ptyInstance &&
+      (this.status === 'running' || this.status === 'idle' || this.status === 'waiting')
+    ) {
       this.ptyInstance.write(data);
       this.lastActivityAt = Date.now();
     }
@@ -325,7 +324,7 @@ export class AgentManager {
    */
   writeToAgent(agentId: string, data: string): boolean {
     const agent = this.agents.get(agentId);
-    if (agent && agent.isRunning()) {
+    if (agent?.isRunning()) {
       agent.write(data);
       return true;
     }
@@ -370,22 +369,10 @@ export class AgentManager {
   /**
    * Register event handler
    */
-  on(
-    event: 'data',
-    handler: (agentId: string, data: string) => void
-  ): void;
-  on(
-    event: 'status',
-    handler: (agentId: string, status: AgentStatus) => void
-  ): void;
-  on(
-    event: 'exit',
-    handler: (agentId: string, code: number, signal?: number) => void
-  ): void;
-  on(
-    event: 'error',
-    handler: (agentId: string, error: Error) => void
-  ): void;
+  on(event: 'data', handler: (agentId: string, data: string) => void): void;
+  on(event: 'status', handler: (agentId: string, status: AgentStatus) => void): void;
+  on(event: 'exit', handler: (agentId: string, code: number, signal?: number) => void): void;
+  on(event: 'error', handler: (agentId: string, error: Error) => void): void;
   on(event: string, handler: (...args: any[]) => void): void {
     if (event in this.eventHandlers) {
       (this.eventHandlers as any)[event].push(handler);

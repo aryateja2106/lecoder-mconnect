@@ -5,18 +5,18 @@
  * WebSocket hub, and optional tmux visualization.
  */
 
-import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
-import { generateSecureToken, generateSessionId, hashForLogging } from './security.js';
-import { loadGuardrails, GuardrailConfig } from './guardrails.js';
-import { createTunnelWithFeedback } from './tunnel.js';
 import { AgentManager } from './agents/agent-manager.js';
-import { WSHub } from './ws/ws-hub.js';
-import { TmuxManager } from './tmux/tmux-manager.js';
-import { getWebClientHTML } from './web/web-client.js';
 import type { AgentConfig } from './agents/types.js';
+import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
+import { generateSecureToken, generateSessionId, hashForLogging } from './security.js';
+import { TmuxManager } from './tmux/tmux-manager.js';
+import { createTunnelWithFeedback } from './tunnel.js';
+import { getWebClientHTML } from './web/web-client.js';
+import { WSHub } from './ws/ws-hub.js';
 
 export interface SessionConfig {
   /** Working directory */
@@ -103,8 +103,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     spinner.stop('Failed to initialize PTY manager');
     p.log.error(error instanceof Error ? error.message : 'Unknown error');
     p.note(
-      'Run the setup script to install dependencies:\n' +
-      '  ./scripts/setup-pty.sh',
+      'Run the setup script to install dependencies:\n' + '  ./scripts/setup-pty.sh',
       'Setup Required'
     );
     throw error;
@@ -163,7 +162,9 @@ export async function startSession(config: SessionConfig): Promise<void> {
       await agentManager.createAgent(agentConfig);
       p.log.step(`Started agent: ${agentConfig.name}`);
     } catch (error) {
-      p.log.error(`Failed to start ${agentConfig.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      p.log.error(
+        `Failed to start ${agentConfig.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -203,7 +204,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   console.log('\n');
 
   // Event handlers for agent manager
-  agentManager.on('data', (agentId, data) => {
+  agentManager.on('data', (_agentId, data) => {
     process.stdout.write(data);
   });
 

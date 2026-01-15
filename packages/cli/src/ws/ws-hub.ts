@@ -5,19 +5,13 @@
  * Handles authentication, message routing, and broadcast.
  */
 
-import { WebSocketServer, WebSocket } from 'ws';
-import type { IncomingMessage, Server as HTTPServer } from 'http';
-import { RateLimiter } from '../security.js';
-import { checkCommand, GuardrailConfig } from '../guardrails.js';
-import { sanitizeInput, detectInjection } from '../security.js';
-import { AgentManager } from '../agents/agent-manager.js';
+import type { Server as HTTPServer, IncomingMessage } from 'node:http';
+import { WebSocket, WebSocketServer } from 'ws';
+import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
-import type {
-  ClientMessage,
-  ServerMessage,
-  ClientInfo,
-  WSHubConfig,
-} from './types.js';
+import { checkCommand, type GuardrailConfig } from '../guardrails.js';
+import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
+import type { ClientInfo, ClientMessage, ServerMessage, WSHubConfig } from './types.js';
 
 /**
  * Extract client IP from request
@@ -44,10 +38,7 @@ export class WSHub {
 
   constructor(httpServer: HTTPServer, config: WSHubConfig) {
     this.config = config;
-    this.rateLimiter = new RateLimiter(
-      config.rateLimit || 10,
-      config.rateLimitWindow || 60000
-    );
+    this.rateLimiter = new RateLimiter(config.rateLimit || 10, config.rateLimitWindow || 60000);
 
     this.wss = new WebSocketServer({
       server: httpServer,
@@ -321,10 +312,7 @@ export class WSHub {
   /**
    * Handle agent creation request
    */
-  private async handleCreateAgent(
-    ws: WebSocket,
-    config: Omit<AgentConfig, 'cwd'>
-  ): Promise<void> {
+  private async handleCreateAgent(ws: WebSocket, config: Omit<AgentConfig, 'cwd'>): Promise<void> {
     if (!this.agentManager) {
       this.sendToClient(ws, {
         type: 'error',

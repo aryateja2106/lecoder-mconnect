@@ -10,7 +10,7 @@
  * that may not be available in all environments.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Create mock PTY process
 const createMockPtyProcess = () => {
@@ -19,15 +19,19 @@ const createMockPtyProcess = () => {
 
   return {
     pid: 12345,
-    onData: vi.fn((cb) => { dataCallbacks.push(cb); }),
-    onExit: vi.fn((cb) => { exitCallbacks.push(cb); }),
+    onData: vi.fn((cb) => {
+      dataCallbacks.push(cb);
+    }),
+    onExit: vi.fn((cb) => {
+      exitCallbacks.push(cb);
+    }),
     write: vi.fn(),
     resize: vi.fn(),
     kill: vi.fn(),
     // Test helpers
-    _simulateData: (data: string) => dataCallbacks.forEach(cb => cb(data)),
+    _simulateData: (data: string) => dataCallbacks.forEach((cb) => cb(data)),
     _simulateExit: (exitCode: number, signal?: number) =>
-      exitCallbacks.forEach(cb => cb({ exitCode, signal })),
+      exitCallbacks.forEach((cb) => cb({ exitCode, signal })),
   };
 };
 
@@ -36,7 +40,7 @@ vi.mock('node-pty', () => ({
   spawn: vi.fn(() => createMockPtyProcess()),
 }));
 
-import { PTYManager, getPTYManager, isPtyAvailable } from '../pty/pty-manager.js';
+import { getPTYManager, isPtyAvailable, PTYManager } from '../pty/pty-manager.js';
 
 describe('PTY Manager Module', () => {
   beforeEach(() => {

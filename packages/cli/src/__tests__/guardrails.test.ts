@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { loadGuardrails, checkCommand, GuardrailConfig } from '../guardrails.js';
+import { describe, expect, it } from 'vitest';
+import { checkCommand, loadGuardrails } from '../guardrails.js';
 
 describe('Guardrails Module', () => {
   describe('loadGuardrails', () => {

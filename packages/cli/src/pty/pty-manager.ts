@@ -5,12 +5,12 @@
  * Each agent gets its own PTY for full terminal emulation.
  */
 
+import { randomBytes } from 'node:crypto';
+import { accessSync, constants, existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
 import type { IPty } from 'node-pty';
-import type { PTYOptions, PTYSize, PTYInstance, PTYEvent } from './types.js';
-import { randomBytes } from 'crypto';
-import { createRequire } from 'module';
-import { existsSync, accessSync, constants } from 'fs';
-import { resolve } from 'path';
+import type { PTYEvent, PTYInstance, PTYOptions, PTYSize } from './types.js';
 
 // Use createRequire to load CommonJS node-pty module in ESM
 const require = createRequire(import.meta.url);
@@ -149,7 +149,7 @@ export class PTYManager {
     if (!available) {
       throw new Error(
         'node-pty is not available. Run: npm install node-pty\n' +
-        'Requires: Python 3, C++ compiler (Xcode on macOS, build-essential on Linux)'
+          'Requires: Python 3, C++ compiler (Xcode on macOS, build-essential on Linux)'
       );
     }
 
