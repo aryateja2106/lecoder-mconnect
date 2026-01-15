@@ -21,13 +21,13 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 
 <div align="center">
 
-### 📸 Screenshots
+### 📸 Mobile Screenshots
 
-| Multi-Agent Tabs | Claude Code Running | Gemini CLI | Cursor Agent |
-|:---:|:---:|:---:|:---:|
-| ![Multi-Agent](docs/screenshots/multi-agent-tabs.png) | ![Claude Code](docs/screenshots/claude-code.png) | ![Gemini](docs/screenshots/gemini-cli.png) | ![Cursor](docs/screenshots/cursor-agent.png) |
+| Claude Code | Cursor Agent | Gemini CLI |
+|:---:|:---:|:---:|
+| <img src="apps/web/public/mobile-view-ss/claude-code-view.PNG" width="250" alt="Claude Code"> | <img src="apps/web/public/mobile-view-ss/cursor-agent-view.PNG" width="250" alt="Cursor Agent"> | <img src="apps/web/public/mobile-view-ss/gemini-cli-view.PNG" width="250" alt="Gemini CLI"> |
 
-*Add your screenshots to `docs/screenshots/` folder*
+*Control Claude Code, Cursor Agent, Gemini CLI and more from your phone*
 
 </div>
 
