@@ -363,6 +363,17 @@ export function getWebClientHTML(
       border-color: var(--success);
     }
 
+    .shortcut-btn.delete-btn {
+      background: var(--warning);
+      color: var(--void);
+      border-color: var(--warning);
+      font-size: 14px;
+    }
+
+    .shortcut-btn.delete-btn:active {
+      background: #CA8A04;
+    }
+
     /* Input Bar */
     .input-bar {
       display: flex;
@@ -578,7 +589,7 @@ export function getWebClientHTML(
     <!-- Header -->
     <div class="header">
       <div class="logo">
-        <span>>_</span>
+        <span>>_<</span>
         <span>MConnect</span>
       </div>
       <div class="status">
@@ -611,16 +622,13 @@ export function getWebClientHTML(
     <div class="bottom-bars" id="bottomBars">
       <!-- Shortcut Bar -->
       <div class="shortcut-bar">
-        <button class="shortcut-btn enter-btn" onclick="sendEnter()">Enter</button>
         <button class="shortcut-btn copy-btn" id="copyBtn" onclick="copySelection()">Copy</button>
+        <button class="shortcut-btn delete-btn" onclick="sendBackspace()">\u232B</button>
         <button class="shortcut-btn" id="ctrlBtn" onclick="toggleCtrl()">Ctrl</button>
         <button class="shortcut-btn" onclick="sendKey('Tab')">Tab</button>
         <button class="shortcut-btn" onclick="sendKey('Escape')">Esc</button>
         <button class="shortcut-btn" onclick="sendKey('ArrowUp')">\u2191</button>
         <button class="shortcut-btn" onclick="sendKey('ArrowDown')">\u2193</button>
-        <button class="shortcut-btn" onclick="sendCtrlKey('C')">^C</button>
-        <button class="shortcut-btn" onclick="sendCtrlKey('D')">^D</button>
-        <button class="shortcut-btn" onclick="sendCtrlKey('L')">^L</button>
       </div>
 
       <!-- Input Bar -->
@@ -636,6 +644,7 @@ export function getWebClientHTML(
           spellcheck="false"
           disabled
         >
+        <button class="shortcut-btn enter-btn" onclick="sendEnter()" style="padding: 12px 16px;">Enter</button>
         <button class="send-btn" id="sendBtn" onclick="sendInput()" disabled>Run</button>
       </div>
 
@@ -802,12 +811,15 @@ export function getWebClientHTML(
         this.lastTouchY = 0;
         this.velocity = 0;
         this.lastMoveTime = 0;
-        // MUCH lower thresholds for smoother scrolling
-        this.scrollThreshold = 15; // Lower = more responsive
-        this.arrowThreshold = 25;  // Lower = more responsive for TUI
+        // Thresholds for scrolling
+        this.scrollThreshold = 10; // Lower = more responsive for normal buffer
+        this.arrowThreshold = 40;  // Higher = less flickering for TUI apps
         this.element = terminal.element;
         this.isScrolling = false;
         this.momentumId = null;
+        // Debounce TUI arrow keys to prevent flooding
+        this.lastArrowSent = 0;
+        this.arrowDebounce = 80; // ms between arrow key sends
 
         this.bindEvents();
       }
@@ -854,8 +866,8 @@ export function getWebClientHTML(
         const deltaTime = currentTime - this.lastMoveTime;
         const totalDeltaY = this.touchStartY - currentY;
 
-        // Determine if this is a scroll gesture (lower threshold for faster response)
-        if (!this.isScrolling && Math.abs(totalDeltaY) > 5) {
+        // Determine if this is a scroll gesture
+        if (!this.isScrolling && Math.abs(totalDeltaY) > 8) {
           this.isScrolling = true;
         }
 
@@ -873,13 +885,14 @@ export function getWebClientHTML(
         const isAltBuffer = this.isInAlternateBuffer();
 
         if (isAltBuffer) {
-          // In TUI mode: send arrow keys for scrolling
-          // NOTE: We allow scroll even in read-only mode because viewing is not modifying
-          if (Math.abs(deltaY) > this.arrowThreshold) {
+          // In TUI mode: send arrow keys for scrolling (debounced to prevent flickering)
+          const now = Date.now();
+          if (Math.abs(deltaY) > this.arrowThreshold && (now - this.lastArrowSent) > this.arrowDebounce) {
             const arrowKey = deltaY > 0 ? '\\x1b[A' : '\\x1b[B'; // Up or Down
             this.sendData(arrowKey);
             this.lastTouchY = currentY;
             this.lastMoveTime = currentTime;
+            this.lastArrowSent = now;
           }
         } else {
           // Normal buffer: smooth scroll with lower threshold
@@ -896,7 +909,7 @@ export function getWebClientHTML(
         // Apply momentum scrolling for normal buffer only
         const isAltBuffer = this.isInAlternateBuffer();
 
-        if (!isAltBuffer && Math.abs(this.velocity) > 0.5) {
+        if (!isAltBuffer && Math.abs(this.velocity) > 0.3) {
           this.applyMomentum();
         }
 
@@ -907,8 +920,8 @@ export function getWebClientHTML(
       }
 
       applyMomentum() {
-        const friction = 0.95;
-        const minVelocity = 0.1;
+        const friction = 0.92;
+        const minVelocity = 0.05;
 
         const step = () => {
           if (Math.abs(this.velocity) < minVelocity) {
@@ -916,7 +929,7 @@ export function getWebClientHTML(
             return;
           }
 
-          const lines = Math.sign(this.velocity) * Math.ceil(Math.abs(this.velocity) * 5);
+          const lines = Math.sign(this.velocity) * Math.ceil(Math.abs(this.velocity) * 8);
           this.terminal.scrollLines(lines);
           this.velocity *= friction;
           this.momentumId = requestAnimationFrame(step);
@@ -931,11 +944,12 @@ export function getWebClientHTML(
 
         if (isAltBuffer) {
           e.preventDefault();
-          // Send arrow keys for TUI apps (allow even in read-only mode)
-          const arrowKey = e.deltaY > 0 ? '\\x1b[B' : '\\x1b[A';
-          const count = Math.ceil(Math.abs(e.deltaY) / 50);
-          for (let i = 0; i < count; i++) {
+          // Send arrow keys for TUI apps (debounced)
+          const now = Date.now();
+          if ((now - this.lastArrowSent) > this.arrowDebounce) {
+            const arrowKey = e.deltaY > 0 ? '\\x1b[B' : '\\x1b[A';
             this.sendData(arrowKey);
+            this.lastArrowSent = now;
           }
         }
         // For normal buffer, let xterm handle wheel scrolling natively
@@ -1316,6 +1330,13 @@ export function getWebClientHTML(
         toggleCtrl();
       }
       if (data) sendTerminalData(activeAgentId, data);
+    }
+
+    function sendBackspace() {
+      if (!activeAgentId) return;
+      if (isReadOnly) { showReadonlyHint(); return; }
+      // Send backspace character (ASCII 127 or \\x7f)
+      sendTerminalData(activeAgentId, '\\x7f');
     }
 
     function sendEnter() {

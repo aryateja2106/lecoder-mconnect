@@ -6,11 +6,14 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import { accessSync, constants, existsSync } from 'node:fs';
+import { accessSync, chmodSync, constants, existsSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { IPty } from 'node-pty';
 import type { PTYEvent, PTYInstance, PTYOptions, PTYSize } from './types.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Use createRequire to load CommonJS node-pty module in ESM
 const require = createRequire(import.meta.url);
@@ -19,10 +22,94 @@ const require = createRequire(import.meta.url);
 let pty: typeof import('node-pty') | null = null;
 
 /**
+ * Fix spawn-helper permissions in node-pty prebuilds
+ * This is needed because npm sometimes strips execute permissions
+ * from prebuilt binaries when installing globally or via npx.
+ */
+function fixSpawnHelperPermissions(): void {
+  if (process.platform === 'win32') {
+    return;
+  }
+
+  // The most reliable way: use require.resolve to find node-pty
+  try {
+    const nodePtyPath = require.resolve('node-pty');
+    const nodePtyDir = dirname(nodePtyPath);
+    const prebuildsPath = join(nodePtyDir, 'prebuilds');
+
+    if (existsSync(prebuildsPath)) {
+      console.log(`[PTY] Checking spawn-helper permissions in: ${prebuildsPath}`);
+      fixPermissionsInDir(prebuildsPath);
+    }
+  } catch (_e) {
+    // node-pty not found yet, try relative paths as fallback
+  }
+
+  // Also try relative paths as fallback
+  const possiblePaths = [
+    // Relative to this file (in dist/)
+    join(__dirname, '..', '..', 'node_modules', 'node-pty', 'prebuilds'),
+    // When installed globally
+    join(__dirname, '..', '..', '..', 'node-pty', 'prebuilds'),
+    join(__dirname, '..', '..', '..', '..', 'node-pty', 'prebuilds'),
+    join(__dirname, '..', '..', '..', '..', '..', 'node-pty', 'prebuilds'),
+  ];
+
+  for (const prebuildsPath of possiblePaths) {
+    if (existsSync(prebuildsPath)) {
+      fixPermissionsInDir(prebuildsPath);
+    }
+  }
+}
+
+/**
+ * Recursively fix permissions for spawn-helper files
+ */
+function fixPermissionsInDir(dir: string): void {
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        fixPermissionsInDir(fullPath);
+      } else if (entry.name === 'spawn-helper') {
+        try {
+          const stats = statSync(fullPath);
+          const hasExec = (stats.mode & 0o111) !== 0;
+
+          // Always try to set permissions (even if they look right, they might not be)
+          // This handles edge cases where stat reports wrong permissions
+          try {
+            chmodSync(fullPath, 0o755);
+            if (!hasExec) {
+              console.log(`[PTY] Fixed spawn-helper permissions: ${fullPath}`);
+            }
+          } catch (_chmodErr) {
+            // If chmod fails but we have exec, that's ok
+            if (!hasExec) {
+              console.error(`[PTY] Cannot fix spawn-helper permissions: ${fullPath}`);
+            }
+          }
+        } catch (_e) {
+          // Ignore stat errors
+        }
+      }
+    }
+  } catch (_e) {
+    // Ignore read errors
+  }
+}
+
+/**
  * Check if node-pty is available
  */
 export async function isPtyAvailable(): Promise<boolean> {
   try {
+    // Fix spawn-helper permissions before loading
+    fixSpawnHelperPermissions();
+
     // Use require() instead of import() for CommonJS native modules
     pty = require('node-pty');
     return true;
