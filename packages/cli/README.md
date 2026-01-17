@@ -204,7 +204,12 @@ mconnect start --port 9000
 
 # Disable tmux visualization
 mconnect start --no-tmux
+
+# Show pairing code (for dev/desktop use)
+mconnect start --code
 ```
+
+By default, `mconnect` shows only a QR code optimized for mobile scanning. Use the `--code` flag to also display a 6-character pairing code for desktop/dev scenarios where you can't scan QR codes.
 
 ### `mconnect doctor`
 
@@ -367,6 +372,7 @@ mconnect session export abc12345 --output session.log
 | `-g, --guardrails <level>` | Security level | `default` |
 | `--port <number>` | WebSocket server port | `8765` |
 | `--no-tmux` | Disable tmux server visualization | Enabled |
+| `-c, --code` | Show pairing code (for dev/desktop) | QR only |
 
 ### Guardrails Levels
 
