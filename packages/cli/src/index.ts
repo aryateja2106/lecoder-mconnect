@@ -47,6 +47,7 @@ program
   .option('-g, --guardrails <level>', 'Guardrails level (default, strict, permissive, none)')
   .option('--port <number>', 'Server port (default: 8765)')
   .option('--no-tmux', 'Disable tmux visualization')
+  .option('-c, --code', 'Show pairing code (for dev/desktop use)')
   .action(async (options) => {
     // Quick check for node-pty before starting wizard
     const ptyAvailable = await isNodePtyAvailable();
@@ -245,6 +246,7 @@ async function runWizard(options: any): Promise<void> {
       agents,
       enableTmux: options.tmux !== false,
       port: options.port ? parseInt(options.port, 10) : undefined,
+      showPairingCode: options.code === true,
     });
   } catch (error) {
     p.log.error(error instanceof Error ? error.message : 'Unknown error');

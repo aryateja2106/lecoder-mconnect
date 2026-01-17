@@ -31,6 +31,8 @@ export interface SessionConfig {
   enableTmux?: boolean;
   /** Server port (default: 8765) */
   port?: number;
+  /** Show pairing code in terminal (default: false, QR only for mobile) */
+  showPairingCode?: boolean;
 }
 
 /**
@@ -342,13 +344,15 @@ export async function startSession(config: SessionConfig): Promise<void> {
   }
   console.log('\n');
 
-  // Display pairing code prominently
-  console.log(chalk.bold.cyan('  ────────────────────────────────────'));
-  console.log(chalk.bold.cyan(`  │  PAIRING CODE:  ${chalk.white.bold(pairingCode)}  │`));
-  console.log(chalk.bold.cyan('  ────────────────────────────────────'));
-  console.log(chalk.dim('  Enter this code in the web app to connect'));
-  console.log(chalk.dim('  (Valid for 5 minutes)'));
-  console.log('\n');
+  // Display pairing code only if --code flag is used
+  if (config.showPairingCode) {
+    console.log(chalk.bold.cyan('  ────────────────────────────────────'));
+    console.log(chalk.bold.cyan(`  │  PAIRING CODE:  ${chalk.white.bold(pairingCode)}  │`));
+    console.log(chalk.bold.cyan('  ────────────────────────────────────'));
+    console.log(chalk.dim('  Enter this code in the web app to connect'));
+    console.log(chalk.dim('  (Valid for 5 minutes)'));
+    console.log('\n');
+  }
 
   p.log.info(`Press ${chalk.cyan('Ctrl+C')} to stop the session`);
   console.log('\n');
