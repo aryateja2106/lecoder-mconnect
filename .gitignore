@@ -77,3 +77,9 @@ bun.lockb
 
 # Local development
 *.local
+
+# Claude
+.claude/
+
+# Git Spec Kit
+.specify/
