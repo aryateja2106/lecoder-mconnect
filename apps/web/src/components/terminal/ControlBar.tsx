@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { Lock, Unlock, X, Check, Skull } from 'lucide-react';
+import { ControlStatus } from '../ControlStatus';
+import { TakeControlButton } from '../TakeControlButton';
+import type { ControlStatus as ControlStatusType } from '../../hooks/useControlState';
 
 interface ControlBarProps {
   isReadOnly: boolean;
@@ -13,6 +16,11 @@ interface ControlBarProps {
     command: string;
     reason: string;
   } | null;
+  // v2 protocol additions
+  controlStatus?: ControlStatusType;
+  onRequestControl?: () => void;
+  onReleaseControl?: () => void;
+  isControlPending?: boolean;
 }
 
 export function ControlBar({
@@ -22,6 +30,10 @@ export function ControlBar({
   onDeny,
   onKill,
   pendingApproval,
+  controlStatus,
+  onRequestControl,
+  onReleaseControl,
+  isControlPending,
 }: ControlBarProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showKillConfirm, setShowKillConfirm] = useState(false);
@@ -50,6 +62,19 @@ export function ControlBar({
 
   return (
     <>
+      {/* Control Status Bar (v2) */}
+      {controlStatus && (
+        <div className="fixed bottom-16 left-0 right-0 bg-zinc-900/95 border-t border-zinc-800 px-4 py-2 safe-area-inset-bottom">
+          <div className="flex items-center justify-center max-w-lg mx-auto">
+            <ControlStatus
+              state={controlStatus.state}
+              activeClient={controlStatus.activeClient}
+              exclusiveTimeRemaining={controlStatus.exclusiveTimeRemaining}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main Control Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800 p-3 safe-area-inset-bottom">
         <div className="flex items-center justify-between gap-2 max-w-lg mx-auto">
@@ -68,6 +93,16 @@ export function ControlBar({
             {isReadOnly ? <Lock size={18} /> : <Unlock size={18} />}
             {isReadOnly ? 'Read-Only' : 'Edit Mode'}
           </button>
+
+          {/* Take Control Button (v2 mobile) */}
+          {controlStatus && onRequestControl && onReleaseControl && (
+            <TakeControlButton
+              controlStatus={controlStatus}
+              onRequestControl={onRequestControl}
+              onReleaseControl={onReleaseControl}
+              isPending={isControlPending}
+            />
+          )}
 
           {/* Approval Buttons (shown when pending) */}
           {pendingApproval && (

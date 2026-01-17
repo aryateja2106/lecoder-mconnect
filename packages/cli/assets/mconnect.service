@@ -1,0 +1,22 @@
+[Unit]
+Description=MConnect Daemon - Mobile terminal control for AI coding agents
+Documentation=https://github.com/aryateja2106/lecoder-mconnect
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/mconnect daemon start --foreground
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

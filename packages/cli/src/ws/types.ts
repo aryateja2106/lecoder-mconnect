@@ -5,6 +5,7 @@
  */
 
 import type { AgentConfig, AgentInfo, AgentStatus } from '../agents/types.js';
+import type { ServerMessageV2, ClientMessageV2 } from './protocol.js';
 
 // ============================================
 // Client -> Server Messages
@@ -60,7 +61,8 @@ export type ClientMessage =
   | ClientSwitchAgentMessage
   | ClientListAgentsMessage
   | ClientPingMessage
-  | ClientModeChangeMessage;
+  | ClientModeChangeMessage
+  | ClientMessageV2;
 
 // ============================================
 // Server -> Client Messages
@@ -153,7 +155,8 @@ export type ServerMessage =
   | ServerErrorMessage
   | ServerCommandBlockedMessage
   | ServerApprovalRequestMessage
-  | ServerPongMessage;
+  | ServerPongMessage
+  | ServerMessageV2;
 
 // ============================================
 // Connection Types
@@ -180,3 +183,10 @@ export interface WSHubConfig {
   /** Rate limit window (ms) */
   rateLimitWindow?: number;
 }
+
+// ============================================
+// Protocol v2 Message Types (MConnect v0.2.0)
+// ============================================
+
+// Re-export all v2 protocol types for convenience
+export * from './protocol.js';
