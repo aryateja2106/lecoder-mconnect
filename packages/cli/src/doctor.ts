@@ -5,7 +5,9 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
 import chalk from 'chalk';
 
@@ -286,6 +288,139 @@ function checkShell(): DiagnosticResult {
 }
 
 /**
+ * Get MConnect data directory
+ */
+function getMConnectDataDir(): string {
+  return process.env.MCONNECT_DATA_DIR || join(homedir(), '.mconnect');
+}
+
+/**
+ * Check if daemon is running (PID file and process)
+ */
+function checkDaemon(): DiagnosticResult {
+  const dataDir = getMConnectDataDir();
+  const pidFile = join(dataDir, 'daemon.pid');
+
+  if (!existsSync(pidFile)) {
+    return {
+      name: 'Daemon',
+      status: 'warning',
+      message: 'Daemon not running (no PID file)',
+      fix: 'Run: mconnect daemon start',
+    };
+  }
+
+  try {
+    const pid = parseInt(readFileSync(pidFile, 'utf-8').trim(), 10);
+
+    // Check if process is running
+    try {
+      process.kill(pid, 0); // Signal 0 just checks if process exists
+      return {
+        name: 'Daemon',
+        status: 'ok',
+        message: `Daemon running (PID: ${pid})`,
+      };
+    } catch {
+      return {
+        name: 'Daemon',
+        status: 'warning',
+        message: `Stale PID file (process ${pid} not running)`,
+        fix: 'Run: mconnect daemon start',
+      };
+    }
+  } catch {
+    return {
+      name: 'Daemon',
+      status: 'warning',
+      message: 'Could not read PID file',
+      fix: 'Run: mconnect daemon start',
+    };
+  }
+}
+
+/**
+ * Check IPC socket
+ */
+function checkIpcSocket(): DiagnosticResult {
+  const dataDir = getMConnectDataDir();
+  const socketPath = join(dataDir, 'daemon.sock');
+
+  if (!existsSync(socketPath)) {
+    return {
+      name: 'IPC Socket',
+      status: 'warning',
+      message: 'IPC socket not found',
+      fix: 'Daemon may not be running. Run: mconnect daemon start',
+    };
+  }
+
+  return {
+    name: 'IPC Socket',
+    status: 'ok',
+    message: `IPC socket available at ${socketPath}`,
+  };
+}
+
+/**
+ * Check SQLite database
+ */
+function checkDatabase(): DiagnosticResult {
+  const dataDir = getMConnectDataDir();
+  const dbPath = join(dataDir, 'sessions.db');
+
+  if (!existsSync(dataDir)) {
+    return {
+      name: 'Database',
+      status: 'warning',
+      message: 'Data directory not found',
+      fix: 'Run: mconnect daemon start (will create automatically)',
+    };
+  }
+
+  if (!existsSync(dbPath)) {
+    return {
+      name: 'Database',
+      status: 'warning',
+      message: 'Database file not found',
+      fix: 'Run: mconnect daemon start (will create automatically)',
+    };
+  }
+
+  // Check if database is accessible
+  try {
+    const Database = require('better-sqlite3');
+    const db = new Database(dbPath, { readonly: true });
+
+    // Quick query to verify database is valid
+    const result = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'").get();
+    db.close();
+
+    if (result) {
+      return {
+        name: 'Database',
+        status: 'ok',
+        message: `Database accessible at ${dbPath}`,
+      };
+    } else {
+      return {
+        name: 'Database',
+        status: 'warning',
+        message: 'Database exists but missing sessions table',
+        fix: 'Database may need migration. Run: mconnect daemon start',
+      };
+    }
+  } catch (error: any) {
+    return {
+      name: 'Database',
+      status: 'warning',
+      message: `Database check failed: ${error?.message?.substring(0, 50) || 'Unknown error'}`,
+      fix: 'Database may be corrupted or locked',
+    };
+  }
+}
+
+/**
  * Run all diagnostics
  */
 export async function runDiagnostics(): Promise<DiagnosticResult[]> {
@@ -302,6 +437,11 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
   results.push(checkTmux());
   results.push(checkCloudflared());
 
+  // Daemon checks (v0.2.0+)
+  results.push(checkDaemon());
+  results.push(checkIpcSocket());
+  results.push(checkDatabase());
+
   return results;
 }
 
@@ -309,7 +449,7 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
  * Print diagnostic results
  */
 export function printDiagnostics(results: DiagnosticResult[]): void {
-  console.log(`\n${chalk.bold('MConnect v0.1.3 - System Diagnostics')}\n`);
+  console.log(`\n${chalk.bold('MConnect v0.2.0 - System Diagnostics')}\n`);
 
   let hasErrors = false;
   let hasWarnings = false;

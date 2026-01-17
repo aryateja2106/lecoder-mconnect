@@ -129,7 +129,7 @@ mconnect doctor
 
 Expected output:
 ```
-MConnect v0.1.2 - System Diagnostics
+MConnect v0.2.0 - System Diagnostics
 
   ✓ Node.js: Node.js v20.x.x installed
   ✓ Shell: Default shell: /bin/zsh
@@ -228,6 +228,133 @@ Available presets:
 - `research-spec-test` - 3 shells for parallel workflows
 - `dev-review` - 2 shells for development workflow
 - `custom` - Configure multiple shells manually
+
+---
+
+## Daemon Commands (v0.2.0+)
+
+MConnect v0.2.0 introduces a daemon architecture for persistent sessions that survive disconnects.
+
+### `mconnect daemon start`
+
+Start the MConnect daemon as a background service:
+
+```bash
+mconnect daemon start
+```
+
+Options:
+- `--foreground` - Run in foreground (for systemd/launchd)
+- `--port <port>` - WebSocket server port (default: 8765)
+
+### `mconnect daemon stop`
+
+Stop the running daemon:
+
+```bash
+mconnect daemon stop
+```
+
+### `mconnect daemon status`
+
+Check daemon status:
+
+```bash
+mconnect daemon status
+```
+
+### `mconnect daemon logs`
+
+View daemon logs:
+
+```bash
+# View recent logs
+mconnect daemon logs
+
+# Follow logs in real-time
+mconnect daemon logs --follow
+
+# Show last N lines
+mconnect daemon logs --lines 100
+```
+
+### `mconnect daemon install`
+
+Install daemon as a system service:
+
+```bash
+# Install as system service (starts on boot)
+mconnect daemon install
+```
+
+### `mconnect daemon uninstall`
+
+Remove the system service:
+
+```bash
+mconnect daemon uninstall
+```
+
+---
+
+## Session Commands (v0.2.0+)
+
+Manage persistent sessions with these commands:
+
+### `mconnect session list`
+
+List all sessions:
+
+```bash
+mconnect session list
+```
+
+### `mconnect session create`
+
+Create a new session:
+
+```bash
+mconnect session create --preset single --dir /path/to/project
+```
+
+### `mconnect session attach <sessionId>`
+
+Attach to an existing session:
+
+```bash
+# Attach to session by ID
+mconnect session attach abc12345
+
+# Detach with Ctrl+D
+```
+
+### `mconnect session kill <sessionId>`
+
+Terminate a session:
+
+```bash
+mconnect session kill abc12345
+```
+
+### `mconnect session export <sessionId>`
+
+Export session scrollback to file:
+
+```bash
+mconnect session export abc12345 --output session.log
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MCONNECT_HOME` | Data directory for sessions and logs | `~/.mconnect` |
+| `MCONNECT_PORT` | WebSocket server port | `8765` |
+| `MCONNECT_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
+| `MCONNECT_MAX_SESSIONS` | Maximum concurrent sessions | `5` |
+| `MCONNECT_NO_TUNNEL` | Disable Cloudflare tunnel | `false` |
 
 ---
 
