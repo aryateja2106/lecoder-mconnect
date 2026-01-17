@@ -80,6 +80,8 @@ bun.lockb
 
 # Claude
 .claude/
+CLAUDE.md
 
 # Git Spec Kit
 .specify/
+specs/
