@@ -48,6 +48,7 @@ program
   .option('--port <number>', 'Server port (default: 8765)')
   .option('--no-tmux', 'Disable tmux visualization')
   .option('-c, --code', 'Show pairing code (for dev/desktop use)')
+  .option('--web-url <url>', 'Web app URL (e.g. http://localhost:3000)')
   .action(async (options) => {
     // Quick check for node-pty before starting wizard
     const ptyAvailable = await isNodePtyAvailable();
@@ -247,6 +248,7 @@ async function runWizard(options: any): Promise<void> {
       enableTmux: options.tmux !== false,
       port: options.port ? parseInt(options.port, 10) : undefined,
       showPairingCode: options.code === true,
+      webUrl: options.webUrl,
     });
   } catch (error) {
     p.log.error(error instanceof Error ? error.message : 'Unknown error');

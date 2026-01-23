@@ -33,6 +33,8 @@ export interface SessionConfig {
   port?: number;
   /** Show pairing code in terminal (default: false, QR only for mobile) */
   showPairingCode?: boolean;
+  /** Web app base URL (if using external web UI) */
+  webUrl?: string;
 }
 
 /**
@@ -315,8 +317,25 @@ export async function startSession(config: SessionConfig): Promise<void> {
   console.log(`  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`);
 
   // Display session info
-  const baseUrl = tunnelUrl || `http://localhost:${port}`;
-  const connectUrl = `${baseUrl}?token=${sessionToken}`;
+  const serverUrl = tunnelUrl || `http://localhost:${port}`;
+  let connectUrl = new URL(serverUrl);
+  let usingWebUrl = false;
+
+  if (config.webUrl) {
+    try {
+      connectUrl = new URL(config.webUrl);
+      usingWebUrl = true;
+    } catch (error) {
+      p.log.warning(`Invalid web URL provided: ${config.webUrl}`);
+      p.log.warning('Falling back to the built-in web client.');
+    }
+  }
+
+  connectUrl.searchParams.set('token', sessionToken);
+  if (usingWebUrl) {
+    connectUrl.searchParams.set('server', serverUrl);
+  }
+  const connectUrlString = connectUrl.toString();
 
   console.log('\n');
   p.log.success('MConnect v0.1.2 - Multi-Agent Session');
@@ -324,13 +343,16 @@ export async function startSession(config: SessionConfig): Promise<void> {
 
   // Display QR code
   console.log(chalk.bold('  Scan this QR code with your phone:\n'));
-  qrcode.generate(connectUrl, { small: true }, (qr) => {
+  qrcode.generate(connectUrlString, { small: true }, (qr) => {
     console.log(qr);
   });
 
   console.log('\n');
   console.log(chalk.dim(`  Session ID: ${sessionId}`));
-  if (tunnelUrl) {
+  if (usingWebUrl) {
+    console.log(chalk.green(`  Web URL: ${connectUrlString}`));
+    console.log(chalk.dim(`  Server URL: ${serverUrl}`));
+  } else if (tunnelUrl) {
     console.log(chalk.green(`  Remote URL: ${tunnelUrl}`));
   } else {
     console.log(chalk.yellow(`  Local URL: http://localhost:${port}`));

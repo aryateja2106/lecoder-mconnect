@@ -216,6 +216,26 @@ export default function Home() {
   const [noToken, setNoToken] = useState(false);
   const [serverUrl, setServerUrl] = useState<string>('');
 
+  const resolveServerOrigin = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    const serverParam = params.get('server');
+    if (serverParam) {
+      try {
+        return new URL(serverParam).origin;
+      } catch {
+        // Ignore invalid server param and fall back to heuristics
+      }
+    }
+
+    if (window.location.hostname.includes('trycloudflare.com')) {
+      return window.location.origin;
+    }
+    if (window.location.hostname === 'localhost' && window.location.port === '3000') {
+      return 'http://localhost:8765';
+    }
+    return window.location.origin;
+  }, []);
+
   // Handle successful pairing code entry
   const handlePairingSuccess = useCallback((token: string) => {
     // Update URL with token (for reload persistence)
@@ -223,37 +243,19 @@ export default function Home() {
     url.searchParams.set('token', token);
     window.history.replaceState({}, '', url.toString());
 
-    // Set up WebSocket connection
-    const isSecure = window.location.protocol === 'https:';
-    const wsProtocol = isSecure ? 'wss:' : 'ws:';
-    let wsHost: string;
-
-    if (window.location.hostname.includes('trycloudflare.com')) {
-      wsHost = window.location.host;
-    } else if (window.location.hostname === 'localhost' && window.location.port === '3000') {
-      wsHost = 'localhost:8765';
-    } else {
-      wsHost = window.location.host;
-    }
-
+    const origin = resolveServerOrigin();
+    const wsProtocol = origin.startsWith('https') ? 'wss:' : 'ws:';
+    const wsHost = new URL(origin).host;
     setWsUrl(`${wsProtocol}//${wsHost}?token=${token}`);
     setNoToken(false);
-  }, []);
+  }, [resolveServerOrigin]);
 
   // Get token from URL params and construct WebSocket URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
 
-    // Determine server URL for pairing API
-    let apiHost: string;
-    if (window.location.hostname.includes('trycloudflare.com')) {
-      apiHost = window.location.origin;
-    } else if (window.location.hostname === 'localhost' && window.location.port === '3000') {
-      apiHost = 'http://localhost:8765';
-    } else {
-      apiHost = window.location.origin;
-    }
+    const apiHost = resolveServerOrigin();
     setServerUrl(apiHost);
 
     if (!token) {
@@ -261,27 +263,10 @@ export default function Home() {
       return;
     }
 
-    // Determine WebSocket URL based on current page URL
-    const isSecure = window.location.protocol === 'https:';
-    const wsProtocol = isSecure ? 'wss:' : 'ws:';
-
-    // If accessed via tunnel (trycloudflare.com), the WebSocket goes through the same URL
-    // If accessed locally, connect to the local WebSocket port
-    let wsHost: string;
-
-    if (window.location.hostname.includes('trycloudflare.com')) {
-      // Cloudflare tunnel - WebSocket through same host
-      wsHost = window.location.host;
-    } else if (window.location.hostname === 'localhost' && window.location.port === '3000') {
-      // Local dev server - WebSocket on different port
-      wsHost = 'localhost:8765';
-    } else {
-      // Direct access to WebSocket server
-      wsHost = window.location.host;
-    }
-
+    const wsProtocol = apiHost.startsWith('https') ? 'wss:' : 'ws:';
+    const wsHost = new URL(apiHost).host;
     setWsUrl(`${wsProtocol}//${wsHost}?token=${token}`);
-  }, []);
+  }, [resolveServerOrigin]);
 
   const {
     status,

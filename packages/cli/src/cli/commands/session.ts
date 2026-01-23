@@ -10,7 +10,6 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { createConnection } from 'node:net';
 import { existsSync, writeFileSync } from 'node:fs';
-import { SessionStore } from '../../session/SessionStore.js';
 
 function getDataDir(): string {
   return process.env.MCONNECT_DATA_DIR || join(homedir(), '.mconnect');
@@ -52,7 +51,7 @@ async function sendIpcMessage(request: IpcRequest): Promise<IpcResponse> {
         try {
           const response = JSON.parse(data.trim());
           resolve(response);
-        } catch (e) {
+        } catch {
           reject(new Error('Invalid response from daemon'));
         }
         client.end();
@@ -99,14 +98,15 @@ async function listSessions(): Promise<void> {
     for (const session of sessions) {
       const created = new Date(session.createdAt).toLocaleString();
       const activity = new Date(session.lastActivity).toLocaleString();
-      const stateColor =
-        session.state === 'running'
-          ? chalk.green
-          : session.state === 'paused'
-            ? chalk.yellow
-            : chalk.gray;
+      let stateColor = chalk.gray;
+      if (session.state === 'running') {
+        stateColor = chalk.green;
+      } else if (session.state === 'paused') {
+        stateColor = chalk.yellow;
+      }
 
-      console.log(`${chalk.cyan(session.id)} ${stateColor(`[${session.state}]`)}`);
+      const stateLabel = `[${session.state}]`;
+      console.log(`${chalk.cyan(session.id)} ${stateColor(stateLabel)}`);
       console.log(chalk.dim(`  Directory: ${session.workingDirectory}`));
       console.log(chalk.dim(`  Created: ${created}`));
       console.log(chalk.dim(`  Last activity: ${activity}`));
@@ -168,6 +168,20 @@ async function killSession(sessionId: string, options: { force?: boolean }): Pro
 
 async function exportSession(sessionId: string, options: { output?: string }): Promise<void> {
   try {
+    let SessionStore: typeof import('../../session/SessionStore.js').SessionStore;
+    try {
+      ({ SessionStore } = await import('../../session/SessionStore.js'));
+    } catch (error) {
+      console.error(chalk.red('Error: Session export requires the optional database module.'));
+      console.error(
+        chalk.dim(
+          'Install dependencies from the repo root with: npm install'
+        )
+      );
+      console.error(chalk.dim(`Details: ${error instanceof Error ? error.message : 'Unknown error'}`));
+      process.exit(1);
+    }
+
     const dataDir = getDataDir();
     const store = new SessionStore({ dataDir });
 
