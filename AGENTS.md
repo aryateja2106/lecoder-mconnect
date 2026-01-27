@@ -1,174 +1,120 @@
-# MConnect Multi-Agent Architecture
+# AGENTS.md
 
-MConnect supports multiple concurrent AI coding agents running in isolated pseudo-terminals (PTY). This document describes the architecture and how to configure agents.
+> Context file for AI coding agents working on this project.
 
-## Supported Agent Types
+## Vision
 
-MConnect supports these agent types out of the box:
+Make AI coding agents accessible, secure, and manageable for everyone - from solo developers to enterprise teams.
 
-| Type | Command | Description |
-|------|---------|-------------|
-| `shell` | User's default shell | Plain shell for manual commands |
-| `claude` | `claude` | Claude Code (Anthropic's AI assistant) |
-| `gemini` | `gemini` | Google Gemini CLI |
-| `aider` | `aider` | Aider AI coding assistant |
-| `codex` | `codex` | OpenAI Codex CLI |
-| `custom` | User-defined | Any custom command |
+## Mission
 
-## Agent Presets
+Build the productivity layer for AI agents. As AI coding assistants multiply (Claude Code, Gemini CLI, Cursor, Aider, Codex, and more), teams need tools to orchestrate, monitor, and secure them. LeCoder MConnect is that tool.
 
-Presets define which agents to spawn on startup:
+## Target Customers
 
-### `shell-only` (Default)
-Single shell for manual use:
-```
-mconnect start --preset shell-only
-```
+1. **Solo Developers** - Run AI agents on desktop, monitor from phone while AFK
+2. **Development Teams** - Collaborative AI agent sessions with oversight
+3. **Enterprises** - Security, compliance, audit trails for AI-assisted development
 
-### `single`
-One Claude Code agent:
-```
-mconnect start --preset single
-```
+## Key Value Proposition
 
-### `dev-review`
-Development setup with Claude for coding and shell for testing:
-```
-mconnect start --preset dev-review
-```
+- **Control from anywhere**: Mobile-first interface for AI coding agents
+- **Security by default**: Read-only mode, guardrails, encrypted tunnels
+- **Agent-agnostic**: Works with any CLI-based AI tool
+- **Zero config**: One command to start, QR code to connect
 
-### `research-spec-test`
-Research workflow with Gemini for research, Claude for implementation, and shell for testing:
-```
-mconnect start --preset research-spec-test
-```
+---
 
-### `custom`
-Define agents via JSON array:
-```
-mconnect start --preset custom --agents '[{"type":"claude","name":"AI"},{"type":"shell","name":"Term"}]'
-```
-
-## WebSocket Protocol
-
-Clients communicate with the server via WebSocket using JSON messages.
-
-### Client to Server Messages
-
-```typescript
-// Send input to an agent
-{ type: 'input', agentId: string, data: string }
-
-// Resize terminal
-{ type: 'resize', agentId: string, cols: number, rows: number }
-
-// Create new agent
-{ type: 'create_agent', config: AgentConfig }
-
-// Kill agent
-{ type: 'kill_agent', agentId: string, signal?: string }
-
-// Switch focused agent
-{ type: 'switch_agent', agentId: string }
-
-// List all agents
-{ type: 'list_agents' }
-
-// Toggle read-only mode
-{ type: 'mode_change', readOnly: boolean }
-
-// Keepalive ping
-{ type: 'ping' }
-```
-
-### Server to Client Messages
-
-```typescript
-// Session initialization
-{ type: 'session_info', sessionId: string, isReadOnly: boolean, agents: AgentInfo[] }
-
-// Terminal output from agent
-{ type: 'output', agentId: string, data: string }
-
-// Agent status change
-{ type: 'agent_status', agentId: string, status: 'running' | 'exited' | 'error' }
-
-// Agent exited
-{ type: 'agent_exited', agentId: string, exitCode: number, signal?: string }
-
-// New agent created
-{ type: 'agent_created', agent: AgentInfo }
-
-// Agent list response
-{ type: 'agent_list', agents: AgentInfo[] }
-
-// Mode changed
-{ type: 'mode_changed', isReadOnly: boolean }
-
-// Command blocked by guardrails
-{ type: 'command_blocked', agentId: string, command: string, reason: string }
-
-// Error
-{ type: 'error', message: string, agentId?: string }
-
-// Pong response
-{ type: 'pong' }
-```
-
-## Agent Configuration
-
-```typescript
-interface AgentConfig {
-  type: 'shell' | 'claude' | 'gemini' | 'aider' | 'codex' | 'custom';
-  name: string;
-  command?: string;      // For 'custom' type
-  args?: string[];       // Command arguments
-  env?: Record<string, string>;  // Environment variables
-  cols?: number;         // Terminal columns (default: 80)
-  rows?: number;         // Terminal rows (default: 24)
-  initialPrompt?: string; // Auto-send after spawn
-}
-```
-
-## Shell-First Architecture
-
-MConnect uses a "shell-first" approach where each agent runs inside the user's login shell:
+## Project Structure
 
 ```
-/bin/zsh -l -c "claude --allowedTools='Bash(command:*),Read,Write,Edit,...'"
+lecoder-mconnect/
+├── packages/
+│   └── cli/                    # Main CLI package (published to npm)
+│       ├── src/
+│       │   ├── cli/commands/   # CLI commands (start, attach, daemon)
+│       │   ├── pty/            # PTY management for terminal sessions
+│       │   ├── web/            # Web client serving
+│       │   ├── input/          # Input arbitration & idle detection
+│       │   ├── tunnel.ts       # Cloudflare tunnel integration
+│       │   ├── session.ts      # Session management
+│       │   └── guardrails.ts   # Command safety filters
+│       └── dist/               # Compiled output
+├── apps/
+│   └── website/                # Next.js marketing site
+│       └── src/app/            # App router pages
+├── brand-assets/               # Logo SVGs (dark/light modes)
+├── ROADMAP.md                  # Feature roadmap
+├── STYLE.md                    # Brand guidelines
+└── index.md                    # Project overview
 ```
 
-Benefits:
-- Inherits PATH and environment variables from shell profile
-- Tools like `nvm`, `pyenv`, `rbenv` work correctly
-- SSH keys and credentials are available
-- Consistent with how users run commands manually
+## Tech Stack
 
-## Security
+| Layer | Technology |
+|-------|------------|
+| CLI | TypeScript, Commander.js |
+| Terminal | node-pty, xterm.js |
+| Networking | WebSocket, Cloudflare Tunnel |
+| Website | Next.js 15, Tailwind CSS, Lucide icons |
+| Package Manager | npm workspaces |
+| Testing | Vitest |
 
-- **Token Authentication**: Each session requires a unique token
-- **Rate Limiting**: Prevents connection spam (default: 10 connections/minute per IP)
-- **Guardrails**: Block dangerous commands (see `--guardrails` option)
-- **Read-Only Mode**: Default mode prevents accidental input
-- **Input Sanitization**: Blocks injection attempts
+## Naming Conventions
 
-## Adding Custom Agent Types
+- **Package names**: `@lecoder/*` for scoped packages, `lecoder-mconnect` for main CLI
+- **Files**: kebab-case (`pty-manager.ts`, `web-client.ts`)
+- **Components**: PascalCase (`FeatureCard`, `AgentBadge`)
+- **Functions**: camelCase (`startSession`, `createTunnel`)
+- **Constants**: UPPER_SNAKE_CASE (`AGENT_TYPES`, `DEFAULT_PORT`)
 
-To add support for a new AI CLI tool, modify `src/agents/agent-types.ts`:
+## Key Files
 
-```typescript
-export const AGENT_TYPES: Record<string, AgentTypeConfig> = {
-  // ... existing types
-  mycli: {
-    name: 'MyCLI',
-    command: 'mycli',
-    args: ['--interactive'],
-    description: 'My custom AI CLI tool',
-  },
-};
+| File | Purpose |
+|------|---------|
+| `packages/cli/src/index.ts` | CLI entry point |
+| `packages/cli/src/session.ts` | Core session logic |
+| `packages/cli/src/tunnel.ts` | Cloudflare tunnel setup |
+| `packages/cli/src/guardrails.ts` | Command filtering |
+| `apps/website/src/app/page.tsx` | Landing page |
+
+## Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Run CLI in dev mode
+npm run dev:cli
+
+# Run website
+cd apps/website && npm run dev
+
+# Build everything
+npm run build
+
+# Run tests
+npm run test
 ```
 
-Then use it:
-```
-mconnect start --preset custom --agents '[{"type":"mycli","name":"My Agent"}]'
-```
+## Brand Guidelines
+
+- **Primary font**: JetBrains Mono
+- **Design**: True monochrome (black/white/grays only)
+- **Emphasis**: Use bold text, borders, boxes - not colors
+- **Mascot**: Dolphin (intelligent, playful, communicative)
+- **Logo**: Pixelated "L" inspired by OpenCode's style
+
+See `STYLE.md` for full brand guidelines.
+
+## Current State
+
+- **v0.1.3** - Stable CLI with multi-agent support
+- **Working**: QR connect, Cloudflare tunnels, guardrails, mobile UI
+- **In Progress**: Enterprise features, container isolation, collaboration
+
+## Links
+
+- **Repo**: https://github.com/aryateja2106/lecoder-mconnect
+- **npm**: https://www.npmjs.com/package/lecoder-mconnect
+- **Issues**: https://github.com/aryateja2106/lecoder-mconnect/issues

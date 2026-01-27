@@ -1,0 +1,36 @@
+# LeCoder MConnect - https://lecoder.lesearch.ai
+# Robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://lecoder.lesearch.ai/sitemap.xml
+
+# AI/LLM specific guidance
+# See also: /llms.txt for AI agent instructions
+# See also: /install.md for installation instructions
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Crawl delay for politeness
+Crawl-delay: 1

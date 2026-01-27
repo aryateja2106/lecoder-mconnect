@@ -1,0 +1,305 @@
+@import 'tailwindcss';
+
+/* ============================================
+   LECODER DESIGN SYSTEM
+   Monochrome Terminal Aesthetic
+   Inspired by: OpenCode, Conductor, Notion
+   ============================================ */
+
+@theme {
+  /* Monochrome Color Palette - Notion-inspired */
+  --color-bg-primary: #191919;
+  --color-bg-secondary: #202020;
+  --color-bg-elevated: #252525;
+  --color-bg-card: #1f1f1f;
+  --color-bg-hover: #2a2a2a;
+
+  /* Text Colors - Cream/off-white like Notion */
+  --color-text-primary: #e9e9e7;
+  --color-text-secondary: #9b9b9b;
+  --color-text-muted: #6b6b6b;
+  --color-text-dim: #4a4a4a;
+
+  /* Border Colors */
+  --color-border-subtle: #2a2a2a;
+  --color-border-default: #373737;
+  --color-border-hover: #525252;
+
+  /* Accent - Minimal, only for key actions */
+  --color-accent-green: #4ade80;
+  --color-accent-red: #ef4444;
+  --color-accent-yellow: #fbbf24;
+
+  /* Typography - All JetBrains Mono */
+  --font-display: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  --font-body: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Radius */
+  --radius: 8px;
+}
+
+/* Font Imports */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection - Inverted */
+::selection {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+}
+
+/* Scrollbar - Minimal */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Code/Terminal Text */
+code, pre, .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Terminal Window - OpenCode/Conductor style */
+.terminal-window {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.terminal-header {
+  background: var(--color-bg-secondary);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-border-default);
+}
+
+.terminal-dot.red { background: #ff5f56; }
+.terminal-dot.yellow { background: #ffbd2e; }
+.terminal-dot.green { background: #27c93f; }
+
+.terminal-body {
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.8;
+  min-height: 300px;
+}
+
+/* Command Line Styling */
+.cmd-prompt { color: var(--color-text-muted); }
+.cmd-text { color: var(--color-text-primary); }
+.cmd-success { color: var(--color-accent-green); }
+.cmd-output { color: var(--color-text-secondary); }
+.cmd-highlight { color: var(--color-text-primary); font-weight: 600; }
+
+/* Button Styles - Minimal Monochrome */
+.btn-primary {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+/* Card - Subtle */
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: border-color 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-default);
+}
+
+/* Code Block - Install command style */
+.code-block {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.code-block:hover {
+  border-color: var(--color-border-default);
+}
+
+/* Copy Button with Feedback */
+.copy-btn {
+  padding: 8px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.copy-btn.copied {
+  color: var(--color-accent-green);
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-text-primary);
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 100;
+  font-family: var(--font-mono);
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Cursor Blink */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+
+/* Grid Pattern - Very Subtle */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .terminal-body {
+    font-size: 12px;
+    padding: 16px;
+  }
+
+  .code-block {
+    font-size: 13px;
+    padding: 14px 16px;
+  }
+}

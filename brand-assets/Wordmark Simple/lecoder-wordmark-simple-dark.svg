@@ -1,0 +1,34 @@
+<svg width='575' height='115' viewBox='0 0 575 115' fill='none' xmlns='http://www.w3.org/2000/svg'>
+  <g clip-path='url(#clip0_lecoder_wms_dark)'>
+    <mask id='mask0_lecoder_wms_dark' style='mask-type:luminance' maskUnits='userSpaceOnUse' x='0' y='0' width='575' height='115'>
+      <path d='M575 0H0V115H575V0Z' fill='white'/>
+    </mask>
+    <g mask='url(#mask0_lecoder_wms_dark)'>
+      <!-- L -->
+      <path d='M16.43 32.86H49.29V82.14H16.43V32.86ZM65.71 98.57H0V16.43H65.71V98.57Z' fill='#F1ECEC'/>
+
+      <!-- E -->
+      <path d='M131.43 65.71H82.14V82.14H131.43V98.57H65.71V16.43H131.43V65.71ZM82.14 49.29H114.99V32.86H82.14V49.29Z' fill='#F1ECEC'/>
+
+      <!-- C -->
+      <path d='M197.14 32.86H147.86V82.14H197.14V98.57H131.43V16.43H197.14V32.86Z' fill='#F1ECEC'/>
+
+      <!-- O -->
+      <path d='M262.86 32.86H229.99V82.14H262.86V32.86ZM279.28 98.57H213.57V16.43H279.28V98.57Z' fill='#F1ECEC'/>
+
+      <!-- D -->
+      <path d='M295.71 32.86V82.14H328.57V32.86H295.71ZM344.99 98.57H279.28V16.43H344.99V98.57Z' fill='#F1ECEC'/>
+
+      <!-- E -->
+      <path d='M410.71 65.71H361.43V82.14H410.71V98.57H344.99V16.43H410.71V65.71ZM361.43 49.29H394.28V32.86H361.43V49.29Z' fill='#F1ECEC'/>
+
+      <!-- R -->
+      <path d='M476.43 32.86H443.57V98.57H427.14V16.43H476.43V32.86ZM492.86 98.57H476.43V32.86H492.86V98.57Z' fill='#F1ECEC'/>
+    </g>
+  </g>
+  <defs>
+    <clipPath id='clip0_lecoder_wms_dark'>
+      <rect width='575' height='115' fill='white'/>
+    </clipPath>
+  </defs>
+</svg>

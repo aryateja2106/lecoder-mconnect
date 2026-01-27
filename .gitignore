@@ -5,6 +5,8 @@ node_modules/
 packages/cli/dist/
 apps/web/.next/
 apps/web/out/
+apps/website/.next/
+apps/website/out/
 
 # Coverage
 packages/cli/coverage/
@@ -85,3 +87,52 @@ CLAUDE.md
 # Git Spec Kit
 .specify/
 specs/
+
+# Secrets and credentials
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials/
+.secrets
+
+# Debug files
+*.heapsnapshot
+*.cpuprofile
+
+# Next.js specific
+.next/
+out/
+.swc/
+
+# Storybook
+storybook-static/
+
+# Build artifacts
+*.tgz
+*.tar.gz
+
+# Design references (keep in local only)
+LeSearch-design-references/
+
+# Agent configs (keep in local only)
+.agent/
+.agents/
+.cline/
+.codex/
+.cursor/
+.gemini/
+.goose/
+.kilocode/
+.kiro/
+.opencode/
+
+# Temporary documentation
+SCRATCHPAD.md
+HANDOFF.md
+VIDEO_PROJECT_SUMMARY.md
+MCONNECT_VIDEO_CREATION_COMPLETE.md
+
+# Video project (separate repo)
+apps/video/

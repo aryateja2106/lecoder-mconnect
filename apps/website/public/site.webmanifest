@@ -1,0 +1,16 @@
+{
+  "name": "LeCoder MConnect",
+  "short_name": "MConnect",
+  "description": "Control your AI coding agents from your phone. Terminal in your pocket.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#191919",
+  "theme_color": "#191919",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

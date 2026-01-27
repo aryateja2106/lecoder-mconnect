@@ -1,0 +1,208 @@
+# LeCoder MConnect
+
+> The productivity layer for AI coding agents. Control Claude Code, Gemini CLI, Cursor, Aider from anywhere.
+
+## What is LeCoder MConnect?
+
+LeCoder MConnect is an open-source tool that lets you run AI coding agents on your machine and control them remotely from your phone, tablet, or any device with a browser. It creates secure tunnels via Cloudflare so you can monitor and interact with your agents from anywhere—no port forwarding required.
+
+## Who makes this?
+
+LeCoder MConnect is built by LeSearch AI, an open-source initiative focused on AI agent tooling, developer productivity, and research reproduction.
+
+- Organization: https://github.com/lecoder-ai
+- Main repo: https://github.com/aryateja2106/lecoder-mconnect
+- npm package: https://www.npmjs.com/package/lecoder-mconnect
+
+## Quick Install
+
+```bash
+# Requires Node.js 20+ and cloudflared
+brew install cloudflared  # or equivalent for your OS
+npx lecoder-mconnect
+```
+
+For detailed installation: https://github.com/aryateja2106/lecoder-mconnect/blob/main/install.md
+
+## Core Features
+
+1. **Multi-agent support**: Run Claude Code, Gemini CLI, Cursor Agent, Aider, Codex in parallel
+2. **Mobile-first UI**: Touch-optimized terminal interface with smooth scrolling
+3. **QR code connect**: Scan to connect instantly from your phone
+4. **Secure tunnels**: Cloudflare encryption, no port forwarding needed
+5. **Read-only default**: Safely monitor without accidental interruption
+6. **Command guardrails**: Block dangerous commands, require approval for risky operations
+
+## Use Cases
+
+### Solo developer workflow
+Run AI agents on your desktop, step away, monitor progress from your phone. Get notifications when agents need input or hit errors.
+
+### Raspberry Pi / home server
+Run MConnect on a Raspberry Pi 5 (8GB RAM recommended). Control your AI agents from iPad or phone. Build and test applications remotely.
+
+### Team collaboration (coming soon)
+Share terminal sessions with teammates. Real-time cursors, typing indicators, chat alongside terminal.
+
+### Enterprise (coming soon)
+Container isolation per agent. SSO/SAML integration. Audit logs for compliance. Air-gapped deployment with local AI (Ollama).
+
+## CLI Usage
+
+```bash
+# Basic usage
+npx lecoder-mconnect
+
+# With preset
+npx lecoder-mconnect --preset single        # One Claude agent
+npx lecoder-mconnect --preset dev-review    # Claude + Shell
+npx lecoder-mconnect --preset research-spec-test  # Gemini + Claude + Shell
+
+# Custom agents
+npx lecoder-mconnect --preset custom --agents '[{"type":"claude","name":"AI"},{"type":"shell","name":"Term"}]'
+
+# With guardrails
+npx lecoder-mconnect --guardrails strict
+
+# Help
+npx lecoder-mconnect --help
+```
+
+## Supported AI Agents
+
+| Agent | Status | Command |
+|-------|--------|---------|
+| Claude Code | Tested | `claude` |
+| Gemini CLI | Tested | `gemini` |
+| Cursor Agent | Tested | `cursor` |
+| Aider | Supported | `aider` |
+| OpenAI Codex | Supported | `codex` |
+| Any CLI tool | Supported | Custom command |
+
+## Architecture
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Your Phone    │────▶│ Cloudflare Tunnel│────▶│  Your Machine   │
+│   (Browser)     │     │   (Encrypted)    │     │   (MConnect)    │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                                         │
+                                                         ▼
+                                                 ┌───────────────┐
+                                                 │  AI Agents    │
+                                                 │ Claude/Gemini │
+                                                 └───────────────┘
+```
+
+## Security Model
+
+- **No accounts required**: No signup, no cloud storage
+- **Ephemeral sessions**: URLs expire when CLI stops
+- **Token authentication**: Each session requires unique token
+- **Read-only default**: Must explicitly enable write mode
+- **Guardrails**: Configurable command blocking
+- **No telemetry**: We don't track anything
+
+## Project Structure
+
+```
+lecoder-mconnect/
+├── packages/cli/          # Main CLI (published to npm)
+│   ├── src/
+│   │   ├── cli/commands/  # start, attach, daemon
+│   │   ├── pty/           # Terminal management
+│   │   ├── web/           # Web client
+│   │   ├── tunnel.ts      # Cloudflare integration
+│   │   └── guardrails.ts  # Command safety
+├── apps/website/          # Marketing site (Next.js)
+├── install.md             # AI-agent installation instructions
+├── llms.txt               # This file
+└── AGENTS.md              # Context for AI coding agents
+```
+
+## Related Projects by LeSearch AI
+
+### LeCoder cGPU CLI
+Command-line tool for Google Colab GPU access. Run A100 experiments from your terminal.
+- GitHub: https://github.com/aryateja2106/LeCoder-cgpu-CLI
+- npm: `npm install -g lecoder-cgpu`
+
+### Nested Learning Reproduction
+Implementation of Google Research's Nested Learning paper.
+- GitHub: https://github.com/aryateja2106/nested-learning
+
+### Neural Memory Reproduction
+PyTorch reproduction of TITANS, MIRAS, and NL papers on neural memory systems.
+- GitHub: https://github.com/aryateja2106/neural-memory-reproduction
+
+## Troubleshooting
+
+### cloudflared not found
+Install cloudflared for your platform:
+```bash
+# macOS
+brew install cloudflared
+
+# Ubuntu/Debian
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+sudo dpkg -i cloudflared.deb
+```
+
+### Node.js version error
+MConnect requires Node.js 20+:
+```bash
+node --version  # Check version
+nvm install 20  # Install with nvm
+```
+
+### QR code not displaying
+Ensure your terminal supports Unicode. Try a different terminal emulator or use the URL directly.
+
+### Tunnel connection issues
+Check your internet connection. Cloudflare tunnels require outbound HTTPS access.
+
+## API / WebSocket Protocol
+
+Clients communicate via WebSocket at `ws://localhost:3456` (or tunnel URL).
+
+### Client → Server
+```json
+{ "type": "input", "agentId": "string", "data": "string" }
+{ "type": "resize", "agentId": "string", "cols": 80, "rows": 24 }
+{ "type": "create_agent", "config": { "type": "claude", "name": "AI" } }
+{ "type": "list_agents" }
+{ "type": "mode_change", "readOnly": false }
+```
+
+### Server → Client
+```json
+{ "type": "session_info", "sessionId": "string", "agents": [] }
+{ "type": "output", "agentId": "string", "data": "string" }
+{ "type": "agent_status", "agentId": "string", "status": "running" }
+{ "type": "command_blocked", "agentId": "string", "reason": "string" }
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `npm test`
+5. Submit a pull request
+
+## License
+
+MIT License - https://github.com/aryateja2106/lecoder-mconnect/blob/main/LICENSE
+
+## Contact
+
+- GitHub Issues: https://github.com/aryateja2106/lecoder-mconnect/issues
+- Twitter: https://twitter.com/r_aryateja
+- Enterprise inquiries: hello@lecoder.ai
+
+## Links
+
+- Website: https://lecoder.ai (coming soon)
+- Documentation: https://github.com/aryateja2106/lecoder-mconnect#readme
+- npm: https://www.npmjs.com/package/lecoder-mconnect
+- Install instructions: /install.md

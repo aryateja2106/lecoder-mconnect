@@ -1,0 +1,18 @@
+<svg width='32' height='40' viewBox='0 0 240 300' fill='none' xmlns='http://www.w3.org/2000/svg'>
+  <g clip-path='url(#clip0)'>
+    <mask id='mask0' style='mask-type:luminance' maskUnits='userSpaceOnUse' x='0' y='0' width='240' height='300'>
+      <path d='M240 0H0V300H240V0Z' fill='white'/>
+    </mask>
+    <g mask='url(#mask0)'>
+      <!-- Inner block (the inset/depth of L) - dark gray -->
+      <path d='M120 180H60V60H120V180Z' fill='#4B4646'/>
+      <!-- Outer L shape - cream color -->
+      <path d='M60 60H120V240H180V300H0V60H60ZM240 300H0V0H240V300Z' fill='#F1ECEC'/>
+    </g>
+  </g>
+  <defs>
+    <clipPath id='clip0'>
+      <rect width='240' height='300' fill='white'/>
+    </clipPath>
+  </defs>
+</svg>
