@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mconnect-dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: mconnect-dev
+    volumes:
+      - ..:/workspace:cached
+      - node_modules:/workspace/node_modules
+      - cli_node_modules:/workspace/packages/cli/node_modules
+      - web_node_modules:/workspace/apps/web/node_modules
+    ports:
+      - "3000:3000"   # Next.js web app
+      - "8765:8765"   # MConnect WebSocket server
+      - "8766:8766"   # Alternative port for sidecar
+    environment:
+      - NODE_ENV=development
+      - SHELL=/bin/zsh
+      - TERM=xterm-256color
+    tty: true
+    stdin_open: true
+    command: sleep infinity
+
+  # Optional: Test runner service for CI-like testing
+  mconnect-test:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: mconnect-test
+    volumes:
+      - ..:/workspace:cached
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    command: |
+      bash -c "
+        npm install &&
+        npm run build &&
+        npm run test
+      "
+    profiles:
+      - test
+
+volumes:
+  node_modules:
+  cli_node_modules:
+  web_node_modules:

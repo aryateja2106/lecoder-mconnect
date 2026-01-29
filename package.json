@@ -30,7 +30,11 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
     "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docker:test": "./scripts/docker-test.sh",
+    "docker:test:verbose": "./scripts/docker-test.sh --verbose",
+    "docker:build": "docker build -t mconnect-test -f .devcontainer/Dockerfile .",
+    "docker:dev": "docker-compose -f .devcontainer/docker-compose.yml up -d mconnect-dev"
   },
   "keywords": [
     "ai",
