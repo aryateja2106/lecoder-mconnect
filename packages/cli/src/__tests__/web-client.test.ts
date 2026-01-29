@@ -36,7 +36,7 @@ describe('Web Client Module', () => {
       const html = getWebClientHTML('token', 'session', true);
 
       expect(html).toContain('WebSocket');
-      expect(html).toContain("type: 'input'");
+      expect(html).toContain("type: 'terminal_input'");
       expect(html).toContain("'output'");
     });
 
@@ -82,7 +82,7 @@ describe('Web Client Module', () => {
 
       expect(html).toContain('input-field');
       expect(html).toContain('inputField');
-      expect(html).toContain('type command');
+      expect(html).toContain('command...');
     });
 
     it('should include shortcut bar with terminal keys', () => {
@@ -108,7 +108,9 @@ describe('Web Client Module', () => {
     it('should include Ctrl key combinations', () => {
       const html = getWebClientHTML('token', 'session', true);
 
-      expect(html).toContain('sendCtrlKey');
+      expect(html).toContain('sendCtrlC');
+      expect(html).toContain('sendCtrlD');
+      expect(html).toContain('sendCtrlL');
       expect(html).toContain('^C'); // Interrupt
       expect(html).toContain('^D'); // EOF
       expect(html).toContain('^L'); // Clear screen
@@ -121,11 +123,11 @@ describe('Web Client Module', () => {
       expect(html).toContain('Enable input mode');
     });
 
-    it('should include Send button', () => {
+    it('should include Enter button for sending', () => {
       const html = getWebClientHTML('token', 'session', true);
 
-      expect(html).toContain('send-btn');
-      expect(html).toContain('Send');
+      expect(html).toContain('sendEnter');
+      expect(html).toContain('&#x21B5;'); // Enter/Return symbol
     });
   });
 });
