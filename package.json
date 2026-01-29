@@ -7,6 +7,14 @@
     "packages/*",
     "apps/*"
   ],
+  "lint-staged": {
+    "packages/cli/src/**/*.ts": [
+      "biome check --write"
+    ],
+    "apps/web/src/**/*.{ts,tsx}": [
+      "bash -c 'cd apps/web && npx tsc --noEmit'"
+    ]
+  },
   "scripts": {
     "dev": "npm run dev --workspace=@lecoder/web",
     "dev:cli": "npm run dev --workspace=lecoder-mconnect",
@@ -20,7 +28,8 @@
     "test:cli": "npm run test --workspace=lecoder-mconnect",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
-    "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache"
+    "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache",
+    "prepare": "husky"
   },
   "keywords": [
     "ai",
@@ -47,5 +56,9 @@
   },
   "dependencies": {
     "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7"
   }
 }
