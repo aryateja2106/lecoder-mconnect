@@ -15,23 +15,18 @@ const FPS = 30;
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
-// Scene durations in frames
+// Scene durations in frames (must match MainVideo.tsx)
 const SCENE_DURATIONS = {
-  intro: 4 * FPS,
-  install: 5 * FPS,
-  mobile: 5 * FPS,
-  multiAgent: 5 * FPS,
-  features: 4 * FPS,
-  outro: 4 * FPS,
+  intro: 4 * FPS, // 120 frames
+  install: 5 * FPS, // 150 frames
+  mobile: 5 * FPS, // 150 frames
+  multiAgent: 5 * FPS, // 150 frames
+  features: 4 * FPS, // 120 frames
+  outro: 4 * FPS, // 120 frames
 };
 
-const TRANSITION_FRAMES = Math.round(0.5 * FPS);
-const NUM_TRANSITIONS = 5;
-
-// Total duration: sum of scenes minus overlapping transitions
-const TOTAL_DURATION =
-  Object.values(SCENE_DURATIONS).reduce((a, b) => a + b, 0) -
-  NUM_TRANSITIONS * TRANSITION_FRAMES;
+// Total duration: sum of all scenes
+const TOTAL_DURATION = Object.values(SCENE_DURATIONS).reduce((a, b) => a + b, 0);
 
 export const RemotionRoot: React.FC = () => {
   return (

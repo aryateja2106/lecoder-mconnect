@@ -11,12 +11,7 @@
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
-    "@remotion/bundler": "4.0.277",
     "@remotion/cli": "4.0.277",
-    "@remotion/google-fonts": "4.0.277",
-    "@remotion/renderer": "4.0.277",
-    "@remotion/tailwind": "4.0.277",
-    "@remotion/transitions": "4.0.277",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "remotion": "4.0.277"
@@ -24,10 +19,6 @@
   "devDependencies": {
     "@types/node": "22.15.17",
     "@types/react": "18.3.18",
-    "@types/react-dom": "18.3.5",
-    "autoprefixer": "10.4.20",
-    "postcss": "8.5.2",
-    "tailwindcss": "3.4.17",
     "typescript": "5.7.3"
   }
 }
