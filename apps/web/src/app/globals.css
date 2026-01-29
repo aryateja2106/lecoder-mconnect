@@ -1,21 +1,357 @@
 @import "tailwindcss";
 
-:root {
-  --background: #09090b;
-  --foreground: #fafafa;
-}
+/* ============================================
+   LECODER MCONNECT DESIGN SYSTEM
+   Monochrome Terminal Aesthetic
+   Adapted from LeCoder Website
+   ============================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  /* Monochrome Color Palette - Notion-inspired */
+  --color-bg-primary: #191919;
+  --color-bg-secondary: #202020;
+  --color-bg-elevated: #252525;
+  --color-bg-card: #1f1f1f;
+  --color-bg-hover: #2a2a2a;
+
+  /* Text Colors - Cream/off-white like Notion */
+  --color-text-primary: #e9e9e7;
+  --color-text-secondary: #9b9b9b;
+  --color-text-muted: #6b6b6b;
+  --color-text-dim: #4a4a4a;
+
+  /* Border Colors */
+  --color-border-subtle: #2a2a2a;
+  --color-border-default: #373737;
+  --color-border-hover: #525252;
+
+  /* Accent - Minimal, only for key actions */
+  --color-accent-cyan: #22d3ee;
+  --color-accent-green: #4ade80;
+  --color-accent-red: #ef4444;
+  --color-accent-yellow: #fbbf24;
+  --color-accent-purple: #a855f7;
+
+  /* Typography - All JetBrains Mono */
+  --font-display: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  --font-body: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Legacy support */
+  --color-background: var(--color-bg-primary);
+  --color-foreground: var(--color-text-primary);
+  --font-sans: var(--font-body);
+}
+
+/* Font Imports */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection - Inverted */
+::selection {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+}
+
+/* Scrollbar - Minimal */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Terminal xterm scrollbar */
+.xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xterm-viewport::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: 4px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Code/Terminal Text */
+code, pre, .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Terminal Window - OpenCode/Conductor style */
+.terminal-window {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.terminal-header {
+  background: var(--color-bg-secondary);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-border-default);
+}
+
+.terminal-dot.red { background: #ff5f56; }
+.terminal-dot.yellow { background: #ffbd2e; }
+.terminal-dot.green { background: #27c93f; }
+
+.terminal-body {
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* Button Styles - Minimal Monochrome */
+.btn-primary {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
+.btn-primary:disabled {
+  background: var(--color-border-default);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.btn-secondary:disabled {
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Small button variant */
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+/* Card - Subtle */
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  transition: border-color 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-default);
+}
+
+/* Code Block - Install command style */
+.code-block {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.code-block:hover {
+  border-color: var(--color-border-default);
+}
+
+/* Status Indicators */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.connected { background: var(--color-accent-green); }
+.status-dot.idle { background: var(--color-accent-yellow); }
+.status-dot.error { background: var(--color-accent-red); }
+.status-dot.offline { background: var(--color-text-muted); }
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.badge.success {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--color-accent-green);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.badge.warning {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--color-accent-yellow);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.badge.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-accent-red);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.badge.info {
+  background: rgba(34, 211, 238, 0.15);
+  color: var(--color-accent-cyan);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+/* Input Fields */
+.input {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+
+.input:focus {
+  border-color: var(--color-text-primary);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Pairing Code Input */
+.pairing-input {
+  width: 48px;
+  height: 56px;
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.15s ease;
+  font-family: var(--font-mono);
+}
+
+.pairing-input:focus {
+  border-color: var(--color-accent-cyan);
+}
+
+.pairing-input.error {
+  border-color: var(--color-accent-red);
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 /* Safe area for mobile notch/home indicator */
@@ -23,20 +359,159 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Terminal scrollbar */
-.xterm-viewport::-webkit-scrollbar {
-  width: 8px;
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0);
 }
 
-.xterm-viewport::-webkit-scrollbar-track {
-  background: #18181b;
+/* Fade In Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.xterm-viewport::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 4px;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
 }
 
-.xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+/* Pulse animation for loading states */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Spin animation for spinners */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Cursor Blink */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Grid Pattern - Very Subtle */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Overlay backdrop */
+.overlay-backdrop {
+  background: rgba(25, 25, 25, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+/* Control bar styling */
+.control-bar {
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-subtle);
+  padding: 12px 16px;
+}
+
+.control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.control-btn.active {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+}
+
+.control-btn:not(.active) {
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-default);
+}
+
+.control-btn:not(.active):hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-hover);
+}
+
+/* Icon button */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.icon-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-accent-red);
+}
+
+/* Header styling */
+.app-header {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .terminal-body {
+    font-size: 12px;
+    padding: 12px;
+  }
+
+  .code-block {
+    font-size: 13px;
+    padding: 14px 16px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .pairing-input {
+    width: 42px;
+    height: 50px;
+    font-size: 20px;
+  }
 }
