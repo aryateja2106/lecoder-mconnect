@@ -12,6 +12,7 @@
       "biome check --write"
     ],
     "apps/web/src/**/*.{ts,tsx}": [
+      "biome check --write",
       "bash -c 'cd apps/web && npx tsc --noEmit'"
     ]
   },
