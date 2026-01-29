@@ -40,6 +40,9 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 - **🛡️ Guardrails** - Block dangerous commands, require approval for risky ones
 - **📷 QR Code Connect** - Scan to connect instantly
 - **⚡ Shell-First Architecture** - Reliable PTY handling that actually works
+- **🔗 Sidecar Mode** - Share your current terminal without spawning new shells
+- **🤖 Headless Mode** - Works in non-TTY environments like Claude Code's Bash tool
+- **🌙 LeCoder Design System** - Monochrome terminal aesthetic with JetBrains Mono
 
 ## 🚀 Quick Start
 
@@ -93,11 +96,50 @@ mconnect
 # Start with specific preset
 mconnect start --preset research-spec-test
 
+# Sidecar mode - share current terminal without spawning new shells
+mconnect sidecar
+
 # Run system diagnostics
 mconnect doctor
 
 # List available presets
 mconnect presets
+```
+
+### Sidecar Mode (New in v1.1.0)
+
+Sidecar mode attaches to your **current terminal** instead of spawning new shells. Perfect for:
+- Sharing your existing Claude Code session
+- Monitoring from another device without disrupting workflow
+- Observe-only mode for read-only access
+
+```bash
+# Start sidecar (shares current terminal)
+mconnect sidecar
+
+# Observe-only mode (read-only, no input forwarding)
+mconnect sidecar --observe-only
+
+# Output connection info as JSON (for automation)
+mconnect sidecar --json
+
+# Run in background after printing connection info
+mconnect sidecar --background
+```
+
+### Headless Mode (for CI/Automation)
+
+Run MConnect without interactive prompts - works inside Claude Code's Bash tool:
+
+```bash
+# Start with all options specified (no prompts)
+mconnect start --preset shell-only --headless
+
+# Output session info as JSON
+mconnect start --preset single --json
+
+# Run in background and get connection info
+mconnect start --background
 ```
 
 ### Command Options
@@ -109,6 +151,9 @@ mconnect presets
 | `-g, --guardrails <level>` | Security level | `default` |
 | `--port <number>` | Server port | `8765` |
 | `--no-tmux` | Disable tmux | Enabled |
+| `--headless` | Skip interactive prompts | Auto-detect TTY |
+| `--json` | Output as JSON | Off |
+| `--background` | Run in background | Off |
 
 ### Agent Presets
 
@@ -132,6 +177,8 @@ MConnect takes security seriously:
 | **Guardrails** | Configurable command blocking |
 | **Tunnel Encryption** | All traffic encrypted via Cloudflare |
 | **No Persistence** | Sessions are ephemeral |
+| **Browser Sandbox** | CSP configuration and permission management |
+| **Observe-Only Mode** | Read-only access for sidecar sessions |
 
 ### Guardrail Levels
 
