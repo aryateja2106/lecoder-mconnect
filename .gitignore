@@ -134,5 +134,6 @@ HANDOFF.md
 VIDEO_PROJECT_SUMMARY.md
 MCONNECT_VIDEO_CREATION_COMPLETE.md
 
-# Video project (separate repo)
-apps/video/
+# Video project output
+apps/video/out/
+apps/video/node_modules/

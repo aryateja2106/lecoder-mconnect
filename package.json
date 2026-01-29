@@ -34,7 +34,9 @@
     "docker:test": "./scripts/docker-test.sh",
     "docker:test:verbose": "./scripts/docker-test.sh --verbose",
     "docker:build": "docker build -t mconnect-test -f .devcontainer/Dockerfile .",
-    "docker:dev": "docker-compose -f .devcontainer/docker-compose.yml up -d mconnect-dev"
+    "docker:dev": "docker-compose -f .devcontainer/docker-compose.yml up -d mconnect-dev",
+    "video:studio": "npm run studio --workspace=lecoder-mconnect-video",
+    "video:render": "npm run render:main --workspace=lecoder-mconnect-video"
   },
   "keywords": [
     "ai",

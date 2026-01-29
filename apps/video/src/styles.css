@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* LeCoder Design System for Video */
+
+/* Font Import */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&display=swap');
+
+/* Base Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: #191919;
+  color: #e9e9e7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Terminal Window Styles */
+.terminal-window {
+  background: #1f1f1f;
+  border: 1px solid #373737;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.terminal-header {
+  background: #202020;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #373737;
+}
+
+.terminal-dot.red { background: #ff5f56; }
+.terminal-dot.yellow { background: #ffbd2e; }
+.terminal-dot.green { background: #27c93f; }
+
+.terminal-body {
+  padding: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  min-height: 300px;
+}
+
+/* Command Line Styling */
+.cmd-prompt { color: #6b6b6b; }
+.cmd-text { color: #e9e9e7; }
+.cmd-success { color: #4ade80; }
+.cmd-output { color: #9b9b9b; }
+.cmd-highlight { color: #e9e9e7; font-weight: 600; }
+
+/* Grid Pattern Background */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
