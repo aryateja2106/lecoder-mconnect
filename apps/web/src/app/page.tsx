@@ -98,12 +98,12 @@ function PairingCodeEntry({
   const isComplete = code.every(c => c.length === 1);
 
   return (
-    <div className="max-w-sm mx-auto text-center">
-      <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto mb-6">
-        <KeyRound size={32} className="text-cyan-400" />
+    <div className="max-w-sm mx-auto text-center animate-fade-in">
+      <div className="w-16 h-16 rounded-2xl bg-[var(--color-bg-elevated)] flex items-center justify-center mx-auto mb-6">
+        <KeyRound size={32} className="text-[var(--color-accent-cyan)]" />
       </div>
-      <h1 className="text-xl font-semibold text-white mb-2">Enter Pairing Code</h1>
-      <p className="text-zinc-400 text-sm mb-8">
+      <h1 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Enter Pairing Code</h1>
+      <p className="text-[var(--color-text-secondary)] text-sm mb-8">
         Enter the 6-character code shown in your terminal
       </p>
 
@@ -117,22 +117,20 @@ function PairingCodeEntry({
             value={char}
             onChange={(e) => handleInput(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
-            className={`w-12 h-14 bg-zinc-900 border-2 rounded-xl text-center text-xl font-bold text-white uppercase outline-none transition-colors ${
-              error ? 'border-red-500' : 'border-zinc-700 focus:border-cyan-400'
-            }`}
+            className={`pairing-input ${error ? 'error' : ''}`}
             autoFocus={idx === 0}
           />
         ))}
       </div>
 
       {error && (
-        <p className="text-red-400 text-sm mb-4">{error}</p>
+        <p className="text-[var(--color-accent-red)] text-sm mb-4">{error}</p>
       )}
 
       <button
         onClick={handleSubmit}
         disabled={!isComplete || isSubmitting}
-        className="w-full py-3 px-4 bg-cyan-500 hover:bg-cyan-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+        className="btn-primary w-full justify-center"
       >
         {isSubmitting ? (
           <>
@@ -144,8 +142,8 @@ function PairingCodeEntry({
         )}
       </button>
 
-      <p className="text-zinc-600 text-xs mt-6">
-        Run <code className="text-cyan-400">mconnect</code> in your terminal to get a code
+      <p className="text-[var(--color-text-muted)] text-xs mt-6">
+        Run <code className="text-[var(--color-accent-cyan)]">mconnect</code> in your terminal to get a code
       </p>
     </div>
   );
@@ -162,37 +160,37 @@ function SessionCard({
   return (
     <button
       onClick={onSelect}
-      className="w-full bg-zinc-900 rounded-xl p-4 text-left hover:bg-zinc-800 transition-colors border border-zinc-800"
+      className="card w-full text-left"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <div
-            className={`w-2 h-2 rounded-full ${
+            className={`status-dot ${
               session.state === 'running'
-                ? 'bg-green-500'
+                ? 'connected'
                 : session.state === 'paused'
-                  ? 'bg-yellow-500'
-                  : 'bg-zinc-500'
+                  ? 'idle'
+                  : 'offline'
             }`}
           />
-          <span className="text-white font-medium text-sm">
+          <span className="text-[var(--color-text-primary)] font-medium text-sm">
             Session {session.id.slice(0, 8)}
           </span>
         </div>
         <span
-          className={`text-xs px-2 py-0.5 rounded-full ${
+          className={`badge ${
             session.state === 'running'
-              ? 'bg-green-500/20 text-green-400'
+              ? 'success'
               : session.state === 'paused'
-                ? 'bg-yellow-500/20 text-yellow-400'
-                : 'bg-zinc-500/20 text-zinc-400'
+                ? 'warning'
+                : ''
           }`}
         >
           {session.state}
         </span>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-zinc-400">
+      <div className="flex items-center gap-4 text-xs text-[var(--color-text-secondary)]">
         <span className="flex items-center gap-1">
           <Users size={12} />
           {session.connectedClients} client{session.connectedClients !== 1 ? 's' : ''}
@@ -203,7 +201,7 @@ function SessionCard({
         </span>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 text-cyan-400 text-sm font-medium">
+      <div className="mt-3 flex items-center gap-2 text-[var(--color-accent-cyan)] text-sm font-medium">
         <Play size={14} />
         Attach to Session
       </div>
@@ -294,7 +292,7 @@ export default function Home() {
   // No token provided - show pairing code entry
   if (noToken) {
     return (
-      <main className="h-screen w-screen bg-zinc-950 flex items-center justify-center p-6">
+      <main className="h-screen w-screen bg-[var(--color-bg-primary)] flex items-center justify-center p-6">
         <PairingCodeEntry
           serverUrl={serverUrl}
           onSuccess={handlePairingSuccess}
@@ -476,28 +474,28 @@ export default function Home() {
   const showSessionSelection = isConnected && !attachedSessionId;
 
   return (
-    <main className="h-screen w-screen bg-zinc-950 flex flex-col overflow-hidden">
+    <main className="h-screen w-screen bg-[var(--color-bg-primary)] flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
-        <div className="flex items-center gap-2">
+      <header className="app-header shrink-0">
+        <div className="flex items-center gap-2 flex-1">
           {attachedSessionId && (
             <button
               onClick={detachFromSession}
-              className="p-1 hover:bg-zinc-800 rounded transition-colors mr-1"
+              className="icon-btn"
               title="Back to sessions"
             >
-              <ArrowLeft size={18} className="text-zinc-400" />
+              <ArrowLeft size={18} />
             </button>
           )}
-          <Terminal size={20} className="text-cyan-400" />
-          <span className="font-semibold text-white">MConnect</span>
+          <Terminal size={20} className="text-[var(--color-accent-cyan)]" />
+          <span className="font-semibold text-[var(--color-text-primary)]">MConnect</span>
           {attachedSessionId && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+            <span className="badge">
               {attachedSessionId.slice(0, 8)}
             </span>
           )}
           {isReadOnly && attachedSessionId && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+            <span className="badge">
               Read-only
             </span>
           )}
@@ -505,7 +503,7 @@ export default function Home() {
 
         <div className="flex items-center gap-3">
           {sessionInfo && attachedSessionId && (
-            <span className="text-xs text-zinc-500 hidden sm:block">
+            <span className="text-xs text-[var(--color-text-muted)] hidden sm:block">
               {sessionInfo.agent}
             </span>
           )}
