@@ -1,0 +1,22 @@
+# Slim test container - much faster to build
+FROM node:22-slim
+
+# Minimal dependencies for native modules + shells for PTY tests
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3 \
+    git \
+    # Shells needed for PTY tests
+    zsh \
+    bash \
+    # PTY support
+    procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3 /usr/bin/python
+
+WORKDIR /workspace
+
+ENV NODE_ENV=development
+ENV SHELL=/bin/bash
+
+CMD ["sleep", "infinity"]

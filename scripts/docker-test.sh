@@ -49,9 +49,9 @@ done
 
 cd "$PROJECT_ROOT"
 
-# Build the Docker image
+# Build the Docker image (use slim for speed)
 echo -e "\n${YELLOW}Building Docker image...${NC}"
-docker build -t mconnect-test -f .devcontainer/Dockerfile .
+docker build -t mconnect-test -f .devcontainer/Dockerfile.slim .
 
 # Run tests in container
 echo -e "\n${YELLOW}Running tests in container...${NC}"
@@ -85,10 +85,18 @@ echo ''
 echo '==> All tests completed!'
 "
 
+# Run with TTY allocation for PTY tests
+DOCKER_FLAGS="--rm -v $PROJECT_ROOT:/workspace -w /workspace"
+
+# Add TTY if available (needed for PTY tests)
+if [ -t 0 ]; then
+    DOCKER_FLAGS="$DOCKER_FLAGS -it"
+fi
+
 if [ "$VERBOSE" = true ]; then
-    docker run --rm -v "$PROJECT_ROOT:/workspace" -w /workspace mconnect-test bash -c "$DOCKER_CMD"
+    docker run $DOCKER_FLAGS mconnect-test bash -c "$DOCKER_CMD"
 else
-    docker run --rm -v "$PROJECT_ROOT:/workspace" -w /workspace mconnect-test bash -c "$DOCKER_CMD" 2>&1 | grep -E "==>|PASS|FAIL|Error|✓|✗|passed|failed"
+    docker run $DOCKER_FLAGS mconnect-test bash -c "$DOCKER_CMD" 2>&1 | grep -E "==>|PASS|FAIL|Error|✓|✗|passed|failed"
 fi
 
 RESULT=$?
