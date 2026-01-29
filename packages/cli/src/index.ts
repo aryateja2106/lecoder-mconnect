@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * MConnect CLI v0.2.0 - Multi-Agent Terminal Control
+ * MConnect CLI v0.2.1 - Multi-Agent Terminal Control
  *
  * Shell-first architecture: Spawn shells, then run commands inside them.
  * "Spin up multiple AI agents, go for a walk, and manage them from your phone"
@@ -17,12 +17,12 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { AGENT_PRESETS, getDefaultShell } from './agents/types.js';
-import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
-import { startSession, startSessionHeadless } from './session.js';
+import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
-import { createAttachCommand } from './cli/commands/attach.js';
 import { createSidecarCommand } from './cli/commands/sidecar.js';
+import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
+import { startSession, startSessionHeadless } from './session.js';
 
 /**
  * Detect if we're running in a TTY environment
@@ -108,7 +108,9 @@ program
         }
         log('Run: npm install && npm rebuild node-pty', 'info');
         if (options.json) {
-          console.log(JSON.stringify({ error: 'node-pty not available', details: errorMsg }, null, 2));
+          console.log(
+            JSON.stringify({ error: 'node-pty not available', details: errorMsg }, null, 2)
+          );
         }
         process.exit(1);
       } else {
