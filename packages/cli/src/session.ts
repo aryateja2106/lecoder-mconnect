@@ -3,12 +3,63 @@
  *
  * Orchestrates multi-agent sessions with PTY management,
  * WebSocket hub, and optional tmux visualization.
+ *
+ * Supports both interactive (TTY) and headless (non-TTY) modes.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import * as p from '@clack/prompts';
-import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
+
+// Lazy-load @clack/prompts and chalk only when in TTY mode
+let p: typeof import('@clack/prompts') | null = null;
+let chalk: typeof import('chalk').default | null = null;
+
+async function loadInteractiveModules(): Promise<void> {
+  if (!p) {
+    p = await import('@clack/prompts');
+  }
+  if (!chalk) {
+    chalk = (await import('chalk')).default;
+  }
+}
+
+/**
+ * Simple logging for headless mode (no TTY required)
+ */
+function headlessLog(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info'): void {
+  const prefix = {
+    info: '[INFO]',
+    success: '[OK]',
+    error: '[ERROR]',
+    warn: '[WARN]',
+  };
+  console.log(`${prefix[type]} ${message}`);
+}
+
+/**
+ * Find an available port starting from the given port
+ * Tries up to 10 ports before giving up
+ */
+async function findAvailablePort(startPort: number, maxAttempts = 10): Promise<number> {
+  const net = await import('node:net');
+
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    const available = await new Promise<boolean>((resolve) => {
+      const server = net.createServer();
+      server.once('error', () => resolve(false));
+      server.once('listening', () => {
+        server.close();
+        resolve(true);
+      });
+      server.listen(port);
+    });
+    if (available) {
+      return port;
+    }
+  }
+  throw new Error(`No available port found in range ${startPort}-${startPort + maxAttempts - 1}`);
+}
 import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
@@ -35,6 +86,13 @@ export interface SessionConfig {
   showPairingCode?: boolean;
   /** Web app base URL (if using external web UI) */
   webUrl?: string;
+}
+
+export interface HeadlessSessionConfig extends SessionConfig {
+  /** Output session info as JSON */
+  jsonOutput?: boolean;
+  /** Run in background and exit immediately after starting */
+  background?: boolean;
 }
 
 /**
@@ -99,22 +157,25 @@ export async function tryInitOptionalComponent<T>(
     if (!options.silent) {
       const message = options.warnMessage ||
         `Could not initialize ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      p.log.warning(message);
+      p!.log.warning(message);
     }
     return null;
   }
 }
 
 /**
- * Start a new MConnect v2 session
+ * Start a new MConnect v2 session (interactive mode with TTY)
  */
 export async function startSession(config: SessionConfig): Promise<void> {
+  // Load interactive modules first
+  await loadInteractiveModules();
+
   const sessionId = generateSessionId();
   const sessionToken = generateSecureToken();
   const port = config.port || 8765;
 
   // Show startup spinner
-  const spinner = p.spinner();
+  const spinner = p!.spinner();
   spinner.start('Initializing MConnect v2...');
 
   // Load guardrails
@@ -225,8 +286,8 @@ export async function startSession(config: SessionConfig): Promise<void> {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     initStatus.pty = { success: false, error: errorMsg };
-    p.log.warning(`PTY initialization failed: ${errorMsg}`);
-    p.log.warning('Session will continue with limited functionality (no terminal input)');
+    p!.log.warning(`PTY initialization failed: ${errorMsg}`);
+    p!.log.warning('Session will continue with limited functionality (no terminal input)');
     // Don't throw - continue with graceful fallback
   }
 
@@ -251,7 +312,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
         initStatus.tmux = { success: false, error: errorMsg };
-        p.log.warning('Could not create tmux session');
+        p!.log.warning('Could not create tmux session');
         tmuxManager = null;
       }
     } else {
@@ -296,9 +357,9 @@ export async function startSession(config: SessionConfig): Promise<void> {
   for (const agentConfig of config.agents) {
     try {
       await agentManager.createAgent(agentConfig);
-      p.log.step(`Started agent: ${agentConfig.name}`);
+      p!.log.step(`Started agent: ${agentConfig.name}`);
     } catch (error) {
-      p.log.error(
+      p!.log.error(
         `Failed to start ${agentConfig.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
@@ -308,13 +369,13 @@ export async function startSession(config: SessionConfig): Promise<void> {
 
   // Display initialization status summary (T013)
   console.log('\n');
-  p.log.info('Component Status:');
-  const statusIcon = (success: boolean) => success ? chalk.green('✓') : chalk.yellow('○');
+  p!.log.info('Component Status:');
+  const statusIcon = (success: boolean) => success ? chalk!.green('✓') : chalk!.yellow('○');
   console.log(`  ${statusIcon(initStatus.httpServer.success)} HTTP Server`);
   console.log(`  ${statusIcon(initStatus.websocket.success)} WebSocket`);
-  console.log(`  ${statusIcon(initStatus.pty.success)} PTY Manager${initStatus.pty.error ? chalk.dim(` (${initStatus.pty.error})`) : ''}`);
-  console.log(`  ${statusIcon(initStatus.tunnel.success)} Tunnel${initStatus.tunnel.error ? chalk.dim(` (${initStatus.tunnel.error})`) : ''}`);
-  console.log(`  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`);
+  console.log(`  ${statusIcon(initStatus.pty.success)} PTY Manager${initStatus.pty.error ? chalk!.dim(` (${initStatus.pty.error})`) : ''}`);
+  console.log(`  ${statusIcon(initStatus.tunnel.success)} Tunnel${initStatus.tunnel.error ? chalk!.dim(` (${initStatus.tunnel.error})`) : ''}`);
+  console.log(`  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk!.dim(` (${initStatus.tmux.error})`) : ''}`);
 
   // Display session info
   const serverUrl = tunnelUrl || `http://localhost:${port}`;
@@ -326,8 +387,8 @@ export async function startSession(config: SessionConfig): Promise<void> {
       connectUrl = new URL(config.webUrl);
       usingWebUrl = true;
     } catch (error) {
-      p.log.warning(`Invalid web URL provided: ${config.webUrl}`);
-      p.log.warning('Falling back to the built-in web client.');
+      p!.log.warning(`Invalid web URL provided: ${config.webUrl}`);
+      p!.log.warning('Falling back to the built-in web client.');
     }
   }
 
@@ -338,45 +399,45 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const connectUrlString = connectUrl.toString();
 
   console.log('\n');
-  p.log.success('MConnect v0.1.2 - Multi-Agent Session');
+  p!.log.success('MConnect v0.1.2 - Multi-Agent Session');
   console.log('\n');
 
   // Display QR code
-  console.log(chalk.bold('  Scan this QR code with your phone:\n'));
+  console.log(chalk!.bold('  Scan this QR code with your phone:\n'));
   qrcode.generate(connectUrlString, { small: true }, (qr) => {
     console.log(qr);
   });
 
   console.log('\n');
-  console.log(chalk.dim(`  Session ID: ${sessionId}`));
+  console.log(chalk!.dim(`  Session ID: ${sessionId}`));
   if (usingWebUrl) {
-    console.log(chalk.green(`  Web URL: ${connectUrlString}`));
-    console.log(chalk.dim(`  Server URL: ${serverUrl}`));
+    console.log(chalk!.green(`  Web URL: ${connectUrlString}`));
+    console.log(chalk!.dim(`  Server URL: ${serverUrl}`));
   } else if (tunnelUrl) {
-    console.log(chalk.green(`  Remote URL: ${tunnelUrl}`));
+    console.log(chalk!.green(`  Remote URL: ${tunnelUrl}`));
   } else {
-    console.log(chalk.yellow(`  Local URL: http://localhost:${port}`));
-    console.log(chalk.dim('  (Install cloudflared for remote access)'));
+    console.log(chalk!.yellow(`  Local URL: http://localhost:${port}`));
+    console.log(chalk!.dim('  (Install cloudflared for remote access)'));
   }
-  console.log(chalk.dim(`  Agents: ${agentManager.count}`));
-  console.log(chalk.dim(`  Mode: ${chalk.yellow('Read-only')} (toggle in app)`));
-  console.log(chalk.dim(`  Token: ${hashForLogging(sessionToken)}... (secure)`));
+  console.log(chalk!.dim(`  Agents: ${agentManager.count}`));
+  console.log(chalk!.dim(`  Mode: ${chalk!.yellow('Read-only')} (toggle in app)`));
+  console.log(chalk!.dim(`  Token: ${hashForLogging(sessionToken)}... (secure)`));
   if (tmuxManager?.getCurrentSession()) {
-    console.log(chalk.dim(`  Tmux: ${tmuxManager.getCurrentSession()}`));
+    console.log(chalk!.dim(`  Tmux: ${tmuxManager.getCurrentSession()}`));
   }
   console.log('\n');
 
   // Display pairing code only if --code flag is used
   if (config.showPairingCode) {
-    console.log(chalk.bold.cyan('  ────────────────────────────────────'));
-    console.log(chalk.bold.cyan(`  │  PAIRING CODE:  ${chalk.white.bold(pairingCode)}  │`));
-    console.log(chalk.bold.cyan('  ────────────────────────────────────'));
-    console.log(chalk.dim('  Enter this code in the web app to connect'));
-    console.log(chalk.dim('  (Valid for 5 minutes)'));
+    console.log(chalk!.bold.cyan('  ────────────────────────────────────'));
+    console.log(chalk!.bold.cyan(`  │  PAIRING CODE:  ${chalk!.white.bold(pairingCode)}  │`));
+    console.log(chalk!.bold.cyan('  ────────────────────────────────────'));
+    console.log(chalk!.dim('  Enter this code in the web app to connect'));
+    console.log(chalk!.dim('  (Valid for 5 minutes)'));
     console.log('\n');
   }
 
-  p.log.info(`Press ${chalk.cyan('Ctrl+C')} to stop the session`);
+  p!.log.info(`Press ${chalk!.cyan('Ctrl+C')} to stop the session`);
   console.log('\n');
 
   // Event handlers for agent manager
@@ -385,7 +446,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   });
 
   agentManager.on('exit', (agentId, code) => {
-    p.log.info(`Agent ${agentId} exited with code ${code}`);
+    p!.log.info(`Agent ${agentId} exited with code ${code}`);
   });
 
   // Keep running
@@ -403,12 +464,379 @@ export async function startSession(config: SessionConfig): Promise<void> {
 }
 
 /**
- * Cleanup session resources
+ * Start a new MConnect session in headless mode (no TTY required)
+ * This works in Claude Code's Bash tool and other non-interactive environments
+ */
+export async function startSessionHeadless(config: HeadlessSessionConfig): Promise<void> {
+  const sessionId = generateSessionId();
+  const sessionToken = generateSecureToken();
+
+  // Find an available port (auto-increment if default is busy)
+  const requestedPort = config.port || 8765;
+  let port: number;
+  try {
+    port = await findAvailablePort(requestedPort);
+    if (port !== requestedPort) {
+      headlessLog(`Port ${requestedPort} in use, using ${port} instead`, 'warn');
+    }
+  } catch (error) {
+    headlessLog(`Could not find available port: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    throw error;
+  }
+
+  headlessLog('Initializing MConnect v2 (headless mode)...');
+
+  // Load guardrails
+  const guardrailConfig = loadGuardrails(config.guardrails);
+
+  // Create pairing code
+  const pairingManager = getPairingCodeManager();
+  const pairingCode = pairingManager.createCode(sessionId, sessionToken);
+
+  // Create HTTP server (same as interactive mode)
+  const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const protocol = (typeof forwardedProto === 'string' ? forwardedProto : 'http') + ':';
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const host = typeof forwardedHost === 'string' ? forwardedHost : req.headers.host;
+    const url = new URL(req.url || '/', `${protocol}//${host}`);
+
+    const setCorsHeaders = () => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    };
+
+    if (req.method === 'OPTIONS') {
+      setCorsHeaders();
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (url.pathname === '/api/pair') {
+      setCorsHeaders();
+      const code = url.searchParams.get('code');
+
+      if (!code) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing code parameter' }));
+        return;
+      }
+
+      const result = pairingManager.validateCode(code);
+
+      if (!result.valid) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: result.reason || 'Invalid code' }));
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ token: result.token, sessionId: result.sessionId }));
+      return;
+    }
+
+    const providedToken = url.searchParams.get('token');
+
+    if (!providedToken || providedToken !== sessionToken) {
+      res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' });
+      res.end(getPairingEntryHTML(url.origin));
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/html',
+      'Cache-Control': 'no-store',
+    });
+    res.end(getWebClientHTML(sessionToken, sessionId, true));
+  });
+
+  // Start HTTP server
+  await new Promise<void>((resolve, reject) => {
+    httpServer.listen(port, () => resolve());
+    httpServer.on('error', reject);
+  });
+
+  headlessLog(`HTTP server started on port ${port}`, 'success');
+
+  // Initialize status tracking
+  const initStatus: InitializationStatus = {
+    pty: { success: false },
+    websocket: { success: false },
+    tunnel: { success: false },
+    tmux: { success: false },
+    httpServer: { success: true },
+  };
+
+  // Create WebSocket hub
+  const wsHub = new WSHub(httpServer, {
+    token: sessionToken,
+    sessionId,
+    rateLimit: 10,
+    rateLimitWindow: 60000,
+  });
+  wsHub.setGuardrails(guardrailConfig);
+  initStatus.websocket = { success: true };
+  headlessLog('WebSocket hub ready', 'success');
+
+  // Create agent manager
+  const agentManager = new AgentManager(config.workDir);
+
+  try {
+    await agentManager.initialize();
+    initStatus.pty = { success: true };
+    headlessLog('PTY manager initialized', 'success');
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    initStatus.pty = { success: false, error: errorMsg };
+    headlessLog(`PTY initialization failed: ${errorMsg}`, 'warn');
+  }
+
+  wsHub.setAgentManager(agentManager);
+
+  // Setup tmux (optional)
+  let tmuxManager: TmuxManager | null = null;
+  if (config.enableTmux !== false) {
+    tmuxManager = new TmuxManager();
+    const tmuxInstalled = await tmuxManager.isInstalled();
+
+    if (tmuxInstalled) {
+      try {
+        await tmuxManager.createSession({
+          name: sessionId,
+          cwd: config.workDir,
+          windowName: 'agents',
+        });
+        initStatus.tmux = { success: true };
+        headlessLog('Tmux session created', 'success');
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        initStatus.tmux = { success: false, error: errorMsg };
+        headlessLog('Tmux session creation failed', 'warn');
+        tmuxManager = null;
+      }
+    } else {
+      initStatus.tmux = { success: false, error: 'Tmux not installed' };
+    }
+  }
+
+  // Create tunnel
+  const tunnelResult = await createTunnelWithFeedback(port);
+  const tunnelUrl = tunnelResult?.url || null;
+  if (tunnelUrl) {
+    initStatus.tunnel = { success: true, url: tunnelUrl };
+    headlessLog(`Tunnel created: ${tunnelUrl}`, 'success');
+  } else {
+    initStatus.tunnel = { success: false, error: 'Cloudflared not available' };
+    headlessLog('Tunnel not available (cloudflared not installed)', 'warn');
+  }
+
+  // Store session
+  currentSession = {
+    id: sessionId,
+    token: sessionToken,
+    config,
+    httpServer,
+    wsHub,
+    agentManager,
+    tmuxManager,
+    guardrailConfig,
+    tunnelUrl,
+    context: {
+      sessionManager: null,
+      inputArbiter: null,
+      sessionId,
+    },
+    initStatus,
+  };
+
+  // Spawn initial agents
+  for (const agentConfig of config.agents) {
+    try {
+      await agentManager.createAgent(agentConfig);
+      headlessLog(`Started agent: ${agentConfig.name}`, 'success');
+    } catch (error) {
+      headlessLog(
+        `Failed to start ${agentConfig.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'error'
+      );
+    }
+  }
+
+  // Build connection info
+  const serverUrl = tunnelUrl || `http://localhost:${port}`;
+  let connectUrl = new URL(serverUrl);
+  if (config.webUrl) {
+    try {
+      connectUrl = new URL(config.webUrl);
+      connectUrl.searchParams.set('server', serverUrl);
+    } catch {
+      headlessLog(`Invalid web URL: ${config.webUrl}`, 'warn');
+    }
+  }
+  connectUrl.searchParams.set('token', sessionToken);
+  const connectUrlString = connectUrl.toString();
+
+  // Handle background mode - output connection info LAST so it's visible in truncated views
+  if (config.background) {
+    if (config.jsonOutput) {
+      // JSON output for programmatic use
+      const sessionInfo = {
+        success: true,
+        sessionId,
+        pairingCode,
+        port,
+        localUrl: `http://localhost:${port}`,
+        tunnelUrl: tunnelUrl || null,
+        connectUrl: connectUrlString,
+        agents: config.agents.map((a) => a.name),
+        status: {
+          httpServer: initStatus.httpServer.success,
+          websocket: initStatus.websocket.success,
+          pty: initStatus.pty.success,
+          tunnel: initStatus.tunnel.success,
+          tmux: initStatus.tmux.success,
+        },
+      };
+      console.log(JSON.stringify(sessionInfo, null, 2));
+    } else {
+      // Compact output optimized for Claude Code's "last 10 lines" view
+      // Critical info printed LAST so it stays visible
+      console.log('\n');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('  MCONNECT SESSION READY');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log(`  PAIRING CODE:  ${pairingCode}`);
+      console.log(`  SESSION ID:    ${sessionId}`);
+      if (tunnelUrl) {
+        console.log(`  REMOTE URL:    ${tunnelUrl}`);
+      }
+      console.log(`  LOCAL URL:     http://localhost:${port}`);
+      console.log('───────────────────────────────────────────────────────────────');
+      console.log(`  CONNECT URL:   ${connectUrlString}`);
+      console.log('═══════════════════════════════════════════════════════════════');
+    }
+    // Don't wait - return immediately
+    return;
+  }
+
+  // Non-background mode: full output with QR code
+  if (config.jsonOutput) {
+    // JSON output for programmatic use
+    const sessionInfo = {
+      success: true,
+      sessionId,
+      pairingCode,
+      port,
+      localUrl: `http://localhost:${port}`,
+      tunnelUrl: tunnelUrl || null,
+      connectUrl: connectUrlString,
+      agents: config.agents.map((a) => a.name),
+      status: {
+        httpServer: initStatus.httpServer.success,
+        websocket: initStatus.websocket.success,
+        pty: initStatus.pty.success,
+        tunnel: initStatus.tunnel.success,
+        tmux: initStatus.tmux.success,
+      },
+    };
+    console.log(JSON.stringify(sessionInfo, null, 2));
+  } else {
+    // Human-friendly text output with QR code
+    console.log('\n');
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log('║           MConnect Session Ready (Headless Mode)             ║');
+    console.log('╠══════════════════════════════════════════════════════════════╣');
+    console.log('║                                                              ║');
+    console.log('║  SCAN THIS QR CODE WITH YOUR PHONE:                          ║');
+    console.log('║                                                              ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+
+    // Generate ASCII QR code (works in non-TTY)
+    await new Promise<void>((resolve) => {
+      qrcode.generate(connectUrlString, { small: true }, (qr) => {
+        console.log(qr);
+        resolve();
+      });
+    });
+
+    console.log('╔══════════════════════════════════════════════════════════════╗');
+    console.log(`║  Pairing Code: ${pairingCode}                                       ║`);
+    console.log('╠══════════════════════════════════════════════════════════════╣');
+    console.log(`║  Session ID:   ${sessionId}                                       ║`);
+    console.log(`║  Local URL:    http://localhost:${port}                           ║`);
+    if (tunnelUrl) {
+      const shortUrl = tunnelUrl.length > 50 ? tunnelUrl.substring(0, 47) + '...' : tunnelUrl;
+      console.log(`║  Remote URL:   ${shortUrl.padEnd(46)}║`);
+    }
+    console.log(`║  Agents:       ${config.agents.map((a) => a.name).join(', ').padEnd(46)}║`);
+    console.log('╠══════════════════════════════════════════════════════════════╣');
+    console.log('║                                                              ║');
+    console.log('║  TO CONNECT:                                                 ║');
+    console.log('║  1. Scan the QR code above with your phone camera            ║');
+    console.log('║  2. OR open the Remote URL in any browser                    ║');
+    console.log('║  3. OR enter the Pairing Code at the login page              ║');
+    console.log('║                                                              ║');
+    console.log('║  Press Ctrl+C to stop the session                            ║');
+    console.log('╚══════════════════════════════════════════════════════════════╝');
+    console.log('\n');
+
+    // Also print the full URL for easy copying
+    console.log('Full Connect URL (copy/paste):');
+    console.log(connectUrlString);
+    console.log('\n');
+  }
+
+  // Event handlers
+  agentManager.on('data', (_agentId, data) => {
+    process.stdout.write(data);
+  });
+
+  agentManager.on('exit', (agentId, code) => {
+    headlessLog(`Agent ${agentId} exited with code ${code}`);
+  });
+
+  // Keep running until SIGINT/SIGTERM
+  await new Promise<void>((resolve) => {
+    process.on('SIGINT', () => {
+      cleanupHeadless();
+      resolve();
+    });
+
+    process.on('SIGTERM', () => {
+      cleanupHeadless();
+      resolve();
+    });
+  });
+}
+
+/**
+ * Cleanup session resources (headless mode)
+ */
+function cleanupHeadless(): void {
+  if (!currentSession) return;
+
+  headlessLog('Cleaning up session...');
+
+  currentSession.agentManager.killAllAgents();
+  currentSession.wsHub.close();
+  if (currentSession.tmuxManager) {
+    currentSession.tmuxManager.killSession();
+  }
+  currentSession.httpServer.close();
+  currentSession = null;
+
+  headlessLog('Session ended', 'success');
+}
+
+/**
+ * Cleanup session resources (interactive mode)
  */
 function cleanup(): void {
   if (!currentSession) return;
 
-  p.log.info('Cleaning up session...');
+  p!.log.info('Cleaning up session...');
 
   // Kill all agents
   currentSession.agentManager.killAllAgents();
@@ -425,7 +853,7 @@ function cleanup(): void {
   currentSession.httpServer.close();
 
   currentSession = null;
-  p.outro(chalk.green('Session ended. Goodbye!'));
+  p!.outro(chalk!.green('Session ended. Goodbye!'));
 }
 
 /**
