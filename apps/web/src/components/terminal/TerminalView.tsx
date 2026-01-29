@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -10,10 +10,99 @@ interface TerminalViewProps {
   isReadOnly: boolean;
 }
 
+/**
+ * Special key sequences for terminal applications
+ * These are ANSI escape sequences that TUI apps expect
+ */
+const KEY_SEQUENCES = {
+  // Shift+Tab (reverse tab / backtab)
+  SHIFT_TAB: '\x1b[Z',
+  // Ctrl+F (form feed, but we send it as-is for apps that handle it)
+  CTRL_F: '\x06',
+  // Ctrl+C (interrupt)
+  CTRL_C: '\x03',
+  // Ctrl+D (EOF)
+  CTRL_D: '\x04',
+  // Ctrl+Z (suspend)
+  CTRL_Z: '\x1a',
+  // Ctrl+L (clear screen)
+  CTRL_L: '\x0c',
+  // Ctrl+A (beginning of line)
+  CTRL_A: '\x01',
+  // Ctrl+E (end of line)
+  CTRL_E: '\x05',
+  // Ctrl+K (kill to end of line)
+  CTRL_K: '\x0b',
+  // Ctrl+U (kill to beginning of line)
+  CTRL_U: '\x15',
+  // Ctrl+W (delete word backwards)
+  CTRL_W: '\x17',
+  // Ctrl+R (reverse search)
+  CTRL_R: '\x12',
+  // Escape
+  ESCAPE: '\x1b',
+} as const;
+
 export function TerminalView({ onData, isReadOnly }: TerminalViewProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+
+  /**
+   * Handle special keyboard combinations that browsers typically intercept
+   * This captures keys before the browser can handle them
+   */
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (isReadOnly || !onData) return;
+
+    // Shift+Tab - reverse tab navigation (important for Gemini CLI)
+    if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(KEY_SEQUENCES.SHIFT_TAB);
+      return;
+    }
+
+    // Ctrl+F - browser find, but we need it for terminal apps
+    if (e.key === 'f' && e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(KEY_SEQUENCES.CTRL_F);
+      return;
+    }
+
+    // Ctrl+K - browser shortcut on some systems, but needed for terminal
+    if (e.key === 'k' && e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(KEY_SEQUENCES.CTRL_K);
+      return;
+    }
+
+    // Ctrl+L - some browsers use this, but terminal needs it for clear
+    if (e.key === 'l' && e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(KEY_SEQUENCES.CTRL_L);
+      return;
+    }
+
+    // Ctrl+R - browser refresh, but terminal needs it for reverse search
+    if (e.key === 'r' && e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(KEY_SEQUENCES.CTRL_R);
+      return;
+    }
+
+    // Ctrl+W - browser close tab, but terminal needs it for delete word
+    if (e.key === 'w' && e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      onData(KEY_SEQUENCES.CTRL_W);
+      return;
+    }
+  }, [isReadOnly, onData]);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -24,30 +113,32 @@ export function TerminalView({ onData, isReadOnly }: TerminalViewProps) {
       fontSize: 14,
       fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
       theme: {
-        background: '#09090b',
-        foreground: '#fafafa',
-        cursor: '#fafafa',
-        cursorAccent: '#09090b',
+        background: '#191919',
+        foreground: '#e9e9e7',
+        cursor: '#e9e9e7',
+        cursorAccent: '#191919',
         selectionBackground: '#3f3f46',
-        black: '#09090b',
+        black: '#191919',
         red: '#ef4444',
-        green: '#22c55e',
-        yellow: '#eab308',
+        green: '#4ade80',
+        yellow: '#fbbf24',
         blue: '#3b82f6',
         magenta: '#a855f7',
-        cyan: '#06b6d4',
-        white: '#fafafa',
-        brightBlack: '#71717a',
+        cyan: '#22d3ee',
+        white: '#e9e9e7',
+        brightBlack: '#6b6b6b',
         brightRed: '#f87171',
-        brightGreen: '#4ade80',
-        brightYellow: '#facc15',
+        brightGreen: '#86efac',
+        brightYellow: '#fde047',
         brightBlue: '#60a5fa',
         brightMagenta: '#c084fc',
-        brightCyan: '#22d3ee',
+        brightCyan: '#67e8f9',
         brightWhite: '#ffffff',
       },
       scrollback: 10000,
       convertEol: true,
+      // Allow custom key handling
+      allowProposedApi: true,
     });
 
     const fitAddon = new FitAddon();
@@ -62,6 +153,10 @@ export function TerminalView({ onData, isReadOnly }: TerminalViewProps) {
       fitAddon.fit();
     };
     window.addEventListener('resize', handleResize);
+
+    // Add keyboard listener to capture special keys
+    const container = terminalRef.current;
+    container.addEventListener('keydown', handleKeyDown, { capture: true });
 
     // Handle input (only if not read-only)
     if (!isReadOnly && onData) {
@@ -84,9 +179,10 @@ export function TerminalView({ onData, isReadOnly }: TerminalViewProps) {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      container.removeEventListener('keydown', handleKeyDown, { capture: true });
       term.dispose();
     };
-  }, [isReadOnly, onData]);
+  }, [isReadOnly, onData, handleKeyDown]);
 
   // Expose write method
   useEffect(() => {
@@ -102,7 +198,7 @@ export function TerminalView({ onData, isReadOnly }: TerminalViewProps) {
   return (
     <div
       ref={terminalRef}
-      className="w-full h-full bg-zinc-950"
+      className="w-full h-full bg-[var(--color-bg-primary)]"
       style={{ padding: '8px' }}
     />
   );
