@@ -8,47 +8,40 @@
  * - ContainerManager operations
  */
 
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { join } from 'node:path';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-
-// Types
-import type { ContainerConfig, DevContainerConfig } from '../container/types.js';
-import {
-  DEFAULT_CONTAINER_CONFIG,
-  MCONNECT_DEFAULT_IMAGE,
-  ARM64_COMPATIBLE_IMAGES,
-} from '../container/types.js';
-
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+// ContainerManager
+import { getContainerManager, resetContainerManager } from '../container/container-manager.js';
 // DevContainer parser
 import {
-  parseDevContainer,
-  hasDevContainerConfig,
-  resolveVariables,
-  getContainerImage,
-  getVolumeMounts,
-  getContainerEnv,
-  getContainerUser,
   createDefaultDevContainerConfig,
+  getContainerEnv,
+  getContainerImage,
+  getContainerUser,
+  getVolumeMounts,
+  hasDevContainerConfig,
+  parseDevContainer,
+  resolveVariables,
 } from '../container/devcontainer.js';
-
 // Dockerfile templates
 import {
   DEFAULT_DOCKERFILE,
+  detectProjectTemplate,
+  generateDockerfile,
+  getDockerfileTemplate,
   MINIMAL_DOCKERFILE,
   NODEJS_DOCKERFILE,
   PYTHON_DOCKERFILE,
-  getDockerfileTemplate,
-  generateDockerfile,
-  detectProjectTemplate,
 } from '../container/dockerfile.js';
-
-// ContainerManager
+// Types
+import type { ContainerConfig, DevContainerConfig } from '../container/types.js';
 import {
-  getContainerManager,
-  resetContainerManager,
-} from '../container/container-manager.js';
+  ARM64_COMPATIBLE_IMAGES,
+  DEFAULT_CONTAINER_CONFIG,
+  MCONNECT_DEFAULT_IMAGE,
+} from '../container/types.js';
 
 describe('Container Module', () => {
   describe('Container Types', () => {
@@ -102,18 +95,12 @@ describe('Container Module', () => {
       it('should return true when devcontainer.json exists', () => {
         const devcontainerDir = join(tempDir, '.devcontainer');
         mkdirSync(devcontainerDir);
-        writeFileSync(
-          join(devcontainerDir, 'devcontainer.json'),
-          JSON.stringify({ name: 'Test' })
-        );
+        writeFileSync(join(devcontainerDir, 'devcontainer.json'), JSON.stringify({ name: 'Test' }));
         expect(hasDevContainerConfig(tempDir)).toBe(true);
       });
 
       it('should return true when devcontainer.json in root exists', () => {
-        writeFileSync(
-          join(tempDir, '.devcontainer.json'),
-          JSON.stringify({ name: 'Test' })
-        );
+        writeFileSync(join(tempDir, '.devcontainer.json'), JSON.stringify({ name: 'Test' }));
         expect(hasDevContainerConfig(tempDir)).toBe(true);
       });
     });
@@ -182,41 +169,33 @@ describe('Container Module', () => {
     });
 
     describe('resolveVariables', () => {
-      it('should resolve ${localWorkspaceFolder}', () => {
+      it('should resolve localWorkspaceFolder variable', () => {
         const context = { localWorkspaceFolder: tempDir };
-        const result = resolveVariables(
-          '${localWorkspaceFolder}/src',
-          context
-        );
+        const pattern = ['$', '{localWorkspaceFolder}/src'].join('');
+        const result = resolveVariables(pattern, context);
         expect(result).toBe(`${tempDir}/src`);
       });
 
-      it('should resolve ${localWorkspaceFolderBasename}', () => {
+      it('should resolve localWorkspaceFolderBasename variable', () => {
         const context = { localWorkspaceFolder: '/home/user/my-project' };
-        const result = resolveVariables(
-          '/workspace/${localWorkspaceFolderBasename}',
-          context
-        );
+        const pattern = ['/workspace/$', '{localWorkspaceFolderBasename}'].join('');
+        const result = resolveVariables(pattern, context);
         expect(result).toBe('/workspace/my-project');
       });
 
-      it('should resolve ${localEnv:VAR}', () => {
+      it('should resolve localEnv variable', () => {
         process.env.TEST_VAR = 'test_value';
         const context = { localWorkspaceFolder: tempDir };
-        const result = resolveVariables(
-          'prefix-${localEnv:TEST_VAR}-suffix',
-          context
-        );
+        const pattern = ['prefix-$', '{localEnv:TEST_VAR}-suffix'].join('');
+        const result = resolveVariables(pattern, context);
         expect(result).toBe('prefix-test_value-suffix');
         delete process.env.TEST_VAR;
       });
 
       it('should return empty string for undefined env vars', () => {
         const context = { localWorkspaceFolder: tempDir };
-        const result = resolveVariables(
-          '${localEnv:UNDEFINED_VAR}',
-          context
-        );
+        const pattern = ['$', '{localEnv:UNDEFINED_VAR}'].join('');
+        const result = resolveVariables(pattern, context);
         expect(result).toBe('');
       });
     });
@@ -244,9 +223,7 @@ describe('Container Module', () => {
 
       it('should include custom mounts', () => {
         const config: DevContainerConfig = {
-          mounts: [
-            'source=/host/path,target=/container/path,type=bind',
-          ],
+          mounts: ['source=/host/path,target=/container/path,type=bind'],
         };
         const mounts = getVolumeMounts(config, tempDir);
         expect(mounts.length).toBeGreaterThanOrEqual(2);

@@ -132,8 +132,7 @@ describe('Doctor Module', () => {
   });
 
   describe('printDiagnostics', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let consoleLogSpy: any;
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
       consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -226,8 +225,7 @@ describe('Doctor Module', () => {
   });
 
   describe('tryInstallNodePty', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let consoleLogSpy: any;
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
       consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
