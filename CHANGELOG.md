@@ -2,6 +2,37 @@
 
 All notable changes to MConnect will be documented in this file.
 
+## [0.1.5] - 2026-01-29
+
+### Fixed
+- Critical input bug: changed message type from 'input' to 'terminal_input'
+- CSS display conflict causing scroll issues in terminal views
+- Touch scroll handler for TUI apps (Claude Code, vim)
+
+### Changed
+- Native Direct Mode: tap terminal to type directly
+- Hidden input overlay for mobile keyboard capture
+- Input bar auto-hides in Direct Mode
+- Clearer button labels: 'Shift' text instead of symbol
+- Larger 'Del' key with 44px touch target
+- Scroll controls with dedicated up/down buttons
+- Typing indicator shows keyboard status
+
+### Added
+- IME support for international input (Chinese, Japanese, etc.)
+
+## [0.1.4] - 2026-01-28
+
+### Changed
+- Web client improvements and bug fixes
+- Enhanced mobile experience
+
+## [0.1.3] - 2026-01-20
+
+### Changed
+- WebSocket protocol refinements
+- Mobile web UI enhancements
+
 ## [0.1.2] - 2026-01-15
 
 ### Added

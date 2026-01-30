@@ -1,6 +1,6 @@
 {
   "name": "lecoder-mconnect",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Mobile terminal control for AI coding agents - Terminal in your pocket",
   "type": "module",
   "main": "./dist/index.js",
