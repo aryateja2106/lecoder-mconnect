@@ -215,6 +215,7 @@ export function createDaemonCommand(): Command {
         if (options.json) {
           console.log(JSON.stringify(response.data));
         } else {
+          // biome-ignore lint/suspicious/noExplicitAny: HTTP response with dynamic structure
           const data = response.data as any;
           console.log(chalk.blue('MConnect Daemon Status'));
           console.log(chalk.gray('──────────────────────'));

@@ -92,10 +92,11 @@ export class TmuxManager {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       }).trim();
-    } catch (error: any) {
+    } catch (error: unknown) {
       // tmux commands often return non-zero but still work
-      if (error.stdout) {
-        return error.stdout.toString().trim();
+      const execError = error as { stdout?: Buffer };
+      if (execError.stdout) {
+        return execError.stdout.toString().trim();
       }
       throw error;
     }

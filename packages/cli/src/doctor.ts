@@ -98,8 +98,8 @@ async function checkNodePty(): Promise<DiagnosticResult> {
       status: 'ok',
       message: 'Native PTY module loaded successfully',
     };
-  } catch (error: any) {
-    const errorMsg = error?.message || 'Unknown error';
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
 
     // Check if it's a "not found" vs "failed to load" error
     if (errorMsg.includes('Cannot find module') || errorMsg.includes('MODULE_NOT_FOUND')) {
@@ -465,11 +465,12 @@ function checkDatabase(): DiagnosticResult {
         fix: 'Database may need migration. Run: mconnect daemon start',
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message.substring(0, 50) : 'Unknown error';
     return {
       name: 'Database',
       status: 'warning',
-      message: `Database check failed: ${error?.message?.substring(0, 50) || 'Unknown error'}`,
+      message: `Database check failed: ${errMsg}`,
       fix: 'Database may be corrupted or locked',
     };
   }
@@ -558,10 +559,10 @@ export async function isNodePtyAvailable(): Promise<boolean> {
     // Use require() for CommonJS native module compatibility
     require('node-pty');
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Log detailed error for debugging
     if (process.env.DEBUG) {
-      console.error('node-pty load error:', error?.message);
+      console.error('node-pty load error:', error instanceof Error ? error.message : error);
     }
     return false;
   }
@@ -575,8 +576,8 @@ export async function getNodePtyError(): Promise<string | null> {
     // Use require() for CommonJS native module compatibility
     require('node-pty');
     return null;
-  } catch (error: any) {
-    return error?.message || 'Unknown error loading node-pty';
+  } catch (error: unknown) {
+    return error instanceof Error ? error.message : 'Unknown error loading node-pty';
   }
 }
 

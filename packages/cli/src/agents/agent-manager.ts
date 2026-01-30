@@ -461,8 +461,10 @@ export class AgentManager {
   on(event: 'status', handler: (agentId: string, status: AgentStatus) => void): void;
   on(event: 'exit', handler: (agentId: string, code: number, signal?: number) => void): void;
   on(event: 'error', handler: (agentId: string, error: Error) => void): void;
+  // biome-ignore lint/suspicious/noExplicitAny: Required for TypeScript overload compatibility
   on(event: string, handler: (...args: any[]) => void): void {
     if (event in this.eventHandlers) {
+      // biome-ignore lint/suspicious/noExplicitAny: Dynamic event handler pattern
       (this.eventHandlers as any)[event].push(handler);
     }
   }

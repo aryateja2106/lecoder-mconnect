@@ -208,7 +208,7 @@ export class InputArbiter extends EventEmitter {
     // Check state-based control
     const canInput = this.canClientInput(clientId, client.clientType);
     if (!canInput.allowed) {
-      this.emit('inputRejected', clientId, input, canInput.reason!);
+      this.emit('inputRejected', clientId, input, canInput.reason ?? 'Unknown reason');
       return { accepted: false, rejectReason: canInput.reason };
     }
 
