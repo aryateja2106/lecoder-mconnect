@@ -17,6 +17,15 @@ export default defineConfig({
     environment: 'node',
     include: ['src/__tests__/**/*.test.ts'],
     exclude: skipNativeTests ? nativeModuleTests : [],
+    // Use forks instead of threads for better native module cleanup (node-pty)
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+    // Force exit after tests complete to prevent hanging on PTY cleanup
+    teardownTimeout: 5000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
