@@ -369,3 +369,156 @@ describe('PTY Types', () => {
     });
   });
 });
+
+describe('Shell Path Validation', () => {
+  describe('non-absolute paths', () => {
+    it('should accept simple command names like bash', async () => {
+      const manager = new PTYManager();
+      // This should not throw - bash is resolved via 'which'
+      const instance = await manager.create({
+        command: 'bash',
+        cwd: '/tmp',
+      });
+      expect(instance).toBeDefined();
+    });
+
+    it('should accept docker as a command', async () => {
+      const manager = new PTYManager();
+      // This should not throw - docker is resolved via 'which'
+      const instance = await manager.create({
+        command: 'docker',
+        cwd: '/tmp',
+      });
+      expect(instance).toBeDefined();
+    });
+  });
+
+  describe('invalid paths', () => {
+    it('should reject empty string', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: '',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell path cannot be empty');
+    });
+
+    it('should reject whitespace-only string', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: '   ',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell path cannot be empty');
+    });
+
+    it('should reject shell injection attempt with semicolon', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: 'bash; rm -rf /',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('contains disallowed characters');
+    });
+
+    it('should reject shell injection attempt with backticks', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: 'bash`whoami`',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('contains disallowed characters');
+    });
+
+    it('should reject shell injection attempt with $() syntax', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: 'bash$(whoami)',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('contains disallowed characters');
+    });
+
+    it('should reject shell injection attempt with pipe', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: 'bash | cat /etc/passwd',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('contains disallowed characters');
+    });
+
+    it('should reject shell injection with && operator', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: 'bash && malicious',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('contains disallowed characters');
+    });
+  });
+
+  describe('relative paths', () => {
+    it('should accept relative paths starting with ./', async () => {
+      const manager = new PTYManager();
+      // This will fail because ./nonexistent doesn't exist, but it should
+      // pass the character validation and fail on the file check
+      await expect(
+        manager.create({
+          command: './nonexistent-script',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell not found');
+    });
+
+    it('should accept relative paths starting with ../', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: '../nonexistent-script',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell not found');
+    });
+  });
+
+  describe('valid paths', () => {
+    it('should accept paths with underscores', async () => {
+      const manager = new PTYManager();
+      // Will fail at existence check but pass character validation
+      await expect(
+        manager.create({
+          command: '/usr/local/bin/my_shell',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell not found');
+    });
+
+    it('should accept paths with dots', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: '/usr/local/bin/shell.2.0',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell not found');
+    });
+
+    it('should accept paths with hyphens', async () => {
+      const manager = new PTYManager();
+      await expect(
+        manager.create({
+          command: '/usr/local/bin/my-shell',
+          cwd: '/tmp',
+        })
+      ).rejects.toThrow('Shell not found');
+    });
+  });
+});
