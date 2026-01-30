@@ -1,13 +1,16 @@
 /**
- * Web Client v2.4 for MConnect
+ * Web Client v2.5 for MConnect
  *
- * UX OVERHAUL v2.4:
+ * UX OVERHAUL v2.5:
  * 1. Native terminal typing - tap terminal to type directly
  * 2. Hidden input overlay for Direct Mode keyboard capture
  * 3. Input bar hidden in Direct Mode (more screen space)
- * 4. Clearer Shift button label
- * 5. Larger delete key
- * 6. Improved scroll controls for TUI apps
+ * 4. Direct Mode ON by default
+ * 5. Enter button in shortcut bar for Direct Mode
+ * 6. Compact header/shortcut bar for more screen space
+ * 7. Custom shortcut slots (2 user-configurable)
+ * 8. Fullscreen terminal toggle
+ * 9. Fixed scroll-to-top bug on Enter
  */
 
 export function getWebClientHTML(
@@ -69,10 +72,10 @@ export function getWebClientHTML(
       height: 100dvh;
     }
 
-    /* Header */
+    /* Header - compact for more screen space */
     .header {
       background: var(--void);
-      padding: 8px 12px;
+      padding: 6px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -82,7 +85,7 @@ export function getWebClientHTML(
 
     .logo {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--text);
       display: flex;
@@ -347,24 +350,24 @@ export function getWebClientHTML(
       border-top: 1px solid var(--border);
     }
 
-    /* Shortcut Bar */
+    /* Shortcut Bar - compact for more screen space */
     .shortcut-bar {
       display: flex;
-      gap: 6px;
-      padding: 8px;
+      gap: 4px;
+      padding: 6px;
       background: var(--surface);
       align-items: center;
       flex-wrap: wrap;
     }
 
-    /* Button base */
+    /* Button base - compact */
     .btn {
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
       font-weight: 500;
-      min-width: 44px;
-      min-height: 44px;
-      padding: 8px 12px;
+      min-width: 40px;
+      min-height: 36px;
+      padding: 6px 10px;
       background: var(--void);
       color: var(--text);
       border: 1px solid var(--border);
@@ -587,6 +590,26 @@ export function getWebClientHTML(
     .toast.show, .readonly-hint.show { opacity: 1; }
     .readonly-hint { color: var(--text-muted); }
 
+    /* Fullscreen Mode - hides all UI except terminal */
+    body.fullscreen-mode .header,
+    body.fullscreen-mode .agent-tabs,
+    body.fullscreen-mode .bottom-bars {
+      display: none;
+    }
+
+    body.fullscreen-mode .terminals-container {
+      height: 100dvh;
+    }
+
+    body.fullscreen-mode .typing-indicator {
+      bottom: 16px;
+    }
+
+    /* Custom shortcuts container */
+    #customShortcutsContainer {
+      display: contents;
+    }
+
     /* Backdrop */
     .backdrop {
       position: fixed;
@@ -654,14 +677,16 @@ export function getWebClientHTML(
     <div class="bottom-bars" id="bottomBars">
       <!-- Row 1: Shortcut Bar -->
       <div class="shortcut-bar">
-        <button class="btn" onclick="sendKey('Escape')" title="Escape">Esc</button>
-        <button class="btn" id="ctrlBtn" onclick="toggleCtrl()" title="Control modifier">Ctrl</button>
-        <button class="btn" id="shiftBtn" onclick="toggleShift()" title="Shift modifier">Shift</button>
-        <button class="btn" onclick="sendTabKey()" title="Tab">Tab</button>
-        <button class="btn" style="min-width: 52px; padding: 8px 14px;" onclick="sendBackspace()" title="Backspace">Del</button>
+        <button class="btn" onclick="sendKey('Escape')">Esc</button>
+        <button class="btn" id="ctrlBtn" onclick="toggleCtrl()">Ctrl</button>
+        <button class="btn" id="shiftBtn" onclick="toggleShift()">Shift</button>
+        <button class="btn" onclick="sendTabKey()">Tab</button>
+        <button class="btn" style="min-width: 48px;" onclick="sendBackspace()">Del</button>
+        <div id="customShortcutsContainer"></div>
         <div class="spacer"></div>
-        <button class="btn" id="copyBtn" onclick="copySelection()" title="Copy">Copy</button>
-        <button class="btn" id="moreBtn" onclick="toggleMoreMenu()" title="More">&#x22EE;</button>
+        <button class="btn" id="copyBtn" onclick="copySelection()">Copy</button>
+        <button class="btn" id="enterBtn" onclick="sendDirectEnter()" style="background: var(--success); color: var(--void); min-width: 36px;">&#x21B5;</button>
+        <button class="btn" id="moreBtn" onclick="toggleMoreMenu()">&#x22EE;</button>
       </div>
 
       <!-- Row 2: Input Bar (collapsible in direct mode) -->
@@ -708,6 +733,13 @@ export function getWebClientHTML(
       <span class="more-menu-icon">^F</span> Search
     </button>
     <div class="menu-divider"></div>
+    <button class="btn" onclick="toggleFullscreen()">
+      <span class="more-menu-icon">&#x26F6;</span> Fullscreen
+    </button>
+    <button class="btn" onclick="showCustomShortcutModal()">
+      <span class="more-menu-icon">+</span> Add Shortcut
+    </button>
+    <div class="menu-divider"></div>
     <button class="btn" onclick="sendCtrlD()">
       <span class="more-menu-icon">^D</span> EOF
     </button>
@@ -749,6 +781,34 @@ export function getWebClientHTML(
     </div>
   </div>
 
+  <!-- Custom Shortcut Modal -->
+  <div class="modal-overlay" id="shortcutModal">
+    <div class="modal">
+      <h3>Add Custom Shortcut</h3>
+      <p>Create a button that sends a key sequence.</p>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Label (1-4 chars)</label>
+        <input type="text" id="shortcutLabel" maxlength="4" placeholder="e.g. q, :q" style="width: 100%; padding: 10px; background: var(--void); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'JetBrains Mono', monospace;">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Sequence</label>
+        <select id="shortcutSequence" style="width: 100%; padding: 10px; background: var(--void); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'JetBrains Mono', monospace;">
+          <option value=":q\\r">:q (vim quit)</option>
+          <option value=":wq\\r">:wq (vim save+quit)</option>
+          <option value="q">q (quit pager)</option>
+          <option value="y">y (yes)</option>
+          <option value="n">n (no)</option>
+          <option value="\\x1b">Esc</option>
+          <option value="\\x03">^C</option>
+        </select>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" onclick="hideShortcutModal()">Cancel</button>
+        <button class="modal-btn confirm" onclick="addCustomShortcut()">Add</button>
+      </div>
+    </div>
+  </div>
+
   <div class="readonly-hint" id="readonlyHint">Enable input mode to type</div>
   <div class="toast" id="toast"></div>
 
@@ -763,9 +823,12 @@ export function getWebClientHTML(
     let isReadOnly = ${isReadOnly};
     let ctrlPressed = false;
     let shiftPressed = false;
-    let directMode = false;
+    let directMode = true; // Default ON per user feedback
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
+
+    // Custom shortcuts (persisted to localStorage)
+    let customShortcuts = JSON.parse(localStorage.getItem('mconnect_shortcuts') || '[]');
 
     // Agent management
     const agents = new Map();
@@ -1234,7 +1297,10 @@ export function getWebClientHTML(
       const command = inputField.value;
       sendTerminalData(activeAgentId, command ? command + '\\r' : '\\r');
       inputField.value = '';
-      inputField.focus();
+      // Only focus if not already focused - prevents scroll jump bug
+      if (document.activeElement !== inputField) {
+        inputField.focus();
+      }
     }
 
     const keyMap = {
@@ -1372,6 +1438,108 @@ export function getWebClientHTML(
         if (text) { sendTerminalData(activeAgentId, text); showToast('Pasted'); }
       } catch (err) { showToast('Paste not available'); }
       closeMoreMenu();
+    }
+
+    // ============================================
+    // DIRECT MODE ENTER BUTTON
+    // ============================================
+    function sendDirectEnter() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); return; }
+      sendTerminalData(activeAgentId, '\\r');
+    }
+
+    // ============================================
+    // FULLSCREEN MODE
+    // ============================================
+    function toggleFullscreen() {
+      document.body.classList.toggle('fullscreen-mode');
+      closeMoreMenu();
+      if (document.body.classList.contains('fullscreen-mode')) {
+        showToast('Fullscreen: tap 3x to exit');
+      }
+      // Refit terminals after layout change
+      setTimeout(debouncedRefitAll, 100);
+    }
+
+    // Triple-tap to exit fullscreen
+    let fullscreenTapCount = 0;
+    let fullscreenTapTimer = null;
+    terminalsContainer.addEventListener('click', () => {
+      if (!document.body.classList.contains('fullscreen-mode')) return;
+      fullscreenTapCount++;
+      if (fullscreenTapCount >= 3) {
+        toggleFullscreen();
+        fullscreenTapCount = 0;
+      }
+      clearTimeout(fullscreenTapTimer);
+      fullscreenTapTimer = setTimeout(() => { fullscreenTapCount = 0; }, 500);
+    });
+
+    // ============================================
+    // CUSTOM SHORTCUTS
+    // ============================================
+    function renderCustomShortcuts() {
+      const container = document.getElementById('customShortcutsContainer');
+      // Clear existing buttons using DOM methods
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+
+      customShortcuts.forEach((shortcut, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = shortcut.label;
+        btn.onclick = () => {
+          if (!activeAgentId || isReadOnly) { showReadonlyHint(); return; }
+          sendTerminalData(activeAgentId, shortcut.sequence);
+        };
+        // Long press to remove
+        let pressTimer;
+        btn.addEventListener('touchstart', () => {
+          pressTimer = setTimeout(() => {
+            if (confirm('Remove shortcut "' + shortcut.label + '"?')) {
+              removeCustomShortcut(index);
+            }
+          }, 800);
+        });
+        btn.addEventListener('touchend', () => clearTimeout(pressTimer));
+        btn.addEventListener('touchmove', () => clearTimeout(pressTimer));
+        container.appendChild(btn);
+      });
+    }
+
+    function showCustomShortcutModal() {
+      closeMoreMenu();
+      if (customShortcuts.length >= 2) {
+        showToast('Max 2 custom shortcuts. Long-press to remove.');
+        return;
+      }
+      document.getElementById('shortcutLabel').value = '';
+      document.getElementById('shortcutModal').classList.add('show');
+    }
+
+    function hideShortcutModal() {
+      document.getElementById('shortcutModal').classList.remove('show');
+    }
+
+    function addCustomShortcut() {
+      const label = document.getElementById('shortcutLabel').value.trim();
+      const sequence = document.getElementById('shortcutSequence').value;
+      if (!label) { showToast('Enter a label'); return; }
+      if (customShortcuts.length >= 2) { showToast('Max 2 shortcuts'); return; }
+
+      customShortcuts.push({ label, sequence });
+      localStorage.setItem('mconnect_shortcuts', JSON.stringify(customShortcuts));
+      renderCustomShortcuts();
+      hideShortcutModal();
+      showToast('Shortcut added');
+    }
+
+    function removeCustomShortcut(index) {
+      customShortcuts.splice(index, 1);
+      localStorage.setItem('mconnect_shortcuts', JSON.stringify(customShortcuts));
+      renderCustomShortcuts();
+      showToast('Shortcut removed');
     }
 
     // ============================================
@@ -1554,6 +1722,21 @@ export function getWebClientHTML(
 
     // Init
     updateModeUI();
+
+    // Initialize Direct Mode ON by default
+    function initDirectModeDefault() {
+      directModeBtn.classList.add('active');
+      directBadge.textContent = 'ON';
+      directBadge.classList.add('direct');
+      inputBar.classList.add('collapsed');
+      directInputOverlay.classList.add('active');
+      typingIndicator.classList.add('show');
+    }
+    initDirectModeDefault();
+
+    // Render any saved custom shortcuts
+    renderCustomShortcuts();
+
     connect();
   </script>
 </body>
