@@ -132,7 +132,8 @@ describe('Doctor Module', () => {
   });
 
   describe('printDiagnostics', () => {
-    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    // biome-ignore lint/suspicious/noExplicitAny: vi.spyOn type inference requires any for this mock pattern
+    let consoleLogSpy: any;
 
     beforeEach(() => {
       consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -225,7 +226,8 @@ describe('Doctor Module', () => {
   });
 
   describe('tryInstallNodePty', () => {
-    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    // biome-ignore lint/suspicious/noExplicitAny: vi.spyOn type inference requires any for this mock pattern
+    let consoleLogSpy: any;
 
     beforeEach(() => {
       consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});

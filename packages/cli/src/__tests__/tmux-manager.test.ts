@@ -76,7 +76,7 @@ describe('Tmux Manager Module', () => {
       mockExecSync.mockImplementation(() => {
         throw new Error('command not found');
       });
-      mockExistsSync.mockImplementation((path: string) => {
+      mockExistsSync.mockImplementation((path) => {
         return path === '/opt/homebrew/bin/tmux';
       });
 
