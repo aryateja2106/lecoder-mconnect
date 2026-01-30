@@ -1,9 +1,14 @@
 /**
- * Agent Types for MConnect v0.1.2
+ * Agent Types for MConnect
  *
  * Shell-first architecture: All agents run inside a shell for proper
  * PATH resolution and environment handling.
+ *
+ * Container support: Agents can optionally run inside Docker containers
+ * for isolation, supporting both inline config and devcontainer.json.
  */
+
+import type { ContainerConfig } from '../container/types.js';
 
 export type AgentType = 'claude' | 'gemini' | 'codex' | 'aider' | 'shell' | 'custom';
 
@@ -26,6 +31,8 @@ export interface AgentConfig {
   env?: Record<string, string>;
   /** Run command immediately on shell start */
   autoRun?: boolean;
+  /** Container configuration for isolated execution */
+  container?: ContainerConfig;
 }
 
 export interface AgentInfo {
@@ -45,6 +52,12 @@ export interface AgentInfo {
   lastActivityAt: number;
   /** Exit code (if exited) */
   exitCode?: number;
+  /** Container info (if running in container) */
+  containerInfo?: {
+    id: string;
+    name: string;
+    image: string;
+  };
 }
 
 export interface AgentPreset {
@@ -133,6 +146,23 @@ export const AGENT_PRESETS: AgentPreset[] = [
         type: 'shell',
         name: 'Shell',
         command: getDefaultShell(),
+      },
+    ],
+  },
+  {
+    name: 'container-dev',
+    description: 'Containerized development environment (Docker)',
+    agents: [
+      {
+        type: 'shell',
+        name: 'Container',
+        command: '/bin/bash',
+        container: {
+          enabled: true,
+          image: 'ubuntu:22.04',
+          workDir: '/workspace',
+          removeOnExit: true,
+        },
       },
     ],
   },

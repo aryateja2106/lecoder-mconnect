@@ -85,33 +85,6 @@ export interface MConnectSession {
 let currentSession: MConnectSession | null = null;
 
 /**
- * Error handling wrapper for optional components (tunnel, tmux, etc.)
- * Returns the result or null if the component fails to initialize
- *
- * @param name - Component name for logging
- * @param init - Async initialization function
- * @param options - Options for error handling
- * @returns The result of init() or null on error
- */
-export async function tryInitOptionalComponent<T>(
-  name: string,
-  init: () => Promise<T>,
-  options: { silent?: boolean; warnMessage?: string } = {}
-): Promise<T | null> {
-  try {
-    return await init();
-  } catch (error) {
-    if (!options.silent) {
-      const message =
-        options.warnMessage ||
-        `Could not initialize ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      p.log.warning(message);
-    }
-    return null;
-  }
-}
-
-/**
  * Start a new MConnect v2 session
  */
 export async function startSession(config: SessionConfig): Promise<void> {
@@ -441,41 +414,6 @@ function cleanup(): void {
 
   currentSession = null;
   p.outro(chalk.green('Session ended. Goodbye!'));
-}
-
-/**
- * Get unauthorized page HTML
- */
-function _getUnauthorizedHTML(): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <title>MConnect - Unauthorized</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: system-ui;
-      background: #09090B;
-      color: #FAFAFA;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .container { text-align: center; padding: 20px; }
-    h1 { color: #EF4444; margin-bottom: 16px; }
-    p { color: #71717A; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Unauthorized</h1>
-    <p>Invalid or missing session token.</p>
-    <p>Please scan the QR code from the MConnect CLI.</p>
-  </div>
-</body>
-</html>`;
 }
 
 /**

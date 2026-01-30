@@ -164,15 +164,15 @@ describe('Agent Manager Module', () => {
       expect(manager.getAllAgentInfos()).toEqual([]);
     });
 
-    it('should return false when killing unknown agent', () => {
+    it('should return false when killing unknown agent', async () => {
       const manager = new AgentManager('/tmp/workdir');
-      const killed = manager.killAgent('nonexistent');
+      const killed = await manager.killAgent('nonexistent');
       expect(killed).toBe(false);
     });
 
-    it('should handle killAllAgents with no agents', () => {
+    it('should handle killAllAgents with no agents', async () => {
       const manager = new AgentManager('/tmp/workdir');
-      expect(() => manager.killAllAgents()).not.toThrow();
+      await expect(manager.killAllAgents()).resolves.not.toThrow();
     });
 
     it('should register event handlers', () => {

@@ -1,9 +1,9 @@
 /**
- * Tests for agents/types.ts - MConnect v0.1.2
+ * Tests for agents/types.ts - MConnect v0.1.7
  *
  * Tests the shell-first architecture type system:
  * - Agent types and configurations
- * - Agent presets
+ * - Agent presets (including container-dev)
  * - Agent commands mapping
  * - Utility functions
  */
@@ -49,8 +49,8 @@ describe('Agent Types Module', () => {
   });
 
   describe('AGENT_PRESETS', () => {
-    it('should have exactly 4 presets', () => {
-      expect(AGENT_PRESETS).toHaveLength(4);
+    it('should have exactly 5 presets', () => {
+      expect(AGENT_PRESETS).toHaveLength(5);
     });
 
     it('should have required preset names', () => {
@@ -59,6 +59,7 @@ describe('Agent Types Module', () => {
       expect(presetNames).toContain('research-spec-test');
       expect(presetNames).toContain('dev-review');
       expect(presetNames).toContain('shell-only');
+      expect(presetNames).toContain('container-dev');
     });
 
     describe('single preset', () => {
@@ -132,6 +133,32 @@ describe('Agent Types Module', () => {
         expect(preset?.agents).toHaveLength(1);
         expect(preset?.agents[0].type).toBe('shell');
         expect(preset?.agents[0].name).toBe('Shell');
+      });
+    });
+
+    describe('container-dev preset', () => {
+      it('should have single containerized shell agent', () => {
+        const preset = AGENT_PRESETS.find((p) => p.name === 'container-dev');
+        expect(preset).toBeDefined();
+        expect(preset?.description).toContain('Container');
+        expect(preset?.agents).toHaveLength(1);
+        expect(preset?.agents[0].type).toBe('shell');
+        expect(preset?.agents[0].name).toBe('Container');
+      });
+
+      it('should have container configuration enabled', () => {
+        const preset = AGENT_PRESETS.find((p) => p.name === 'container-dev');
+        const agent = preset?.agents[0];
+        expect(agent?.container).toBeDefined();
+        expect(agent?.container?.enabled).toBe(true);
+        expect(agent?.container?.image).toBe('ubuntu:22.04');
+        expect(agent?.container?.workDir).toBe('/workspace');
+        expect(agent?.container?.removeOnExit).toBe(true);
+      });
+
+      it('should use /bin/bash as command', () => {
+        const preset = AGENT_PRESETS.find((p) => p.name === 'container-dev');
+        expect(preset?.agents[0].command).toBe('/bin/bash');
       });
     });
 

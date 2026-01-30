@@ -1,11 +1,15 @@
 /**
- * Agent Manager for MConnect v0.1.2
+ * Agent Manager for MConnect
  *
  * Shell-first architecture: All agents spawn a shell first,
  * then optionally run commands inside that shell.
+ *
+ * Container support: Agents can optionally run inside Docker containers
+ * for isolation, supporting both inline config and devcontainer.json.
  */
 
 import { randomBytes } from 'node:crypto';
+import { type ContainerInstance, getContainerManager } from '../container/index.js';
 import { getPTYManager, type PTYManager } from '../pty/pty-manager.js';
 import type { PTYInstance } from '../pty/types.js';
 import type { AgentConfig, AgentInfo, AgentStatus } from './types.js';
@@ -26,6 +30,7 @@ export class AgentInstance {
   public readonly config: AgentConfig;
 
   private ptyInstance: PTYInstance | null = null;
+  private containerInstance: ContainerInstance | null = null;
   private status: AgentStatus = 'starting';
   private createdAt: number;
   private lastActivityAt: number;
@@ -42,20 +47,73 @@ export class AgentInstance {
   }
 
   /**
-   * Start the agent (shell-first approach)
+   * Check if this agent uses container isolation
+   */
+  get isContainerized(): boolean {
+    return this.config.container?.enabled === true;
+  }
+
+  /**
+   * Get container info if running in container
+   */
+  get container(): ContainerInstance | null {
+    return this.containerInstance;
+  }
+
+  /**
+   * Start the agent (shell-first approach, with optional container isolation)
    */
   async start(ptyManager: PTYManager): Promise<void> {
     this.setStatus('starting');
 
     try {
-      // Always spawn a shell first
-      const shell = this.config.command || getDefaultShell();
+      let command: string;
+      let args: string[];
+      let env: Record<string, string>;
 
-      this.ptyInstance = await ptyManager.create({
-        command: shell,
-        args: ['-l'], // Login shell for proper PATH
-        cwd: this.config.cwd,
-        env: {
+      // Check if container mode is enabled
+      if (this.config.container?.enabled) {
+        // Container mode: spawn shell inside Docker container
+        const containerManager = getContainerManager();
+
+        console.log(`[Agent ${this.id}] Starting in container mode...`);
+
+        // Create/ensure container is running
+        this.containerInstance = await containerManager.ensureContainer(this.config.cwd, {
+          sessionId: this.id,
+          config: this.config.container,
+        });
+
+        // Build docker exec command
+        const shell = this.config.command || '/bin/bash';
+        const execResult = containerManager.execInContainer({
+          containerId: this.containerInstance.name,
+          command: shell,
+          args: ['-l'], // Login shell for proper PATH
+          workDir: this.containerInstance.containerWorkDir,
+          user: this.config.container.user,
+          env: this.config.env,
+          tty: true,
+          interactive: true,
+        });
+
+        command = execResult.command;
+        args = execResult.args;
+        env = {
+          ...this.config.env,
+          ...execResult.env,
+          // Ensure proper terminal
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor',
+          FORCE_COLOR: '1',
+        };
+
+        console.log(`[Agent ${this.id}] Container: ${this.containerInstance.name}`);
+      } else {
+        // Direct mode: spawn shell on host
+        command = this.config.command || getDefaultShell();
+        args = ['-l']; // Login shell for proper PATH
+        env = {
           ...this.config.env,
           // Ensure proper terminal
           TERM: 'xterm-256color',
@@ -64,7 +122,14 @@ export class AgentInstance {
           FORCE_COLOR: '1',
           CLICOLOR: '1',
           CLICOLOR_FORCE: '1',
-        },
+        };
+      }
+
+      this.ptyInstance = await ptyManager.create({
+        command,
+        args,
+        cwd: this.config.cwd,
+        env,
         cols: 120,
         rows: 30,
       });
@@ -135,12 +200,25 @@ export class AgentInstance {
   }
 
   /**
-   * Kill the agent
+   * Kill the agent and cleanup container if applicable
    */
-  kill(signal?: string): void {
+  async kill(signal?: string): Promise<void> {
+    // Kill PTY first
     if (this.ptyInstance) {
       this.ptyInstance.kill(signal);
       this.setStatus('exited');
+    }
+
+    // Cleanup container if running in container mode
+    if (this.containerInstance && this.config.container?.removeOnExit !== false) {
+      try {
+        const containerManager = getContainerManager();
+        await containerManager.stopContainer(this.containerInstance.name, true);
+        console.log(`[Agent ${this.id}] Container cleaned up: ${this.containerInstance.name}`);
+      } catch (error) {
+        console.warn(`[Agent ${this.id}] Failed to cleanup container: ${error}`);
+      }
+      this.containerInstance = null;
     }
   }
 
@@ -177,7 +255,7 @@ export class AgentInstance {
    * Get agent info
    */
   getInfo(): AgentInfo {
-    return {
+    const info: AgentInfo = {
       id: this.id,
       config: this.config,
       status: this.status,
@@ -187,6 +265,17 @@ export class AgentInstance {
       lastActivityAt: this.lastActivityAt,
       exitCode: this.exitCode,
     };
+
+    // Add container info if running in container
+    if (this.containerInstance) {
+      info.containerInfo = {
+        id: this.containerInstance.id,
+        name: this.containerInstance.name,
+        image: this.containerInstance.image,
+      };
+    }
+
+    return info;
   }
 
   /**
@@ -346,10 +435,10 @@ export class AgentManager {
   /**
    * Kill an agent
    */
-  killAgent(agentId: string, signal?: string): boolean {
+  async killAgent(agentId: string, signal?: string): Promise<boolean> {
     const agent = this.agents.get(agentId);
     if (agent) {
-      agent.kill(signal);
+      await agent.kill(signal);
       this.agents.delete(agentId);
       return true;
     }
@@ -359,10 +448,9 @@ export class AgentManager {
   /**
    * Kill all agents
    */
-  killAllAgents(): void {
-    for (const agent of this.agents.values()) {
-      agent.kill();
-    }
+  async killAllAgents(): Promise<void> {
+    const killPromises = Array.from(this.agents.values()).map((agent) => agent.kill());
+    await Promise.all(killPromises);
     this.agents.clear();
   }
 

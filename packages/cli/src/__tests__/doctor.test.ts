@@ -132,7 +132,7 @@ describe('Doctor Module', () => {
   });
 
   describe('printDiagnostics', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: vi.spyOn type inference requires any for this mock pattern
     let consoleLogSpy: any;
 
     beforeEach(() => {
@@ -226,7 +226,7 @@ describe('Doctor Module', () => {
   });
 
   describe('tryInstallNodePty', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: vi.spyOn type inference requires any for this mock pattern
     let consoleLogSpy: any;
 
     beforeEach(() => {

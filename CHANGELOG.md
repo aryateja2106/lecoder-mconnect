@@ -2,6 +2,42 @@
 
 All notable changes to MConnect will be documented in this file.
 
+## [0.1.7] - 2026-01-30
+
+### Added
+
+#### Container Foundation (Docker + Dev Container Spec)
+- **Container module** (`src/container/`) - Full Docker container lifecycle management
+- **Dev Container spec support** - Parse and use `.devcontainer/devcontainer.json` configurations
+- **Container preset** - New `container-dev` preset for isolated development environment
+- **Docker detection** - `mconnect doctor` now checks Docker installation and daemon status
+- **Wizard integration** - Container preset option with Docker availability check
+
+#### New Container Features
+- `ContainerManager` class - Docker container lifecycle with safe command execution
+- `parseDevContainer()` - Parse devcontainer.json with JSONC (comments, trailing commas) support
+- `resolveVariables()` - Support for Dev Container spec variables (`${localWorkspaceFolder}`, etc.)
+- Dockerfile templates - DEFAULT, MINIMAL, NODEJS, PYTHON for common development scenarios
+- ARM64/aarch64 compatible images - Full support for Raspberry Pi and ARM devices
+- Auto-cleanup - Containers removed on session exit by default
+
+#### Container Configuration
+- Direct image reference via `ContainerConfig.image`
+- Custom volume mounts and port mappings
+- Environment variable inheritance from host and container config
+- User specification (remoteUser, containerUser)
+- Post-create command execution for setup scripts
+
+### Changed
+- Agent types now include optional `container` field in `AgentConfig`
+- `AgentInfo` includes `containerInfo` for containerized sessions
+- `kill()` method in `AgentInstance` is now async for proper container cleanup
+
+### Technical Details
+- Uses `execFileSync` for Docker commands (prevents shell injection)
+- Singleton pattern consistent with PTYManager and AgentManager
+- Comprehensive test coverage (53 new container tests)
+
 ## [0.1.5] - 2026-01-29
 
 ### Fixed
