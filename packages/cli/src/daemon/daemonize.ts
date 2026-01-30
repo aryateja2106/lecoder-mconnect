@@ -6,7 +6,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const DEFAULT_DATA_DIR = `${process.env.HOME}/.mconnect`;
@@ -118,7 +118,7 @@ export function getDaemonPid(dataDir: string = DEFAULT_DATA_DIR): number | null 
   try {
     const content = readFileSync(pidPath, 'utf-8').trim();
     const pid = parseInt(content, 10);
-    return isNaN(pid) ? null : pid;
+    return Number.isNaN(pid) ? null : pid;
   } catch {
     return null;
   }

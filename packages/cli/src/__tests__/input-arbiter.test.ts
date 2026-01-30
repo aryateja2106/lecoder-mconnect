@@ -3,8 +3,8 @@
  * MConnect v0.2.0
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { InputArbiter, type AuditLogEntry } from '../input/InputArbiter.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type AuditLogEntry, InputArbiter } from '../input/InputArbiter.js';
 
 describe('InputArbiter', () => {
   let arbiter: InputArbiter;

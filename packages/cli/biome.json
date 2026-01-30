@@ -20,7 +20,8 @@
         "noExplicitAny": "warn",
         "noConsole": "off",
         "useIterableCallbackReturn": "off",
-        "noControlCharactersInRegex": "off"
+        "noControlCharactersInRegex": "off",
+        "noUnsafeDeclarationMerging": "warn"
       },
       "style": {
         "noNonNullAssertion": "warn",

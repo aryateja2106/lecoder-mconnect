@@ -5,20 +5,15 @@
  * Commands: start, stop, restart, status, logs, install, uninstall
  */
 
-import { Command } from 'commander';
+import { execSync, spawn } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
-import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { spawn, execSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
 import chalk from 'chalk';
-import {
-  daemonize,
-  isDaemonRunning,
-  getDaemonPid,
-  killDaemon,
-} from '../../daemon/daemonize.js';
+import { Command } from 'commander';
+import { getDataDir, migrateConfig } from '../../config.js';
+import { daemonize, getDaemonPid, isDaemonRunning, killDaemon } from '../../daemon/daemonize.js';
 import { DaemonLogger } from '../../daemon/logging.js';
-import { migrateConfig, getDataDir, getPort, getMergedConfig } from '../../config.js';
 
 const DEFAULT_DATA_DIR = `${process.env.HOME}/.mconnect`;
 const DEFAULT_IPC_PATH = '/tmp/mconnect.sock';
@@ -125,7 +120,9 @@ export function createDaemonCommand(): Command {
           console.log(chalk.green(`✓ Listening on port ${options.port}`));
           console.log(chalk.green(`✓ IPC socket: ${options.ipcPath}`));
         } catch (error) {
-          console.error(chalk.red(`Failed to start daemon: ${error instanceof Error ? error.message : error}`));
+          console.error(
+            chalk.red(`Failed to start daemon: ${error instanceof Error ? error.message : error}`)
+          );
           process.exit(1);
         }
       }
@@ -169,7 +166,7 @@ export function createDaemonCommand(): Command {
     .description('Restart the daemon')
     .option('--port <port>', 'WebSocket server port', String(DEFAULT_PORT))
     .option('--ipc-path <path>', 'Unix socket path', DEFAULT_IPC_PATH)
-    .action(async (options) => {
+    .action(async (_options) => {
       const dataDir = process.env.MCONNECT_HOME || DEFAULT_DATA_DIR;
 
       // Stop if running
@@ -186,7 +183,9 @@ export function createDaemonCommand(): Command {
         const pid = daemonize(scriptPath, ['daemon', 'start', '--foreground'], dataDir);
         console.log(chalk.green(`✓ MConnect daemon restarted (PID: ${pid})`));
       } catch (error) {
-        console.error(chalk.red(`Failed to restart daemon: ${error instanceof Error ? error.message : error}`));
+        console.error(
+          chalk.red(`Failed to restart daemon: ${error instanceof Error ? error.message : error}`)
+        );
         process.exit(1);
       }
     });
@@ -224,13 +223,19 @@ export function createDaemonCommand(): Command {
           console.log(`Port:       ${data.port}`);
           console.log(`IPC:        ${data.ipcPath}`);
           console.log('');
-          console.log(`Sessions:   ${data.sessions.running} running, ${data.sessions.completed} completed`);
+          console.log(
+            `Sessions:   ${data.sessions.running} running, ${data.sessions.completed} completed`
+          );
           console.log(`Clients:    ${data.clients.pc} PC, ${data.clients.mobile} mobile`);
           console.log('');
           console.log(`Memory:     ${formatBytes(data.memory)}`);
         }
       } catch (error) {
-        console.error(chalk.red(`Failed to get daemon status: ${error instanceof Error ? error.message : error}`));
+        console.error(
+          chalk.red(
+            `Failed to get daemon status: ${error instanceof Error ? error.message : error}`
+          )
+        );
         process.exit(1);
       }
     });
@@ -295,7 +300,7 @@ export function createDaemonCommand(): Command {
     .command('uninstall')
     .description('Remove daemon system service')
     .option('--keep-sessions', "Don't terminate running sessions")
-    .action(async (options) => {
+    .action(async (_options) => {
       const platform = process.platform;
       const dataDir = process.env.MCONNECT_HOME || DEFAULT_DATA_DIR;
 

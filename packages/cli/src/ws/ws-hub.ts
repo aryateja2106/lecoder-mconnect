@@ -10,30 +10,27 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
+import { InputArbiter } from '../input/InputArbiter.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
-import type { ClientInfo, ClientMessage, ServerMessage, WSHubConfig } from './types.js';
+import type { SessionManager } from '../session/SessionManager.js';
+import type { ClientType, ControlState, Priority } from '../session/types.js';
 import type {
-  SessionAttachMessage,
-  ScrollbackRequestMessage,
-  ControlRequestMessage,
-  HeartbeatAckMessage,
-  SessionListMessage,
-  SessionStateMessage,
-  ControlStatusMessage,
-  ScrollbackResponseMessage,
+  AuthSuccessMessage,
   ClientJoinedMessage,
   ClientLeftMessage,
+  ControlRequestMessage,
+  ControlResponseMessage,
+  ControlStatusMessage,
+  HeartbeatAckMessage,
   HeartbeatMessage,
-  AuthSuccessMessage,
-  ClientMessageV2,
-  PROTOCOL_VERSION,
-  HEARTBEAT_INTERVAL_MS,
-  MAX_SCROLLBACK_REQUEST,
+  InputRejectedMessage,
+  ScrollbackRequestMessage,
+  ScrollbackResponseMessage,
+  SessionAttachMessage,
+  SessionListMessage,
+  SessionStateMessage,
 } from './protocol.js';
-import type { SessionManager } from '../session/SessionManager.js';
-import type { ClientType, Priority, RejectReason, ControlState } from '../session/types.js';
-import { InputArbiter } from '../input/InputArbiter.js';
-import type { InputRejectedMessage, ControlResponseMessage } from './protocol.js';
+import type { ClientInfo, ClientMessage, ServerMessage, WSHubConfig } from './types.js';
 
 /**
  * Extract client IP from request
@@ -282,8 +279,9 @@ export class WSHub {
       this.sendToClient(ws, authSuccess);
 
       // Send session list if session manager available
-      if (this.sessionManager) {
-        const sessions = this.sessionManager.getAllSessions();
+      const sessionMgr = this.sessionManager;
+      if (sessionMgr) {
+        const sessions = sessionMgr.getAllSessions();
         const sessionList: SessionListMessage = {
           type: 'session_list',
           sessions: sessions.map((s) => ({
@@ -293,7 +291,7 @@ export class WSHub {
             lastActivity: s.lastActivity.getTime(),
             agentConfig: s.agentConfig,
             workingDirectory: s.workingDirectory,
-            connectedClients: this.sessionManager!.getSessionClients(s.id).length,
+            connectedClients: sessionMgr.getSessionClients(s.id).length,
           })),
         };
         this.sendToClient(ws, sessionList);
@@ -341,10 +339,14 @@ export class WSHub {
         }
 
         // Notify other clients in session
-        this.broadcastToSession(client.sessionId, {
-          type: 'client_left',
-          clientId: client.clientId,
-        } as ClientLeftMessage, client.clientId);
+        this.broadcastToSession(
+          client.sessionId,
+          {
+            type: 'client_left',
+            clientId: client.clientId,
+          } as ClientLeftMessage,
+          client.clientId
+        );
 
         // Detach from session
         this.sessionManager?.detachClient(client.clientId);
@@ -386,7 +388,8 @@ export class WSHub {
       case 'resize':
         if (this.agentManager) {
           // Support both v1 (with agentId) and v2 (without agentId) resize messages
-          const resizeAgentId = 'agentId' in message ? message.agentId : (clientInfo.focusedAgentId || '');
+          const resizeAgentId =
+            'agentId' in message ? message.agentId : clientInfo.focusedAgentId || '';
           this.agentManager.resizeAgent(resizeAgentId, message.cols, message.rows);
         }
         break;
@@ -441,7 +444,7 @@ export class WSHub {
         this.handleControlRequest(ws, message as ControlRequestMessage);
         break;
 
-      case 'terminal_input':
+      case 'terminal_input': {
         // v2 terminal input with arbiter check
         // Support both v1 (input) and v2 (data) field names for backwards compatibility
         const terminalMsg = message as { data?: string; input?: string; agentId?: string };
@@ -468,6 +471,7 @@ export class WSHub {
 
         this.handleInput(ws, agentId, inputData);
         break;
+      }
 
       default:
         console.warn('[WSHub] Unknown message type:', (message as any).type);
@@ -563,14 +567,18 @@ export class WSHub {
     this.sendToClient(ws, controlStatus);
 
     // Notify other clients
-    this.broadcastToSession(message.sessionId, {
-      type: 'client_joined',
-      client: {
-        id: client.clientId,
-        clientType: client.clientType,
-        priority: client.priority,
-      },
-    } as ClientJoinedMessage, client.clientId);
+    this.broadcastToSession(
+      message.sessionId,
+      {
+        type: 'client_joined',
+        client: {
+          id: client.clientId,
+          clientType: client.clientType,
+          priority: client.priority,
+        },
+      } as ClientJoinedMessage,
+      client.clientId
+    );
 
     console.log(`[WSHub] Client ${client.clientId} attached to session ${message.sessionId}`);
   }
@@ -593,18 +601,23 @@ export class WSHub {
     }
 
     // Notify other clients
-    this.broadcastToSession(sessionId, {
-      type: 'client_left',
-      clientId: client.clientId,
-    } as ClientLeftMessage, client.clientId);
+    this.broadcastToSession(
+      sessionId,
+      {
+        type: 'client_left',
+        clientId: client.clientId,
+      } as ClientLeftMessage,
+      client.clientId
+    );
 
     // Detach from session
     this.sessionManager?.detachClient(client.clientId);
     client.sessionId = null;
 
     // Send updated session list
-    if (this.sessionManager) {
-      const sessions = this.sessionManager.getAllSessions();
+    const sessMgr = this.sessionManager;
+    if (sessMgr) {
+      const sessions = sessMgr.getAllSessions();
       const sessionList: SessionListMessage = {
         type: 'session_list',
         sessions: sessions.map((s) => ({
@@ -614,7 +627,7 @@ export class WSHub {
           lastActivity: s.lastActivity.getTime(),
           agentConfig: s.agentConfig,
           workingDirectory: s.workingDirectory,
-          connectedClients: this.sessionManager!.getSessionClients(s.id).length,
+          connectedClients: sessMgr.getSessionClients(s.id).length,
         })),
       };
       this.sendToClient(ws, sessionList);
@@ -671,7 +684,7 @@ export class WSHub {
   /**
    * Handle heartbeat_ack message (v2)
    */
-  private handleHeartbeatAck(ws: WebSocket, message: HeartbeatAckMessage): void {
+  private handleHeartbeatAck(ws: WebSocket, _message: HeartbeatAckMessage): void {
     const client = this.clients.get(ws);
     if (client) {
       client.lastHeartbeat = Date.now();
@@ -771,11 +784,11 @@ export class WSHub {
       }
 
       // Wire up arbiter events
-      arbiter.on('stateChange', (newState, oldState, controlState) => {
+      arbiter.on('stateChange', (_newState, _oldState, controlState) => {
         this.broadcastControlStatus(sessionId, controlState);
       });
 
-      arbiter.on('inputRejected', (clientId, input, reason) => {
+      arbiter.on('inputRejected', (clientId, _input, reason) => {
         // Find the client's WebSocket and send rejection
         for (const [ws, client] of this.clients) {
           if (client.clientId === clientId) {
@@ -1029,8 +1042,6 @@ export class WSHub {
    * Get clients attached to a specific session
    */
   getSessionClients(sessionId: string): ClientInfoV2[] {
-    return Array.from(this.clients.values()).filter(
-      (client) => client.sessionId === sessionId
-    );
+    return Array.from(this.clients.values()).filter((client) => client.sessionId === sessionId);
   }
 }

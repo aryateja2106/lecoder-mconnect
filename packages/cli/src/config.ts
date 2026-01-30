@@ -9,7 +9,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 // ============================================
 // Constants
@@ -50,7 +50,7 @@ export function getPort(): number {
   const portStr = process.env.MCONNECT_PORT;
   if (portStr) {
     const port = parseInt(portStr, 10);
-    if (!isNaN(port) && port > 0 && port < 65536) {
+    if (!Number.isNaN(port) && port > 0 && port < 65536) {
       return port;
     }
   }
@@ -75,7 +75,7 @@ export function getMaxSessions(): number {
   const maxStr = process.env.MCONNECT_MAX_SESSIONS;
   if (maxStr) {
     const max = parseInt(maxStr, 10);
-    if (!isNaN(max) && max > 0) {
+    if (!Number.isNaN(max) && max > 0) {
       return max;
     }
   }
@@ -257,9 +257,15 @@ export function getMergedConfig(): MConnectConfig & MConnectEnvConfig {
     ...envConfig,
     // Environment overrides specific settings
     port: envConfig.port !== 8765 ? envConfig.port : (fileConfig.port ?? 8765),
-    logLevel: process.env.MCONNECT_LOG_LEVEL ? envConfig.logLevel : (fileConfig.logLevel as any ?? 'info'),
-    maxSessions: process.env.MCONNECT_MAX_SESSIONS ? envConfig.maxSessions : (fileConfig.maxSessions ?? 5),
-    disableTunnel: process.env.MCONNECT_NO_TUNNEL ? envConfig.disableTunnel : (fileConfig.disableTunnel ?? false),
+    logLevel: process.env.MCONNECT_LOG_LEVEL
+      ? envConfig.logLevel
+      : ((fileConfig.logLevel as any) ?? 'info'),
+    maxSessions: process.env.MCONNECT_MAX_SESSIONS
+      ? envConfig.maxSessions
+      : (fileConfig.maxSessions ?? 5),
+    disableTunnel: process.env.MCONNECT_NO_TUNNEL
+      ? envConfig.disableTunnel
+      : (fileConfig.disableTunnel ?? false),
   };
 }
 

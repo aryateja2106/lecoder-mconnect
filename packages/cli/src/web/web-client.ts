@@ -1,15 +1,13 @@
 /**
- * Web Client v2 for MConnect v0.1.2
+ * Web Client v2.4 for MConnect v0.1.5
  *
- * Multi-agent tab-based terminal interface.
- * Supports multiple AI agents with individual terminal views.
- *
- * FIXES IMPLEMENTED:
- * 1. Terminal resize propagation to PTY (critical for TUI apps)
- * 2. Mobile touch scrolling with alternate buffer detection
- * 3. Real-time input for shell/TUI apps (they handle their own echo)
- * 4. VisualViewport API for mobile keyboard handling
- * 5. Proper terminal.onResize event handling
+ * UX OVERHAUL v2.4:
+ * 1. Native terminal typing - tap terminal to type directly
+ * 2. Hidden input overlay for Direct Mode keyboard capture
+ * 3. Input bar hidden in Direct Mode (more screen space)
+ * 4. Clearer Shift button label
+ * 5. Larger delete key
+ * 6. Improved scroll controls for TUI apps
  */
 
 export function getWebClientHTML(
@@ -21,7 +19,7 @@ export function getWebClientHTML(
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-visual">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#09090B">
@@ -34,21 +32,15 @@ export function getWebClientHTML(
     :root {
       --void: #09090B;
       --surface: #18181B;
-      --border: #27272A;
-      --border-light: #3F3F46;
-      --text: #FAFAFA;
-      --text-muted: #A1A1AA;
-      --text-dim: #71717A;
-      --accent: #FAFAFA;
+      --surface-hover: #27272A;
+      --border: #333;
+      --border-light: #444;
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --text-dim: #666;
       --success: #22C55E;
       --warning: #EAB308;
       --danger: #EF4444;
-      --agent-research: #3B82F6;
-      --agent-spec: #8B5CF6;
-      --agent-tests: #10B981;
-      --agent-shell: #F59E0B;
-      --app-height: 100vh;
-      --bottom-bars-height: 152px; /* shortcut(~48) + input(~56) + control(~48) */
     }
 
     * {
@@ -59,8 +51,7 @@ export function getWebClientHTML(
     }
 
     html, body {
-      height: 100%;
-      height: var(--app-height);
+      height: 100dvh;
       background: var(--void);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       color: var(--text);
@@ -73,8 +64,9 @@ export function getWebClientHTML(
     .container {
       display: flex;
       flex-direction: column;
-      height: 100%;
-      height: var(--app-height);
+      height: 100dvh;
+      height: 100vh;
+      height: 100dvh;
     }
 
     /* Header */
@@ -105,8 +97,8 @@ export function getWebClientHTML(
     }
 
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--success);
     }
@@ -124,7 +116,7 @@ export function getWebClientHTML(
 
     .status-text {
       font-size: 10px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
       text-transform: uppercase;
     }
@@ -147,9 +139,7 @@ export function getWebClientHTML(
       flex-shrink: 0;
     }
 
-    .agent-tabs::-webkit-scrollbar {
-      display: none;
-    }
+    .agent-tabs::-webkit-scrollbar { display: none; }
 
     .agent-tab {
       display: flex;
@@ -212,8 +202,6 @@ export function getWebClientHTML(
       position: relative;
       overflow: hidden;
       min-height: 0;
-      /* Bottom margin to reserve space for fixed bottom bars */
-      margin-bottom: var(--bottom-bars-height, 152px);
     }
 
     .terminal-view {
@@ -221,12 +209,11 @@ export function getWebClientHTML(
       top: 0;
       left: 0;
       right: 0;
-      /* Leave extra space at bottom so TUI status bars are visible above our bottom bars */
       bottom: 0;
       display: none;
       background: var(--void);
       overflow: hidden;
-      cursor: text; /* Show text cursor to indicate clickable for typing */
+      cursor: text;
     }
 
     .terminal-view.active {
@@ -238,7 +225,7 @@ export function getWebClientHTML(
       padding: 4px;
     }
 
-    /* CRITICAL: Enable native xterm.js scrolling */
+    /* Enable native xterm.js scrolling */
     .terminal-view .xterm-viewport {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
@@ -246,142 +233,194 @@ export function getWebClientHTML(
       scrollbar-color: var(--border-light) transparent;
     }
 
-    .terminal-view .xterm-viewport::-webkit-scrollbar {
-      width: 6px;
+    .terminal-view .xterm-screen {
+      /* Allow touch scrolling */
+      touch-action: pan-y;
     }
 
-    .terminal-view .xterm-viewport::-webkit-scrollbar-track {
+    /* Hidden input for Direct Mode - captures keyboard on mobile */
+    .direct-input-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      z-index: 5;
+      display: none;
+    }
+
+    .direct-input-overlay.active {
+      display: block;
+    }
+
+    .direct-input {
+      width: 100%;
+      height: 100%;
       background: transparent;
+      border: none;
+      outline: none;
+      color: transparent;
+      caret-color: transparent;
+      font-size: 16px; /* Prevents iOS zoom */
     }
 
+    /* Typing indicator when direct mode active */
+    .typing-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: none;
+      z-index: 6;
+    }
+
+    .typing-indicator.show {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .typing-indicator .pulse {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+
+    .terminal-view .xterm-viewport::-webkit-scrollbar { width: 6px; }
+    .terminal-view .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
     .terminal-view .xterm-viewport::-webkit-scrollbar-thumb {
       background: var(--border-light);
       border-radius: 3px;
     }
 
-    /* Scroll Controls */
+    /* Scroll Controls - floating in top-right */
     .scroll-controls {
       position: absolute;
       right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 8px;
       display: flex;
       flex-direction: column;
       gap: 4px;
       z-index: 10;
-      opacity: 0.6;
+      opacity: 0.7;
     }
 
-    .scroll-controls:hover {
-      opacity: 1;
+    .scroll-controls:active { opacity: 1; }
+
+    .scroll-row {
+      display: flex;
+      gap: 4px;
     }
 
     .scroll-btn {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       color: var(--text-muted);
       font-size: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .scroll-btn:active {
-      background: var(--border);
+      background: var(--surface-hover);
+      border-color: var(--border-light);
     }
 
-    /* Bottom Bars Container - Fixed at bottom */
+    /* Bottom Bars */
     .bottom-bars {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 20;
+      flex-shrink: 0;
       background: var(--void);
-      transition: transform 0.15s ease-out;
+      border-top: 1px solid var(--border);
     }
 
     /* Shortcut Bar */
     .shortcut-bar {
       display: flex;
-      gap: 4px;
+      gap: 6px;
       padding: 8px;
       background: var(--surface);
-      border-top: 1px solid var(--border);
-      overflow-x: auto;
-      flex-shrink: 0;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .shortcut-btn {
+    /* Button base */
+    .btn {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 500;
+      min-width: 44px;
+      min-height: 44px;
       padding: 8px 12px;
       background: var(--void);
-      color: var(--text-muted);
+      color: var(--text);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s, border-color 0.1s;
     }
 
-    .shortcut-btn:active {
-      background: var(--border);
+    .btn:active {
+      background: var(--surface-hover);
+      border-color: var(--border-light);
     }
 
-    .shortcut-btn.active {
+    .btn.active {
       background: var(--text);
       color: var(--void);
+      border-color: var(--text);
     }
 
-    .shortcut-btn.enter-btn {
-      background: var(--success);
-      color: var(--void);
-      border-color: var(--success);
-      font-weight: 600;
+    .btn.danger {
+      border-color: var(--danger);
+      color: var(--danger);
     }
 
-    .shortcut-btn.enter-btn:active {
-      background: #16A34A;
+    .btn.danger:active { background: rgba(239, 68, 68, 0.1); }
+
+    .btn.small {
+      min-width: 36px;
+      min-height: 36px;
+      padding: 6px 8px;
+      font-size: 11px;
     }
 
-    .shortcut-btn.copy-btn {
-      background: var(--agent-research);
-      color: white;
-      border-color: var(--agent-research);
-    }
+    .spacer { flex: 1; }
 
-    .shortcut-btn.copy-btn:active {
-      background: #2563EB;
-    }
-
-    .shortcut-btn.copy-btn.copied {
-      background: var(--success);
-      border-color: var(--success);
-    }
-
-    .shortcut-btn.delete-btn {
-      background: var(--warning);
-      color: var(--void);
-      border-color: var(--warning);
-      font-size: 14px;
-    }
-
-    .shortcut-btn.delete-btn:active {
-      background: #CA8A04;
-    }
-
-    /* Input Bar */
+    /* Input Bar - collapsible in direct mode */
     .input-bar {
       display: flex;
       gap: 8px;
       padding: 8px;
       background: var(--void);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
+      align-items: center;
+      transition: max-height 0.2s, padding 0.2s, opacity 0.2s;
+      max-height: 80px;
+      overflow: hidden;
+    }
+
+    .input-bar.collapsed {
+      max-height: 0;
+      padding: 0 8px;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .input-field {
@@ -389,6 +428,7 @@ export function getWebClientHTML(
       font-family: 'JetBrains Mono', monospace;
       font-size: 14px;
       padding: 12px;
+      min-height: 44px;
       background: var(--surface);
       color: var(--text);
       border: 1px solid var(--border);
@@ -396,72 +436,85 @@ export function getWebClientHTML(
       outline: none;
     }
 
-    .input-field:focus {
-      border-color: var(--text-dim);
-    }
-
-    .input-field:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .send-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 12px 20px;
-      background: var(--text);
-      color: var(--void);
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .send-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
+    .input-field:focus { border-color: var(--border-light); }
+    .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
+    .input-field::placeholder { color: var(--text-dim); }
 
     /* Control Bar */
     .control-bar {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      gap: 6px;
       padding: 8px;
       background: var(--void);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
+      align-items: center;
     }
 
-    .mode-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 10px 16px;
+    /* Arrow Keys */
+    .arrow-keys {
+      display: flex;
+      gap: 4px;
+    }
+
+    .arrow-keys .btn {
+      min-width: 40px;
+      padding: 8px;
+    }
+
+    /* Mode indicator badge */
+    .mode-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
       background: var(--surface);
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: pointer;
-      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-left: 4px;
     }
 
-    .mode-btn.active {
+    .mode-badge.direct {
       background: var(--success);
       color: var(--void);
-      border-color: var(--success);
     }
 
-    .kill-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 10px 16px;
+    /* More Menu */
+    .more-menu {
+      position: fixed;
+      bottom: 140px;
+      right: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 100;
+      min-width: 160px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    .more-menu.show { display: flex; }
+
+    .more-menu .btn {
+      width: 100%;
+      justify-content: flex-start;
+      gap: 10px;
+      border: none;
       background: transparent;
-      color: var(--danger);
-      border: 1px solid var(--danger);
-      border-radius: 6px;
-      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .more-menu .btn:hover { background: var(--surface-hover); }
+
+    .more-menu-icon {
+      width: 20px;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
     }
 
     /* Modal */
@@ -472,13 +525,11 @@ export function getWebClientHTML(
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 200;
       padding: 20px;
     }
 
-    .modal-overlay.show {
-      display: flex;
-    }
+    .modal-overlay.show { display: flex; }
 
     .modal {
       background: var(--surface);
@@ -489,21 +540,10 @@ export function getWebClientHTML(
       width: 100%;
     }
 
-    .modal h3 {
-      font-size: 16px;
-      margin-bottom: 12px;
-    }
+    .modal h3 { font-size: 16px; margin-bottom: 12px; }
+    .modal p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
 
-    .modal p {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 12px;
-    }
+    .modal-buttons { display: flex; gap: 12px; }
 
     .modal-btn {
       flex: 1;
@@ -514,6 +554,7 @@ export function getWebClientHTML(
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      min-height: 44px;
     }
 
     .modal-btn.cancel {
@@ -522,47 +563,11 @@ export function getWebClientHTML(
       border: 1px solid var(--border);
     }
 
-    .modal-btn.confirm {
-      background: var(--text);
-      color: var(--void);
-    }
+    .modal-btn.confirm { background: var(--text); color: var(--void); }
+    .modal-btn.danger { background: var(--danger); color: white; }
 
-    .modal-btn.danger {
-      background: var(--danger);
-      color: white;
-    }
-
-    /* Agent Color Badges */
-    .agent-badge {
-      display: inline-block;
-      width: 4px;
-      height: 100%;
-      border-radius: 2px;
-    }
-
-    /* Readonly Hint */
-    .readonly-hint {
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--surface);
-      color: var(--text-muted);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-      z-index: 50;
-    }
-
-    .readonly-hint.show {
-      opacity: 1;
-    }
-
-    /* Toast notification */
-    .toast {
+    /* Toast & Hints */
+    .toast, .readonly-hint {
       position: fixed;
       bottom: 180px;
       left: 50%;
@@ -579,9 +584,18 @@ export function getWebClientHTML(
       border: 1px solid var(--border);
     }
 
-    .toast.show {
-      opacity: 1;
+    .toast.show, .readonly-hint.show { opacity: 1; }
+    .readonly-hint { color: var(--text-muted); }
+
+    /* Backdrop */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      display: none;
     }
+
+    .backdrop.show { display: block; }
   </style>
 </head>
 <body>
@@ -589,7 +603,7 @@ export function getWebClientHTML(
     <!-- Header -->
     <div class="header">
       <div class="logo">
-        <span>>_<</span>
+        <span>&gt;_</span>
         <span>MConnect</span>
       </div>
       <div class="status">
@@ -601,66 +615,121 @@ export function getWebClientHTML(
 
     <!-- Agent Tabs -->
     <div class="agent-tabs" id="agentTabs">
-      <!-- Tabs will be dynamically added -->
       <button class="add-agent-btn" id="addAgentBtn" title="Add Agent">+</button>
     </div>
 
     <!-- Terminal Views -->
     <div class="terminals-container" id="terminalsContainer">
-      <!-- Terminal views will be dynamically added -->
+      <div class="scroll-controls" id="scrollControls">
+        <div class="scroll-row">
+          <button class="scroll-btn" onclick="scrollTerminal('up')" title="Scroll Up">&#x2191;</button>
+          <button class="scroll-btn" onclick="scrollTerminal('top')" title="Top">&#x21C8;</button>
+        </div>
+        <div class="scroll-row">
+          <button class="scroll-btn" onclick="scrollTerminal('down')" title="Scroll Down">&#x2193;</button>
+          <button class="scroll-btn" onclick="scrollTerminal('bottom')" title="Bottom">&#x21CA;</button>
+        </div>
+      </div>
+      <!-- Hidden input for Direct Mode - captures mobile keyboard -->
+      <div class="direct-input-overlay" id="directInputOverlay">
+        <input
+          type="text"
+          class="direct-input"
+          id="directInput"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          inputmode="text"
+        >
+      </div>
+      <!-- Typing indicator -->
+      <div class="typing-indicator" id="typingIndicator">
+        <span class="pulse"></span>
+        <span>Tap here to type</span>
+      </div>
     </div>
 
-    <!-- Scroll Controls (floating) -->
-    <div class="scroll-controls" id="scrollControls">
-      <button class="scroll-btn" onclick="scrollTerminal('top')" title="Scroll to top">\u2912</button>
-      <button class="scroll-btn" onclick="scrollTerminal('up')" title="Scroll up">\u2191</button>
-      <button class="scroll-btn" onclick="scrollTerminal('down')" title="Scroll down">\u2193</button>
-      <button class="scroll-btn" onclick="scrollTerminal('bottom')" title="Scroll to bottom">\u2913</button>
-    </div>
-
-    <!-- Bottom Bars (Fixed at bottom) -->
+    <!-- Bottom Bars -->
     <div class="bottom-bars" id="bottomBars">
-      <!-- Shortcut Bar -->
+      <!-- Row 1: Shortcut Bar -->
       <div class="shortcut-bar">
-        <button class="shortcut-btn copy-btn" id="copyBtn" onclick="copySelection()">Copy</button>
-        <button class="shortcut-btn delete-btn" onclick="sendBackspace()">\u232B</button>
-        <button class="shortcut-btn" id="ctrlBtn" onclick="toggleCtrl()">Ctrl</button>
-        <button class="shortcut-btn" onclick="sendKey('Tab')">Tab</button>
-        <button class="shortcut-btn" onclick="sendKey('Escape')">Esc</button>
-        <button class="shortcut-btn" onclick="sendKey('ArrowUp')">\u2191</button>
-        <button class="shortcut-btn" onclick="sendKey('ArrowDown')">\u2193</button>
+        <button class="btn" onclick="sendKey('Escape')" title="Escape">Esc</button>
+        <button class="btn" id="ctrlBtn" onclick="toggleCtrl()" title="Control modifier">Ctrl</button>
+        <button class="btn" id="shiftBtn" onclick="toggleShift()" title="Shift modifier">Shift</button>
+        <button class="btn" onclick="sendTabKey()" title="Tab">Tab</button>
+        <button class="btn" style="min-width: 52px; padding: 8px 14px;" onclick="sendBackspace()" title="Backspace">Del</button>
+        <div class="spacer"></div>
+        <button class="btn" id="copyBtn" onclick="copySelection()" title="Copy">Copy</button>
+        <button class="btn" id="moreBtn" onclick="toggleMoreMenu()" title="More">&#x22EE;</button>
       </div>
 
-      <!-- Input Bar -->
-      <div class="input-bar">
+      <!-- Row 2: Input Bar (collapsible in direct mode) -->
+      <div class="input-bar" id="inputBar">
         <input
           type="text"
           class="input-field"
           id="inputField"
-          placeholder="$ type command..."
+          placeholder="$ command..."
           autocomplete="off"
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
           disabled
         >
-        <button class="shortcut-btn enter-btn" onclick="sendEnter()" style="padding: 12px 16px;">Enter</button>
-        <button class="send-btn" id="sendBtn" onclick="sendInput()" disabled>Run</button>
+        <button class="btn" onclick="sendEnter()" title="Send">&#x21B5;</button>
       </div>
 
-      <!-- Control Bar -->
+      <!-- Row 3: Control Bar -->
       <div class="control-bar">
-        <button class="mode-btn" id="modeToggle" onclick="toggleMode()">Read-Only</button>
-        <button class="kill-btn" id="killBtn" onclick="showKillModal()">KILL ^C</button>
+        <button class="btn" id="modeToggle" onclick="toggleMode()">READ-ONLY</button>
+        <button class="btn small" id="directModeBtn" onclick="toggleDirectMode()" title="Direct typing mode">
+          DIR<span class="mode-badge" id="directBadge">OFF</span>
+        </button>
+        <div class="spacer"></div>
+        <div class="arrow-keys">
+          <button class="btn" onclick="sendKey('ArrowLeft')">&#x2190;</button>
+          <button class="btn" onclick="sendKey('ArrowUp')">&#x2191;</button>
+          <button class="btn" onclick="sendKey('ArrowDown')">&#x2193;</button>
+          <button class="btn" onclick="sendKey('ArrowRight')">&#x2192;</button>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn danger" onclick="sendCtrlC()" title="^C">^C</button>
       </div>
     </div>
   </div>
 
-  <!-- Mode Change Modal -->
+  <!-- More Menu -->
+  <div class="more-menu" id="moreMenu">
+    <button class="btn" onclick="pasteFromClipboard()">
+      <span class="more-menu-icon">&#x1F4CB;</span> Paste
+    </button>
+    <button class="btn" onclick="sendCtrlF()">
+      <span class="more-menu-icon">^F</span> Search
+    </button>
+    <div class="menu-divider"></div>
+    <button class="btn" onclick="sendCtrlD()">
+      <span class="more-menu-icon">^D</span> EOF
+    </button>
+    <button class="btn" onclick="sendCtrlZ()">
+      <span class="more-menu-icon">^Z</span> Suspend
+    </button>
+    <button class="btn" onclick="sendCtrlL()">
+      <span class="more-menu-icon">^L</span> Clear
+    </button>
+    <div class="menu-divider"></div>
+    <button class="btn" onclick="showKillModal()">
+      <span class="more-menu-icon" style="color: var(--danger);">&#x2715;</span> Kill Process
+    </button>
+  </div>
+
+  <div class="backdrop" id="backdrop" onclick="closeMoreMenu()"></div>
+
+  <!-- Mode Modal -->
   <div class="modal-overlay" id="modeModal">
     <div class="modal">
       <h3>Enable Input Mode</h3>
-      <p>This allows you to send commands to the agent. Make sure you know what you're doing.</p>
+      <p>This allows you to send commands to the agent.</p>
       <div class="modal-buttons">
         <button class="modal-btn cancel" onclick="hideModeModal()">Cancel</button>
         <button class="modal-btn confirm" onclick="confirmModeChange()">Enable</button>
@@ -672,7 +741,7 @@ export function getWebClientHTML(
   <div class="modal-overlay" id="killModal">
     <div class="modal">
       <h3>Kill Current Agent?</h3>
-      <p>This will send SIGINT (^C) to the current agent. Use this to interrupt long-running operations.</p>
+      <p>This will terminate the process. Use ^C for a gentler interrupt.</p>
       <div class="modal-buttons">
         <button class="modal-btn cancel" onclick="hideKillModal()">Cancel</button>
         <button class="modal-btn danger" onclick="confirmKill()">Kill</button>
@@ -680,10 +749,7 @@ export function getWebClientHTML(
     </div>
   </div>
 
-  <!-- Readonly Hint -->
   <div class="readonly-hint" id="readonlyHint">Enable input mode to type</div>
-
-  <!-- Toast -->
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
@@ -696,281 +762,260 @@ export function getWebClientHTML(
     let ws = null;
     let isReadOnly = ${isReadOnly};
     let ctrlPressed = false;
+    let shiftPressed = false;
+    let directMode = false;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
 
     // Agent management
-    const agents = new Map(); // agentId -> { terminal, fitAddon, info, touchHandler }
+    const agents = new Map();
     let activeAgentId = null;
 
     // DOM elements
     const inputField = document.getElementById('inputField');
-    const sendBtn = document.getElementById('sendBtn');
+    const inputBar = document.getElementById('inputBar');
     const ctrlBtn = document.getElementById('ctrlBtn');
+    const shiftBtn = document.getElementById('shiftBtn');
+    const directModeBtn = document.getElementById('directModeBtn');
+    const directBadge = document.getElementById('directBadge');
     const agentTabs = document.getElementById('agentTabs');
     const terminalsContainer = document.getElementById('terminalsContainer');
     const addAgentBtn = document.getElementById('addAgentBtn');
     const terminalSizeEl = document.getElementById('terminalSize');
-    const bottomBars = document.getElementById('bottomBars');
+    const moreMenu = document.getElementById('moreMenu');
+    const backdrop = document.getElementById('backdrop');
+    const directInput = document.getElementById('directInput');
+    const directInputOverlay = document.getElementById('directInputOverlay');
+    const typingIndicator = document.getElementById('typingIndicator');
 
     // ============================================
-    // VIEWPORT HEIGHT FIX (Mobile Safari/Chrome)
+    // DIRECT MODE - Native terminal typing experience
+    // Tap terminal → keyboard appears → type directly
     // ============================================
-    let initialViewportHeight = window.innerHeight;
-    let keyboardVisible = false;
+    function toggleDirectMode() {
+      directMode = !directMode;
+      directModeBtn.classList.toggle('active', directMode);
+      directBadge.textContent = directMode ? 'ON' : 'OFF';
+      directBadge.classList.toggle('direct', directMode);
 
-    function updateViewportHeight() {
-      const vh = window.visualViewport
-        ? window.visualViewport.height
-        : window.innerHeight;
-      document.documentElement.style.setProperty('--app-height', vh + 'px');
-    }
-
-    function updateBottomBarsPosition() {
-      // Position bottom bars at the actual visual viewport bottom
-      // This keeps the input bar visible just above the keyboard
-      if (window.visualViewport) {
-        const viewportBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-        bottomBars.style.bottom = Math.max(0, viewportBottom) + 'px';
+      if (directMode) {
+        // Hide input bar, show overlay
+        inputBar.classList.add('collapsed');
+        directInputOverlay.classList.add('active');
+        typingIndicator.classList.add('show');
+        showToast('Direct mode: tap terminal to type');
       } else {
-        bottomBars.style.bottom = '0px';
+        // Show input bar, hide overlay
+        inputBar.classList.remove('collapsed');
+        directInputOverlay.classList.remove('active');
+        typingIndicator.classList.remove('show');
+        directInput.blur();
+        showToast('Buffer mode: type command, press Enter');
+        if (!isReadOnly) inputField.focus();
       }
     }
 
-    // Initial setup
-    updateViewportHeight();
-    updateBottomBarsPosition();
-    initialViewportHeight = window.visualViewport?.height || window.innerHeight;
+    // Tap terminal to focus hidden input (opens keyboard on mobile)
+    terminalsContainer.addEventListener('click', (e) => {
+      if (!directMode || isReadOnly) return;
+      // Don't focus if clicking scroll controls
+      if (e.target.closest('.scroll-controls')) return;
+      directInput.focus();
+      typingIndicator.querySelector('span:last-child').textContent = 'Typing...';
+    });
 
-    // Listen for viewport changes (keyboard show/hide)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => {
-        const currentHeight = window.visualViewport.height;
-        const heightDiff = initialViewportHeight - currentHeight;
+    // When direct input is focused, update indicator
+    directInput.addEventListener('focus', () => {
+      typingIndicator.querySelector('span:last-child').textContent = 'Typing...';
+    });
 
-        // Detect keyboard show/hide (keyboard typically > 200px)
-        const wasKeyboardVisible = keyboardVisible;
-        keyboardVisible = heightDiff > 200;
+    directInput.addEventListener('blur', () => {
+      typingIndicator.querySelector('span:last-child').textContent = 'Tap here to type';
+    });
 
-        // Always update bottom bars position to stay above keyboard
-        updateBottomBarsPosition();
+    // Direct mode: send each character as it's typed
+    directInput.addEventListener('input', (e) => {
+      if (!directMode || isReadOnly || !activeAgentId) return;
 
-        // DON'T resize terminal when keyboard shows - this keeps content stable
-        // Only resize when keyboard hides (going back to full screen)
-        if (wasKeyboardVisible && !keyboardVisible) {
-          // Keyboard was hidden - safe to resize
-          updateViewportHeight();
-          debouncedRefitAll();
-        }
+      const data = e.data; // The character(s) inserted
+      if (data) {
+        sendTerminalData(activeAgentId, data);
+      }
+      // Clear immediately so it doesn't accumulate
+      directInput.value = '';
+    });
 
-        // When keyboard shows, scroll terminal to bottom so user sees latest content
-        if (!wasKeyboardVisible && keyboardVisible) {
-          if (activeAgentId) {
-            const agent = agents.get(activeAgentId);
-            if (agent && agent.terminal.buffer.active.type !== 'alternate') {
-              agent.terminal.scrollToBottom();
-            }
+    // Handle special keys in direct input
+    directInput.addEventListener('keydown', (e) => {
+      if (!directMode || isReadOnly || !activeAgentId) return;
+
+      // Enter
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendTerminalData(activeAgentId, '\\r');
+        return;
+      }
+
+      // Backspace
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        sendTerminalData(activeAgentId, '\\x7f');
+        return;
+      }
+
+      // Tab
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        sendTerminalData(activeAgentId, e.shiftKey ? '\\x1b[Z' : '\\t');
+        return;
+      }
+
+      // Arrow keys
+      if (e.key === 'ArrowUp') { e.preventDefault(); sendTerminalData(activeAgentId, '\\x1b[A'); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); sendTerminalData(activeAgentId, '\\x1b[B'); return; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); sendTerminalData(activeAgentId, '\\x1b[D'); return; }
+      if (e.key === 'ArrowRight') { e.preventDefault(); sendTerminalData(activeAgentId, '\\x1b[C'); return; }
+
+      // Escape
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        sendTerminalData(activeAgentId, '\\x1b');
+        return;
+      }
+    });
+
+    // Also handle compositionend for IME input (e.g., Chinese, Japanese)
+    directInput.addEventListener('compositionend', (e) => {
+      if (!directMode || isReadOnly || !activeAgentId) return;
+      if (e.data) {
+        sendTerminalData(activeAgentId, e.data);
+      }
+      directInput.value = '';
+    });
+
+    // ============================================
+    // VIEWPORT HANDLING
+    // ============================================
+    let lastVisualViewportHeight = window.visualViewport?.height || window.innerHeight;
+
+    function handleViewportChange() {
+      if (!window.visualViewport) return;
+
+      const currentHeight = window.visualViewport.height;
+      const heightDiff = lastVisualViewportHeight - currentHeight;
+
+      if (heightDiff > 150) {
+        // Keyboard appeared - scroll to bottom
+        if (activeAgentId) {
+          const agent = agents.get(activeAgentId);
+          if (agent && agent.terminal.buffer.active.type !== 'alternate') {
+            setTimeout(() => agent.terminal.scrollToBottom(), 50);
           }
         }
-      });
+      }
 
-      // Also listen for scroll events on visualViewport (iOS Safari)
-      window.visualViewport.addEventListener('scroll', () => {
-        updateBottomBarsPosition();
-      });
-    }
-
-    window.addEventListener('resize', () => {
-      // Only resize if not keyboard-related
-      if (!keyboardVisible) {
-        updateViewportHeight();
-        updateBottomBarsPosition();
-        initialViewportHeight = window.visualViewport?.height || window.innerHeight;
+      if (heightDiff < -150) {
         debouncedRefitAll();
       }
-    });
 
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        updateViewportHeight();
-        updateBottomBarsPosition();
-        initialViewportHeight = window.visualViewport?.height || window.innerHeight;
-        debouncedRefitAll();
-      }, 100);
-    });
+      lastVisualViewportHeight = currentHeight;
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+    }
+
+    window.addEventListener('resize', debouncedRefitAll);
+    window.addEventListener('orientationchange', () => setTimeout(debouncedRefitAll, 100));
 
     // ============================================
     // TOUCH SCROLL HANDLER
+    // Only handles TUI apps (alternate buffer) - normal buffer uses native xterm scroll
     // ============================================
     class TouchScrollHandler {
       constructor(terminal, sendData) {
         this.terminal = terminal;
         this.sendData = sendData;
         this.touchStartY = 0;
-        this.touchStartX = 0;
         this.lastTouchY = 0;
-        this.velocity = 0;
-        this.lastMoveTime = 0;
-        // Thresholds for scrolling
-        this.scrollThreshold = 10; // Lower = more responsive for normal buffer
-        this.arrowThreshold = 40;  // Higher = less flickering for TUI apps
         this.element = terminal.element;
         this.isScrolling = false;
-        this.momentumId = null;
-        // Debounce TUI arrow keys to prevent flooding
         this.lastArrowSent = 0;
-        this.arrowDebounce = 80; // ms between arrow key sends
-
+        this.arrowDebounce = 100;
+        this.arrowThreshold = 50;
         this.bindEvents();
       }
 
       isInAlternateBuffer() {
-        try {
-          return this.terminal.buffer.active.type === 'alternate';
-        } catch (e) {
-          return false;
-        }
+        try { return this.terminal.buffer.active.type === 'alternate'; }
+        catch (e) { return false; }
       }
 
       bindEvents() {
-        this.element.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
+        // Only intercept when in alternate buffer (TUI apps)
+        this.element.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: true });
         this.element.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
         this.element.addEventListener('touchend', this.onTouchEnd.bind(this), { passive: true });
-        // Also support mouse wheel for desktop testing
         this.element.addEventListener('wheel', this.onWheel.bind(this), { passive: false });
       }
 
       onTouchStart(e) {
-        // Cancel any ongoing momentum scrolling
-        if (this.momentumId) {
-          cancelAnimationFrame(this.momentumId);
-          this.momentumId = null;
-        }
-
         if (e.touches.length === 1) {
           this.touchStartY = e.touches[0].clientY;
-          this.touchStartX = e.touches[0].clientX;
           this.lastTouchY = this.touchStartY;
-          this.lastMoveTime = Date.now();
-          this.velocity = 0;
           this.isScrolling = false;
         }
       }
 
       onTouchMove(e) {
-        if (e.touches.length !== 1) return;
+        // Only handle alternate buffer (TUI apps like Claude Code, vim)
+        // Let normal buffer use native xterm scrolling
+        if (!this.isInAlternateBuffer()) return;
 
+        if (e.touches.length !== 1) return;
         const currentY = e.touches[0].clientY;
-        const currentTime = Date.now();
         const deltaY = this.lastTouchY - currentY;
-        const deltaTime = currentTime - this.lastMoveTime;
         const totalDeltaY = this.touchStartY - currentY;
 
-        // Determine if this is a scroll gesture
-        if (!this.isScrolling && Math.abs(totalDeltaY) > 8) {
+        if (!this.isScrolling && Math.abs(totalDeltaY) > 15) {
           this.isScrolling = true;
         }
 
         if (!this.isScrolling) return;
-
-        // Always prevent default to avoid page scroll
         e.preventDefault();
 
-        // Calculate velocity for momentum
-        if (deltaTime > 0) {
-          this.velocity = deltaY / deltaTime;
-        }
-
-        // Check if in alternate buffer (TUI apps like vim, claude code)
-        const isAltBuffer = this.isInAlternateBuffer();
-
-        if (isAltBuffer) {
-          // In TUI mode: send arrow keys for scrolling (debounced to prevent flickering)
-          const now = Date.now();
-          if (Math.abs(deltaY) > this.arrowThreshold && (now - this.lastArrowSent) > this.arrowDebounce) {
-            const arrowKey = deltaY > 0 ? '\\x1b[A' : '\\x1b[B'; // Up or Down
-            this.sendData(arrowKey);
-            this.lastTouchY = currentY;
-            this.lastMoveTime = currentTime;
-            this.lastArrowSent = now;
-          }
-        } else {
-          // Normal buffer: smooth scroll with lower threshold
-          if (Math.abs(deltaY) > this.scrollThreshold) {
-            const lines = Math.sign(deltaY) * Math.max(1, Math.floor(Math.abs(deltaY) / this.scrollThreshold));
-            this.terminal.scrollLines(lines);
-            this.lastTouchY = currentY;
-            this.lastMoveTime = currentTime;
-          }
+        const now = Date.now();
+        if (Math.abs(deltaY) > this.arrowThreshold && (now - this.lastArrowSent) > this.arrowDebounce) {
+          // Swipe up = scroll up (show previous content) = send Up arrow
+          // Swipe down = scroll down = send Down arrow
+          this.sendData(deltaY > 0 ? '\\x1b[A' : '\\x1b[B');
+          this.lastTouchY = currentY;
+          this.lastArrowSent = now;
         }
       }
 
-      onTouchEnd(e) {
-        // Apply momentum scrolling for normal buffer only
-        const isAltBuffer = this.isInAlternateBuffer();
-
-        if (!isAltBuffer && Math.abs(this.velocity) > 0.3) {
-          this.applyMomentum();
-        }
-
-        // Keep isScrolling true briefly to prevent click-to-focus from triggering
-        setTimeout(() => {
-          this.isScrolling = false;
-        }, 100);
-      }
-
-      applyMomentum() {
-        const friction = 0.92;
-        const minVelocity = 0.05;
-
-        const step = () => {
-          if (Math.abs(this.velocity) < minVelocity) {
-            this.momentumId = null;
-            return;
-          }
-
-          const lines = Math.sign(this.velocity) * Math.ceil(Math.abs(this.velocity) * 8);
-          this.terminal.scrollLines(lines);
-          this.velocity *= friction;
-          this.momentumId = requestAnimationFrame(step);
-        };
-
-        this.momentumId = requestAnimationFrame(step);
+      onTouchEnd() {
+        setTimeout(() => { this.isScrolling = false; }, 100);
       }
 
       onWheel(e) {
-        // Handle mouse wheel for desktop
-        const isAltBuffer = this.isInAlternateBuffer();
-
-        if (isAltBuffer) {
+        // Only intercept wheel in alternate buffer
+        if (this.isInAlternateBuffer()) {
           e.preventDefault();
-          // Send arrow keys for TUI apps (debounced)
           const now = Date.now();
           if ((now - this.lastArrowSent) > this.arrowDebounce) {
-            const arrowKey = e.deltaY > 0 ? '\\x1b[B' : '\\x1b[A';
-            this.sendData(arrowKey);
+            this.sendData(e.deltaY > 0 ? '\\x1b[B' : '\\x1b[A');
             this.lastArrowSent = now;
           }
         }
-        // For normal buffer, let xterm handle wheel scrolling natively
       }
 
-      dispose() {
-        if (this.momentumId) {
-          cancelAnimationFrame(this.momentumId);
-        }
-        this.element.removeEventListener('touchstart', this.onTouchStart);
-        this.element.removeEventListener('touchmove', this.onTouchMove);
-        this.element.removeEventListener('touchend', this.onTouchEnd);
-        this.element.removeEventListener('wheel', this.onWheel);
-      }
+      dispose() {}
     }
 
     // ============================================
     // TERMINAL MANAGEMENT
     // ============================================
-
-    // Debounced refit all terminals
     let refitTimeout = null;
     function debouncedRefitAll() {
       if (refitTimeout) clearTimeout(refitTimeout);
@@ -978,42 +1023,26 @@ export function getWebClientHTML(
         agents.forEach((agent, id) => {
           try {
             agent.fitAddon.fit();
-            // Send resize after fit
             sendResize(id, agent.terminal.cols, agent.terminal.rows);
             updateTerminalSizeDisplay(agent.terminal);
-          } catch (e) {
-            console.warn('Fit failed for agent', id, e);
-          }
+          } catch (e) {}
         });
       }, 100);
     }
 
     function updateTerminalSizeDisplay(terminal) {
-      if (terminal) {
-        terminalSizeEl.textContent = terminal.cols + 'x' + terminal.rows;
-      }
+      if (terminal) terminalSizeEl.textContent = terminal.cols + 'x' + terminal.rows;
     }
 
-    // Create terminal for an agent
     function createAgentTerminal(agentInfo) {
       const { id, config, status } = agentInfo;
 
-      // Create terminal with proper options for TUI support
       const terminal = new Terminal({
         theme: {
-          background: '#09090B',
-          foreground: '#FAFAFA',
-          cursor: '#FAFAFA',
-          cursorAccent: '#09090B',
-          selectionBackground: '#3F3F46',
-          black: '#27272A',
-          red: '#EF4444',
-          green: '#22C55E',
-          yellow: '#EAB308',
-          blue: '#3B82F6',
-          magenta: '#8B5CF6',
-          cyan: '#06B6D4',
-          white: '#FAFAFA',
+          background: '#09090B', foreground: '#FAFAFA', cursor: '#FAFAFA',
+          cursorAccent: '#09090B', selectionBackground: '#3F3F46',
+          black: '#27272A', red: '#EF4444', green: '#22C55E', yellow: '#EAB308',
+          blue: '#3B82F6', magenta: '#8B5CF6', cyan: '#06B6D4', white: '#FAFAFA',
         },
         fontSize: 13,
         fontFamily: "'JetBrains Mono', monospace",
@@ -1021,7 +1050,6 @@ export function getWebClientHTML(
         cursorStyle: 'block',
         allowProposedApi: true,
         scrollback: 10000,
-        // CRITICAL for TUI apps: translate wheel to arrow keys in alternate buffer
         alternateScroll: true,
         smoothScrollDuration: 50,
       });
@@ -1031,14 +1059,18 @@ export function getWebClientHTML(
       terminal.loadAddon(fitAddon);
       terminal.loadAddon(webLinksAddon);
 
-      // Create DOM elements
       const tabEl = document.createElement('button');
       tabEl.className = 'agent-tab';
       tabEl.dataset.agentId = id;
-      tabEl.innerHTML = \`
-        <span class="dot \${status}"></span>
-        <span>\${config.name}</span>
-      \`;
+
+      const dotSpan = document.createElement('span');
+      dotSpan.className = 'dot ' + status;
+      tabEl.appendChild(dotSpan);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = config.name;
+      tabEl.appendChild(nameSpan);
+
       tabEl.onclick = () => switchToAgent(id);
       agentTabs.insertBefore(tabEl, addAgentBtn);
 
@@ -1049,86 +1081,49 @@ export function getWebClientHTML(
 
       terminal.open(viewEl);
 
-      // Wait for DOM to settle, then fit with minimum size enforcement
       requestAnimationFrame(() => {
         fitAddon.fit();
-
-        // Enforce minimum terminal size for TUI app compatibility
         let cols = Math.max(terminal.cols, 40);
         let rows = Math.max(terminal.rows, 10);
-
-        // If terminal calculated smaller than minimum, manually resize
-        if (terminal.cols < 40 || terminal.rows < 10) {
-          terminal.resize(cols, rows);
-        }
-
-        // CRITICAL: Send initial resize to PTY immediately after fit
+        if (terminal.cols < 40 || terminal.rows < 10) terminal.resize(cols, rows);
         sendResize(id, cols, rows);
         updateTerminalSizeDisplay(terminal);
-        console.log('[Terminal] Initial size:', cols, 'x', rows, 'for agent', id);
+
+        // Warp-style: scroll to bottom on init
+        terminal.scrollToBottom();
       });
 
-      // CRITICAL: Handle terminal.onResize event - sync size with PTY
       terminal.onResize(({ cols, rows }) => {
-        // Enforce minimum size
         cols = Math.max(cols, 40);
         rows = Math.max(rows, 10);
-        console.log('[Terminal] Resize event:', cols, 'x', rows, 'for agent', id);
         sendResize(id, cols, rows);
         updateTerminalSizeDisplay(terminal);
       });
 
-      // Setup touch scroll handler
-      const touchHandler = new TouchScrollHandler(terminal, (data) => {
-        sendTerminalData(id, data);
-      });
+      const touchHandler = new TouchScrollHandler(terminal, (data) => sendTerminalData(id, data));
 
-      // CRITICAL: Click on terminal focuses input field for immediate typing
       viewEl.addEventListener('click', (e) => {
-        // Don't focus if user is selecting text
         if (window.getSelection()?.toString()) return;
-        // Don't focus if touch is scrolling
         if (touchHandler.isScrolling) return;
-        // Focus input field if not in read-only mode
-        if (!isReadOnly && !inputField.disabled) {
-          inputField.focus();
-        }
+        if (!isReadOnly && !directMode && !inputField.disabled) inputField.focus();
       });
 
-      // Store agent data
-      agents.set(id, {
-        terminal,
-        fitAddon,
-        info: agentInfo,
-        tabEl,
-        viewEl,
-        touchHandler,
-      });
-
-      // Welcome message
-      terminal.write(\`\\x1b[90m[\${config.name}]\\x1b[0m Connected (\\x1b[32m\${terminal.cols}x\${terminal.rows}\\x1b[0m)\\r\\n\`);
-
+      agents.set(id, { terminal, fitAddon, info: agentInfo, tabEl, viewEl, touchHandler });
+      terminal.write('\\x1b[90m[' + config.name + ']\\x1b[0m Connected (\\x1b[32m' + terminal.cols + 'x' + terminal.rows + '\\x1b[0m)\\r\\n');
       return id;
     }
 
-    // Switch to agent tab
     function switchToAgent(agentId) {
       if (!agents.has(agentId)) return;
-
-      // Update active state
       activeAgentId = agentId;
 
-      // Update tab styles
       document.querySelectorAll('.agent-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.agentId === agentId);
       });
-
-      // Update terminal visibility
       document.querySelectorAll('.terminal-view').forEach(view => {
         view.classList.toggle('active', view.id === 'terminal-' + agentId);
       });
 
-      // Fit terminal and send resize
       const agent = agents.get(agentId);
       if (agent) {
         setTimeout(() => {
@@ -1138,13 +1133,11 @@ export function getWebClientHTML(
         }, 10);
       }
 
-      // Notify server
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'switch_agent', agentId }));
       }
     }
 
-    // Update agent status
     function updateAgentStatus(agentId, status) {
       const agent = agents.get(agentId);
       if (agent) {
@@ -1154,7 +1147,6 @@ export function getWebClientHTML(
       }
     }
 
-    // Remove agent
     function removeAgent(agentId) {
       const agent = agents.get(agentId);
       if (agent) {
@@ -1163,38 +1155,32 @@ export function getWebClientHTML(
         agent.tabEl.remove();
         agent.viewEl.remove();
         agents.delete(agentId);
-
-        // Switch to another agent if this was active
         if (activeAgentId === agentId) {
           const remaining = Array.from(agents.keys());
-          if (remaining.length > 0) {
-            switchToAgent(remaining[0]);
-          }
+          if (remaining.length > 0) switchToAgent(remaining[0]);
         }
       }
     }
 
     // ============================================
-    // RESIZE HANDLING
+    // COMMUNICATION
     // ============================================
-
-    // Send resize to server - CRITICAL for TUI apps
     function sendResize(agentId, cols, rows) {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('[WS] Sending resize:', cols, 'x', rows, 'for agent', agentId);
-        ws.send(JSON.stringify({
-          type: 'resize',
-          agentId,
-          cols,
-          rows
-        }));
+        ws.send(JSON.stringify({ type: 'resize', agentId, cols, rows }));
+      }
+    }
+
+    function sendTerminalData(agentId, data) {
+      if (isReadOnly) { showReadonlyHint(); return; }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'terminal_input', agentId, data }));
       }
     }
 
     // ============================================
     // SCROLL CONTROLS
     // ============================================
-
     function scrollTerminal(direction) {
       if (!activeAgentId) return;
       const agent = agents.get(activeAgentId);
@@ -1203,214 +1189,204 @@ export function getWebClientHTML(
       const terminal = agent.terminal;
       const isAltBuffer = terminal.buffer.active.type === 'alternate';
 
-      // For TUI apps, we need to send keys even in read-only mode
-      // because scrolling doesn't modify anything - it's viewing
-      function sendScrollKey(key) {
+      function sendKey(key) {
         if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'input',
-            agentId: activeAgentId,
-            data: key
-          }));
+          ws.send(JSON.stringify({ type: 'terminal_input', agentId: activeAgentId, data: key }));
         }
       }
 
-      switch (direction) {
-        case 'up':
-          if (isAltBuffer) {
-            // Send multiple arrow keys for faster scrolling
-            sendScrollKey('\\x1b[A\\x1b[A\\x1b[A');
-          } else {
-            terminal.scrollLines(-5);
-          }
-          break;
-        case 'down':
-          if (isAltBuffer) {
-            sendScrollKey('\\x1b[B\\x1b[B\\x1b[B');
-          } else {
-            terminal.scrollLines(5);
-          }
-          break;
-        case 'top':
-          if (isAltBuffer) {
-            // Send Page Up or gg (vim-like navigation)
-            sendScrollKey('\\x1b[5~'); // Page Up
-          } else {
-            terminal.scrollToTop();
-          }
-          break;
-        case 'bottom':
-          if (isAltBuffer) {
-            // Send Page Down or G (vim-like navigation)
-            sendScrollKey('\\x1b[6~'); // Page Down
-          } else {
-            terminal.scrollToBottom();
-          }
-          break;
+      if (isAltBuffer) {
+        // In TUI apps (Claude Code, vim, etc), send actual key inputs
+        switch (direction) {
+          case 'up': sendKey('\\x1b[A'); break;
+          case 'down': sendKey('\\x1b[B'); break;
+          case 'top': sendKey('\\x1b[5~'); break;  // Page Up
+          case 'bottom': sendKey('\\x1b[6~'); break;  // Page Down
+        }
+      } else {
+        // In normal buffer, use xterm's scroll
+        switch (direction) {
+          case 'up': terminal.scrollLines(-3); break;
+          case 'down': terminal.scrollLines(3); break;
+          case 'top': terminal.scrollToTop(); break;
+          case 'bottom': terminal.scrollToBottom(); break;
+        }
       }
     }
 
     // ============================================
     // INPUT HANDLING
     // ============================================
-
-    // Handle keydown for special keys
     inputField.addEventListener('keydown', (e) => {
-      if (isReadOnly) return;
-      if (!activeAgentId) return;
+      if (isReadOnly || !activeAgentId) return;
 
-      // Send command on Enter
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendInput();
-        return;
-      }
-
-      // Tab completion - send immediately
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        sendTerminalData(activeAgentId, '\\t');
-        return;
-      }
-
-      // Handle Ctrl+ combinations (send immediately)
+      if (e.key === 'Enter') { e.preventDefault(); sendInput(); return; }
+      if (e.key === 'Tab') { e.preventDefault(); sendTerminalData(activeAgentId, e.shiftKey ? '\\x1b[Z' : '\\t'); return; }
       if (e.ctrlKey && e.key.length === 1) {
         e.preventDefault();
-        const charCode = e.key.toLowerCase().charCodeAt(0) - 96;
-        sendTerminalData(activeAgentId, String.fromCharCode(charCode));
+        sendTerminalData(activeAgentId, String.fromCharCode(e.key.toLowerCase().charCodeAt(0) - 96));
         return;
       }
     });
 
-    // Send the complete command from input field
     function sendInput() {
       if (isReadOnly || !activeAgentId) return;
       const command = inputField.value;
-      if (command) {
-        // Send command + carriage return
-        sendTerminalData(activeAgentId, command + '\\r');
-      } else {
-        // Just send Enter if empty
-        sendTerminalData(activeAgentId, '\\r');
-      }
+      sendTerminalData(activeAgentId, command ? command + '\\r' : '\\r');
       inputField.value = '';
       inputField.focus();
     }
 
-    function sendTerminalData(agentId, data) {
-      if (isReadOnly) {
-        showReadonlyHint();
-        return;
-      }
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'input',
-          agentId,
-          data
-        }));
-      }
-    }
-
-    // Key mappings for shortcut buttons
     const keyMap = {
-      'Tab': '\\t',
-      'Escape': '\\x1b',
-      'ArrowUp': '\\x1b[A',
-      'ArrowDown': '\\x1b[B',
-      'ArrowRight': '\\x1b[C',
-      'ArrowLeft': '\\x1b[D',
+      'Tab': '\\t', 'Escape': '\\x1b',
+      'ArrowUp': '\\x1b[A', 'ArrowDown': '\\x1b[B',
+      'ArrowRight': '\\x1b[C', 'ArrowLeft': '\\x1b[D',
     };
 
     function sendKey(key) {
       if (!activeAgentId) return;
       if (isReadOnly) { showReadonlyHint(); return; }
+
       let data = keyMap[key] || '';
+
+      // Handle Ctrl modifier
       if (ctrlPressed && key.length === 1) {
         data = String.fromCharCode(key.toLowerCase().charCodeAt(0) - 96);
         toggleCtrl();
       }
+
       if (data) sendTerminalData(activeAgentId, data);
     }
 
-    function sendBackspace() {
+    function sendTabKey() {
       if (!activeAgentId) return;
       if (isReadOnly) { showReadonlyHint(); return; }
-      // Send backspace character (ASCII 127 or \\x7f)
+      sendTerminalData(activeAgentId, shiftPressed ? '\\x1b[Z' : '\\t');
+      if (shiftPressed) toggleShift();
+    }
+
+    function sendBackspace() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); return; }
       sendTerminalData(activeAgentId, '\\x7f');
     }
 
     function sendEnter() {
-      if (!activeAgentId) return;
-      if (isReadOnly) { showReadonlyHint(); return; }
-      // If input field has content, send it
-      if (inputField.value) {
-        sendInput();
-      } else {
-        sendTerminalData(activeAgentId, '\\r');
-      }
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); return; }
+      if (inputField.value) sendInput();
+      else sendTerminalData(activeAgentId, '\\r');
     }
 
-    function sendCtrlKey(key) {
+    function sendCtrlC() {
       if (!activeAgentId) return;
-      if (isReadOnly) { showReadonlyHint(); return; }
-      const charCode = key.toLowerCase().charCodeAt(0) - 96;
-      sendTerminalData(activeAgentId, String.fromCharCode(charCode));
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'terminal_input', agentId: activeAgentId, data: '\\x03' }));
+      }
+      showToast('Sent ^C');
+    }
+
+    function sendCtrlD() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); closeMoreMenu(); return; }
+      sendTerminalData(activeAgentId, '\\x04');
+      closeMoreMenu();
+      showToast('Sent ^D');
+    }
+
+    function sendCtrlF() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); closeMoreMenu(); return; }
+      sendTerminalData(activeAgentId, '\\x06');
+      closeMoreMenu();
+      showToast('Sent ^F');
+    }
+
+    function sendCtrlZ() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); closeMoreMenu(); return; }
+      sendTerminalData(activeAgentId, '\\x1a');
+      closeMoreMenu();
+      showToast('Sent ^Z');
+    }
+
+    function sendCtrlL() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); closeMoreMenu(); return; }
+      sendTerminalData(activeAgentId, '\\x0c');
+      closeMoreMenu();
+      showToast('Sent ^L');
     }
 
     function toggleCtrl() {
       ctrlPressed = !ctrlPressed;
       ctrlBtn.classList.toggle('active', ctrlPressed);
+      if (ctrlPressed && shiftPressed) toggleShift();
+    }
+
+    function toggleShift() {
+      shiftPressed = !shiftPressed;
+      shiftBtn.classList.toggle('active', shiftPressed);
+      if (shiftPressed && ctrlPressed) toggleCtrl();
     }
 
     // ============================================
-    // COPY FUNCTIONALITY
+    // COPY/PASTE
     // ============================================
-
     async function copySelection() {
       if (!activeAgentId) return;
       const agent = agents.get(activeAgentId);
       if (!agent) return;
 
       let text = '';
-
-      // Try to get selection first
       if (agent.terminal.hasSelection()) {
         text = agent.terminal.getSelection();
       } else {
-        // Copy all visible buffer content
         const buffer = agent.terminal.buffer.active;
         const lines = [];
         for (let i = 0; i < buffer.length; i++) {
           const line = buffer.getLine(i);
-          if (line) {
-            lines.push(line.translateToString(true));
-          }
+          if (line) lines.push(line.translateToString(true));
         }
         text = lines.join('\\n').trimEnd();
       }
 
-      if (!text) {
-        showToast('Nothing to copy');
-        return;
-      }
+      if (!text) { showToast('Nothing to copy'); return; }
 
       try {
         await navigator.clipboard.writeText(text);
         const copyBtn = document.getElementById('copyBtn');
-        copyBtn.classList.add('copied');
         copyBtn.textContent = 'Copied!';
-        setTimeout(() => {
-          copyBtn.classList.remove('copied');
-          copyBtn.textContent = 'Copy';
-        }, 1500);
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
       } catch (err) {
-        showToast('Failed to copy');
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try { document.execCommand('copy'); showToast('Copied!'); }
+        catch (e) { showToast('Failed to copy'); }
+        document.body.removeChild(textArea);
       }
     }
 
+    async function pasteFromClipboard() {
+      if (!activeAgentId || isReadOnly) { showReadonlyHint(); closeMoreMenu(); return; }
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) { sendTerminalData(activeAgentId, text); showToast('Pasted'); }
+      } catch (err) { showToast('Paste not available'); }
+      closeMoreMenu();
+    }
+
     // ============================================
-    // UI HELPERS
+    // MENUS & MODALS
     // ============================================
+    function toggleMoreMenu() {
+      const isOpen = moreMenu.classList.contains('show');
+      if (isOpen) closeMoreMenu();
+      else { moreMenu.classList.add('show'); backdrop.classList.add('show'); }
+    }
+
+    function closeMoreMenu() {
+      moreMenu.classList.remove('show');
+      backdrop.classList.remove('show');
+    }
 
     function showToast(message) {
       const toast = document.getElementById('toast');
@@ -1426,27 +1402,19 @@ export function getWebClientHTML(
     }
 
     // ============================================
-    // WEBSOCKET CONNECTION
+    // WEBSOCKET
     // ============================================
-
     function connect() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = protocol + '//' + window.location.host + '?token=' + token;
       updateStatus('connecting', 'Connecting');
       ws = new WebSocket(wsUrl);
 
-      ws.onopen = () => {
-        reconnectAttempts = 0;
-        updateStatus('connected', 'Connected');
-      };
+      ws.onopen = () => { reconnectAttempts = 0; updateStatus('connected', 'Connected'); };
 
       ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          handleMessage(message);
-        } catch (e) {
-          console.error('Parse error:', e);
-        }
+        try { handleMessage(JSON.parse(event.data)); }
+        catch (e) { console.error('Parse error:', e); }
       };
 
       ws.onclose = (event) => {
@@ -1454,8 +1422,7 @@ export function getWebClientHTML(
         if (event.code === 4001) return;
         if (reconnectAttempts < maxReconnectAttempts) {
           reconnectAttempts++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
-          setTimeout(connect, delay);
+          setTimeout(connect, Math.min(1000 * Math.pow(2, reconnectAttempts), 10000));
         }
       };
 
@@ -1466,24 +1433,16 @@ export function getWebClientHTML(
       switch (message.type) {
         case 'output':
           const agent = agents.get(message.agentId);
-          if (agent) {
-            agent.terminal.write(message.data);
-          }
+          if (agent) agent.terminal.write(message.data);
           break;
 
         case 'session_info':
           isReadOnly = message.isReadOnly;
           updateModeUI();
-          // Create terminals for existing agents
           message.agents.forEach(agentInfo => {
-            if (!agents.has(agentInfo.id)) {
-              createAgentTerminal(agentInfo);
-            }
+            if (!agents.has(agentInfo.id)) createAgentTerminal(agentInfo);
           });
-          // Activate first agent
-          if (message.agents.length > 0 && !activeAgentId) {
-            switchToAgent(message.agents[0].id);
-          }
+          if (message.agents.length > 0 && !activeAgentId) switchToAgent(message.agents[0].id);
           break;
 
         case 'agent_created':
@@ -1498,16 +1457,12 @@ export function getWebClientHTML(
         case 'agent_exited':
           updateAgentStatus(message.agentId, 'exited');
           const exitAgent = agents.get(message.agentId);
-          if (exitAgent) {
-            exitAgent.terminal.write(\`\\r\\n\\x1b[33m[exit]\\x1b[0m code \${message.exitCode}\\r\\n\`);
-          }
+          if (exitAgent) exitAgent.terminal.write('\\r\\n\\x1b[33m[exit]\\x1b[0m code ' + message.exitCode + '\\r\\n');
           break;
 
         case 'agent_list':
           message.agents.forEach(agentInfo => {
-            if (!agents.has(agentInfo.id)) {
-              createAgentTerminal(agentInfo);
-            }
+            if (!agents.has(agentInfo.id)) createAgentTerminal(agentInfo);
           });
           break;
 
@@ -1518,17 +1473,14 @@ export function getWebClientHTML(
 
         case 'command_blocked':
           const blockedAgent = agents.get(message.agentId);
-          if (blockedAgent) {
-            blockedAgent.terminal.write(\`\\r\\n\\x1b[31m[blocked]\\x1b[0m \${message.reason}\\r\\n\`);
-          }
+          if (blockedAgent) blockedAgent.terminal.write('\\r\\n\\x1b[31m[blocked]\\x1b[0m ' + message.reason + '\\r\\n');
           break;
 
         case 'error':
-          showError(message.message);
+          showToast('Error: ' + message.message);
           break;
 
-        case 'pong':
-          break;
+        case 'pong': break;
       }
     }
 
@@ -1540,32 +1492,25 @@ export function getWebClientHTML(
     function updateModeUI() {
       const btn = document.getElementById('modeToggle');
       if (isReadOnly) {
-        btn.textContent = 'Read-Only';
+        btn.textContent = 'READ-ONLY';
         btn.classList.remove('active');
         inputField.disabled = true;
-        sendBtn.disabled = true;
-        inputField.placeholder = '$ enable input mode...';
+        inputField.placeholder = '$ enable input...';
       } else {
-        btn.textContent = 'Input';
+        btn.textContent = 'INPUT';
         btn.classList.add('active');
         inputField.disabled = false;
-        sendBtn.disabled = false;
-        inputField.placeholder = '$ type command...';
-        inputField.focus();
+        inputField.placeholder = '$ command...';
+        if (!directMode) inputField.focus();
       }
     }
 
     function toggleMode() {
-      if (isReadOnly) {
-        document.getElementById('modeModal').classList.add('show');
-      } else {
-        sendModeChange(true);
-      }
+      if (isReadOnly) document.getElementById('modeModal').classList.add('show');
+      else sendModeChange(true);
     }
 
-    function hideModeModal() {
-      document.getElementById('modeModal').classList.remove('show');
-    }
+    function hideModeModal() { document.getElementById('modeModal').classList.remove('show'); }
 
     function confirmModeChange() {
       hideModeModal();
@@ -1574,68 +1519,41 @@ export function getWebClientHTML(
 
     function sendModeChange(readOnly) {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'mode_change',
-          readOnly: readOnly
-        }));
+        ws.send(JSON.stringify({ type: 'mode_change', readOnly }));
       }
     }
 
     function showKillModal() {
+      closeMoreMenu();
       document.getElementById('killModal').classList.add('show');
     }
 
-    function hideKillModal() {
-      document.getElementById('killModal').classList.remove('show');
-    }
+    function hideKillModal() { document.getElementById('killModal').classList.remove('show'); }
 
     function confirmKill() {
       hideKillModal();
       if (activeAgentId && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'kill_agent',
-          agentId: activeAgentId
-        }));
+        ws.send(JSON.stringify({ type: 'kill_agent', agentId: activeAgentId }));
       }
-    }
-
-    function showError(message) {
-      console.error('[MConnect]', message);
-      showToast('Error: ' + message);
     }
 
     // Keepalive
     setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'ping' }));
-      }
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }));
     }, 30000);
 
-    // Add new shell tab
+    // Add shell
     addAgentBtn.onclick = () => {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        const shellName = 'Shell ' + (agents.size + 1);
         ws.send(JSON.stringify({
           type: 'create_agent',
-          config: {
-            type: 'shell',
-            name: shellName,
-          }
+          config: { type: 'shell', name: 'Shell ' + (agents.size + 1) }
         }));
       }
     };
 
-    // Calculate actual bottom bars height and set CSS variable
-    function measureBottomBarsHeight() {
-      if (bottomBars) {
-        const height = bottomBars.offsetHeight;
-        document.documentElement.style.setProperty('--bottom-bars-height', height + 'px');
-      }
-    }
-
     // Init
     updateModeUI();
-    measureBottomBarsHeight();
     connect();
   </script>
 </body>

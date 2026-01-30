@@ -5,8 +5,8 @@
  * Spawns, monitors, and manages PTY processes for sessions
  */
 
-import type { IPty } from 'node-pty';
 import { EventEmitter } from 'node:events';
+import type { IPty } from 'node-pty';
 
 export interface ProcessInfo {
   sessionId: string;
@@ -51,9 +51,7 @@ export class ProcessManager extends EventEmitter {
       try {
         this.nodePty = await import('node-pty');
       } catch {
-        throw new Error(
-          'node-pty is not installed. Install it with: npm install node-pty'
-        );
+        throw new Error('node-pty is not installed. Install it with: npm install node-pty');
       }
     }
     return this.nodePty;
@@ -229,5 +227,8 @@ export interface ProcessManagerEvents {
 
 export declare interface ProcessManager {
   on<K extends keyof ProcessManagerEvents>(event: K, listener: ProcessManagerEvents[K]): this;
-  emit<K extends keyof ProcessManagerEvents>(event: K, ...args: Parameters<ProcessManagerEvents[K]>): boolean;
+  emit<K extends keyof ProcessManagerEvents>(
+    event: K,
+    ...args: Parameters<ProcessManagerEvents[K]>
+  ): boolean;
 }

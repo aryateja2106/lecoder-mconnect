@@ -1,10 +1,22 @@
 import { defineConfig } from 'vitest/config';
 
+// Tests that require native modules (node-pty, better-sqlite3) which may fail in CI
+const nativeModuleTests = [
+  'src/__tests__/pty-manager.test.ts',
+  'src/__tests__/scrollback-buffer.test.ts',
+  'src/__tests__/session-manager.test.ts',
+];
+
+// Skip native module tests in CI on Linux (PTY spawning fails)
+// Set SKIP_NATIVE_TESTS=true to skip, or run on macOS for full coverage
+const skipNativeTests = process.env.SKIP_NATIVE_TESTS === 'true';
+
 export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
     include: ['src/__tests__/**/*.test.ts'],
+    exclude: skipNativeTests ? nativeModuleTests : [],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

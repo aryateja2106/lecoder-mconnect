@@ -4,12 +4,12 @@
  * CLI commands for session management
  */
 
-import { Command } from 'commander';
-import chalk from 'chalk';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
-import { createConnection } from 'node:net';
 import { existsSync, writeFileSync } from 'node:fs';
+import { createConnection } from 'node:net';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import chalk from 'chalk';
+import { Command } from 'commander';
 
 function getDataDir(): string {
   return process.env.MCONNECT_DATA_DIR || join(homedir(), '.mconnect');
@@ -42,7 +42,7 @@ async function sendIpcMessage(request: IpcRequest): Promise<IpcResponse> {
     let data = '';
 
     client.on('connect', () => {
-      client.write(JSON.stringify(request) + '\n');
+      client.write(`${JSON.stringify(request)}\n`);
     });
 
     client.on('data', (chunk) => {
@@ -173,12 +173,10 @@ async function exportSession(sessionId: string, options: { output?: string }): P
       ({ SessionStore } = await import('../../session/SessionStore.js'));
     } catch (error) {
       console.error(chalk.red('Error: Session export requires the optional database module.'));
+      console.error(chalk.dim('Install dependencies from the repo root with: npm install'));
       console.error(
-        chalk.dim(
-          'Install dependencies from the repo root with: npm install'
-        )
+        chalk.dim(`Details: ${error instanceof Error ? error.message : 'Unknown error'}`)
       );
-      console.error(chalk.dim(`Details: ${error instanceof Error ? error.message : 'Unknown error'}`));
       process.exit(1);
     }
 
@@ -230,21 +228,18 @@ async function exportSession(sessionId: string, options: { output?: string }): P
 }
 
 export function createSessionCommand(): Command {
-  const session = new Command('session')
-    .description('Session management commands')
-    .addHelpText('after', `
+  const session = new Command('session').description('Session management commands').addHelpText(
+    'after',
+    `
 Examples:
   $ mconnect session list              List all sessions
   $ mconnect session create            Create a new session
   $ mconnect session attach abc123     Attach to session abc123
   $ mconnect session kill abc123       Kill session abc123
-  $ mconnect session export abc123     Export session scrollback`);
+  $ mconnect session export abc123     Export session scrollback`
+  );
 
-  session
-    .command('list')
-    .alias('ls')
-    .description('List all sessions')
-    .action(listSessions);
+  session.command('list').alias('ls').description('List all sessions').action(listSessions);
 
   session
     .command('create')
