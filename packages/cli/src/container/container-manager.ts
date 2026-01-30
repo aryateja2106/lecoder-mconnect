@@ -283,24 +283,28 @@ export class ContainerManager {
     const image = this.getImageFromConfig(config);
     const workDir = this.getWorkDirFromConfig(config);
 
-    // Volume mounts
-    if ('volumes' in config && config.volumes) {
-      // Inline ContainerConfig
-      for (const vol of config.volumes) {
-        args.push('-v', vol.includes(':') ? vol : `${vol}:${vol}`);
+    // Volume mounts - distinguish ContainerConfig from DevContainerConfig
+    // ContainerConfig has 'enabled' property, DevContainerConfig does not
+    const isContainerConfig = 'enabled' in config;
+
+    if (isContainerConfig) {
+      // Inline ContainerConfig - use -v mounts
+      const containerConfig = config as ContainerConfig;
+      if (containerConfig.volumes && containerConfig.volumes.length > 0) {
+        for (const vol of containerConfig.volumes) {
+          args.push('-v', vol.includes(':') ? vol : `${vol}:${vol}`);
+        }
+      } else {
+        // Default workspace mount for ContainerConfig
+        args.push('-v', `${workspaceDir}:${workDir}`);
       }
     } else {
-      // DevContainerConfig - use helper
+      // DevContainerConfig - use --mount from helper (includes default workspace mount)
       const devConfig = config as DevContainerConfig;
       const mounts = getVolumeMounts(devConfig, workspaceDir);
       for (const mount of mounts) {
         args.push('--mount', mount);
       }
-    }
-
-    // Default workspace mount if no volumes specified
-    if (!('volumes' in config) && !('mounts' in config)) {
-      args.push('-v', `${workspaceDir}:${workDir}`);
     }
 
     // Working directory
