@@ -1,5 +1,5 @@
 /**
- * Web Client v2.4 for MConnect v0.1.5
+ * Web Client v2.4 for MConnect
  *
  * UX OVERHAUL v2.4:
  * 1. Native terminal typing - tap terminal to type directly

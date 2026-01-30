@@ -1,6 +1,6 @@
 {
   "name": "lecoder-mconnect",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Mobile terminal control for AI coding agents - Terminal in your pocket",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,7 +18,7 @@
   "scripts": {
     "postinstall": "node scripts/postinstall.js || true",
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
