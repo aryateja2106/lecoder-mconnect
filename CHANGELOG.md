@@ -2,6 +2,21 @@
 
 All notable changes to MConnect will be documented in this file.
 
+## [0.1.6] - 2026-01-30
+
+### Fixed
+- Version display bug: Users now see correct version instead of hardcoded "v0.1.2"
+
+### Changed
+- Centralized version to single source of truth via build-time injection
+- Version now read from package.json during build (tsup config)
+- Removed hardcoded version strings from session.ts and index.ts
+
+### Technical
+- Added `packages/cli/src/version.ts` as centralized version export
+- Added `packages/cli/tsup.config.ts` with `__VERSION__` define injection
+- Build script simplified to use tsup config file
+
 ## [0.1.5] - 2026-01-29
 
 ### Fixed

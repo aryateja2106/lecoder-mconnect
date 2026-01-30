@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * MConnect CLI v0.2.0 - Multi-Agent Terminal Control
+ * MConnect CLI - Multi-Agent Terminal Control
  *
  * Shell-first architecture: Spawn shells, then run commands inside them.
  * "Spin up multiple AI agents, go for a walk, and manage them from your phone"
- *
- * v0.2.0: Persistent sessions with daemon architecture and dual-input mode
  */
 
 import { existsSync } from 'node:fs';
@@ -20,13 +18,14 @@ import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
+import { VERSION } from './version.js';
 
 const program = new Command();
 
 program
   .name('mconnect')
   .description('Control AI coding agents from your mobile device')
-  .version('0.2.0');
+  .version(VERSION);
 
 // Add subcommand groups
 program.addCommand(createDaemonCommand());
@@ -100,8 +99,8 @@ program
 async function runWizard(options: any): Promise<void> {
   console.clear();
 
-  p.intro(chalk.bgCyan(chalk.black(' MConnect v0.2.0 ')));
-  console.log(chalk.dim('  Multi-Agent Terminal Control with Persistent Sessions\n'));
+  p.intro(chalk.bgCyan(chalk.black(` MConnect v${VERSION} `)));
+  console.log(chalk.dim('  Multi-Agent Terminal Control\n'));
 
   // Agent preset selection
   const preset =
