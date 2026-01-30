@@ -94,7 +94,7 @@ export class TunnelManager extends EventEmitter {
       // Start cloudflared quick tunnel (trycloudflare.com - no config needed)
       const args = ['tunnel', '--url', `http://localhost:${config.localPort}`, '--no-autoupdate'];
 
-      this.process = spawn(this.cloudflaredPath!, args, {
+      this.process = spawn(this.cloudflaredPath as string, args, {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
@@ -122,7 +122,7 @@ export class TunnelManager extends EventEmitter {
           this.emit('ready', this.url);
           resolve({
             url: this.url,
-            process: this.process!,
+            process: this.process as ChildProcess,
           });
         }
       };

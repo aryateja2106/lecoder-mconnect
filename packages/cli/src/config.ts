@@ -260,7 +260,7 @@ export function getMergedConfig(): MConnectConfig & MConnectEnvConfig {
     port: envConfig.port !== 8765 ? envConfig.port : (fileConfig.port ?? 8765),
     logLevel: process.env.MCONNECT_LOG_LEVEL
       ? envConfig.logLevel
-      : ((fileConfig.logLevel as any) ?? 'info'),
+      : ((fileConfig.logLevel ?? 'info') as 'debug' | 'info' | 'warn' | 'error'),
     maxSessions: process.env.MCONNECT_MAX_SESSIONS
       ? envConfig.maxSessions
       : (fileConfig.maxSessions ?? 5),

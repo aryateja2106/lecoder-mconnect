@@ -474,7 +474,7 @@ export class WSHub {
       }
 
       default:
-        console.warn('[WSHub] Unknown message type:', (message as any).type);
+        console.warn('[WSHub] Unknown message type:', (message as Record<string, unknown>).type);
     }
   }
 

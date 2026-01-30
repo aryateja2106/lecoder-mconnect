@@ -12,14 +12,14 @@ import { resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { AGENT_PRESETS, getDefaultShell } from './agents/types.js';
-import { VERSION, VERSION_DISPLAY } from './version.js';
+import { AGENT_PRESETS, type AgentConfig, getDefaultShell } from './agents/types.js';
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
+import { VERSION, VERSION_DISPLAY } from './version.js';
 
 const program = new Command();
 
@@ -97,7 +97,17 @@ program
     }
   });
 
-async function runWizard(options: any): Promise<void> {
+interface WizardOptions {
+  preset?: string;
+  guardrails?: string;
+  dir?: string;
+  tmux?: boolean;
+  port?: string;
+  code?: boolean;
+  webUrl?: string;
+}
+
+async function runWizard(options: WizardOptions): Promise<void> {
   console.clear();
 
   p.intro(chalk.bgCyan(chalk.black(` MConnect ${VERSION_DISPLAY} `)));
@@ -195,7 +205,7 @@ async function runWizard(options: any): Promise<void> {
   }
 
   // Get agents configuration
-  let agents: any[] = [];
+  let agents: Omit<AgentConfig, 'cwd'>[] = [];
 
   if (finalPreset === 'custom') {
     agents = await configureCustomAgents();
@@ -308,8 +318,8 @@ async function runWizard(options: any): Promise<void> {
   }
 }
 
-async function configureCustomAgents(): Promise<any[]> {
-  const agents: any[] = [];
+async function configureCustomAgents(): Promise<Omit<AgentConfig, 'cwd'>[]> {
+  const agents: Omit<AgentConfig, 'cwd'>[] = [];
 
   const count = await p.text({
     message: 'How many shells/agents?',

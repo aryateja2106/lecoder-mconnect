@@ -33,6 +33,7 @@ const DEFAULT_CONFIG: ProcessManagerConfig = {
   env: {},
 };
 
+// biome-ignore lint/suspicious/noUnsafeDeclarationMerging: TypeScript pattern for typed EventEmitter
 export class ProcessManager extends EventEmitter {
   private processes: Map<string, ProcessInfo> = new Map();
   private config: ProcessManagerConfig;
@@ -77,10 +78,10 @@ export class ProcessManager extends EventEmitter {
 
     const pty = await this.loadNodePty();
 
-    const shell = options.shell || this.config.defaultShell!;
+    const shell = options.shell || this.config.defaultShell || '/bin/bash';
     const cwd = options.cwd || process.cwd();
-    const cols = options.cols || this.config.defaultCols!;
-    const rows = options.rows || this.config.defaultRows!;
+    const cols = options.cols || this.config.defaultCols || 80;
+    const rows = options.rows || this.config.defaultRows || 24;
 
     // Merge environment variables
     const env = {

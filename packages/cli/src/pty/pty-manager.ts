@@ -5,6 +5,7 @@
  * Each agent gets its own PTY for full terminal emulation.
  */
 
+import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { accessSync, chmodSync, constants, existsSync, readdirSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -127,14 +128,64 @@ function generatePtyId(): string {
 
 /**
  * Validate that a shell binary exists and is executable
+ *
+ * Security: Uses execFileSync instead of execSync to prevent shell injection.
+ * Only allows alphanumeric characters, slashes, underscores, dots, and hyphens.
  */
 function validateShell(shellPath: string): { valid: boolean; error?: string } {
+  // Handle empty input
+  if (!shellPath || shellPath.trim() === '') {
+    return { valid: false, error: 'Shell path cannot be empty' };
+  }
+
+  // Security: Whitelist allowed characters to prevent injection
+  const validPattern = /^[a-zA-Z0-9/_.-]+$/;
+  if (!validPattern.test(shellPath)) {
+    return { valid: false, error: `Invalid shell path: contains disallowed characters` };
+  }
+
   try {
-    if (!existsSync(shellPath)) {
-      return { valid: false, error: `Shell not found: ${shellPath}` };
+    // Absolute paths: check directly
+    if (shellPath.startsWith('/')) {
+      if (!existsSync(shellPath)) {
+        return { valid: false, error: `Shell not found: ${shellPath}` };
+      }
+      accessSync(shellPath, constants.X_OK);
+      return { valid: true };
     }
-    accessSync(shellPath, constants.X_OK);
-    return { valid: true };
+
+    // Relative paths starting with ./ or ../
+    if (shellPath.startsWith('./') || shellPath.startsWith('../')) {
+      const resolvedPath = resolve(shellPath);
+      if (!existsSync(resolvedPath)) {
+        return { valid: false, error: `Shell not found: ${shellPath}` };
+      }
+      accessSync(resolvedPath, constants.X_OK);
+      return { valid: true };
+    }
+
+    // Windows: skip 'which' (not available)
+    if (process.platform === 'win32') {
+      return {
+        valid: false,
+        error: `Shell not found: ${shellPath} (use absolute path on Windows)`,
+      };
+    }
+
+    // Non-absolute paths: resolve via 'which' (SAFE - uses execFileSync)
+    try {
+      const resolvedPath = execFileSync('which', [shellPath], {
+        encoding: 'utf8',
+        timeout: 5000,
+      }).trim();
+      if (resolvedPath && existsSync(resolvedPath)) {
+        return { valid: true };
+      }
+    } catch {
+      // 'which' failed - command not in PATH
+    }
+
+    return { valid: false, error: `Shell not found: ${shellPath}` };
   } catch (_error) {
     return { valid: false, error: `Shell not executable: ${shellPath}` };
   }
