@@ -271,8 +271,8 @@ describe('InputArbiter', () => {
 
       expect(auditHandler).toHaveBeenCalled();
       const entry: AuditLogEntry = auditHandler.mock.calls.find(
-        (call: any[]) => call[0].eventType === 'control_granted'
-      )?.[0];
+        (call) => (call[0] as AuditLogEntry).eventType === 'control_granted'
+      )?.[0] as AuditLogEntry;
       expect(entry).toBeDefined();
       expect(entry.clientId).toBe('mobile-1');
       expect(entry.details).toContain('Exclusive control granted');
@@ -287,8 +287,8 @@ describe('InputArbiter', () => {
       arbiter.releaseExclusiveControl();
 
       const entry: AuditLogEntry = auditHandler.mock.calls.find(
-        (call: any[]) => call[0].eventType === 'control_released'
-      )?.[0];
+        (call) => (call[0] as AuditLogEntry).eventType === 'control_released'
+      )?.[0] as AuditLogEntry;
       expect(entry).toBeDefined();
       expect(entry.clientId).toBe('mobile-1');
     });
@@ -301,8 +301,8 @@ describe('InputArbiter', () => {
       arbiter.processInput('pc-1', 'x');
 
       const entry: AuditLogEntry = auditHandler.mock.calls.find(
-        (call: any[]) => call[0].eventType === 'state_change'
-      )?.[0];
+        (call) => (call[0] as AuditLogEntry).eventType === 'state_change'
+      )?.[0] as AuditLogEntry;
       expect(entry).toBeDefined();
       expect(entry.details).toContain('pc_disconnected');
       expect(entry.details).toContain('pc_active');

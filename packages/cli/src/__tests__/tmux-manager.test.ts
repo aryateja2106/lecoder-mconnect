@@ -9,7 +9,6 @@
  * Note: These tests mock execSync since tmux may not be available.
  */
 
-import { existsSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child_process
@@ -28,7 +27,12 @@ vi.mock('fs', () => ({
 }));
 
 import { execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { getTmuxManager, TmuxManager } from '../tmux/tmux-manager.js';
+
+// Create typed mock functions
+const mockExecSync = vi.mocked(execSync);
+const mockExistsSync = vi.mocked(existsSync);
 
 describe('Tmux Manager Module', () => {
   beforeEach(() => {
@@ -54,7 +58,7 @@ describe('Tmux Manager Module', () => {
 
   describe('isInstalled', () => {
     it('should return true when tmux is in PATH', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
       const manager = new TmuxManager();
       const installed = await manager.isInstalled();
       expect(installed).toBe(true);
@@ -62,17 +66,17 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should return true when provided tmuxPath exists', async () => {
-      (existsSync as any).mockReturnValue(true);
+      mockExistsSync.mockReturnValue(true);
       const manager = new TmuxManager({ tmuxPath: '/opt/homebrew/bin/tmux' });
       const installed = await manager.isInstalled();
       expect(installed).toBe(true);
     });
 
     it('should check known paths when command -v fails', async () => {
-      (execSync as any).mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('command not found');
       });
-      (existsSync as any).mockImplementation((path: string) => {
+      mockExistsSync.mockImplementation((path: string) => {
         return path === '/opt/homebrew/bin/tmux';
       });
 
@@ -83,10 +87,10 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should return false when tmux not found anywhere', async () => {
-      (execSync as any).mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('command not found');
       });
-      (existsSync as any).mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
 
       const manager = new TmuxManager();
       const installed = await manager.isInstalled();
@@ -96,8 +100,8 @@ describe('Tmux Manager Module', () => {
 
   describe('createSession', () => {
     beforeEach(() => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
     });
 
     it('should create a new session', async () => {
@@ -105,7 +109,7 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       // Mock session check (not exists) and creation
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('session not found');
         })
@@ -125,7 +129,7 @@ describe('Tmux Manager Module', () => {
       await manager.isInstalled();
 
       // Mock session exists, then kill, then create
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => '') // has-session succeeds
         .mockImplementationOnce(() => '') // kill-session
         .mockImplementationOnce(() => ''); // new-session
@@ -143,10 +147,10 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should throw when tmux not installed', async () => {
-      (execSync as any).mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('command not found');
       });
-      (existsSync as any).mockReturnValue(false);
+      mockExistsSync.mockReturnValue(false);
 
       const manager = new TmuxManager();
       await expect(manager.createSession({ name: 'test', cwd: '/tmp' })).rejects.toThrow(
@@ -164,14 +168,14 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should create pane in current session', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
       // Setup session
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -180,7 +184,7 @@ describe('Tmux Manager Module', () => {
       await manager.createSession({ name: 'test', cwd: '/tmp' });
 
       // Create pane
-      (execSync as any).mockReturnValue('%1');
+      mockExecSync.mockReturnValue('%1');
 
       const paneId = await manager.createPane({
         command: 'echo hello',
@@ -197,20 +201,20 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should handle vertical split', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
         .mockReturnValue('');
 
       await manager.createSession({ name: 'test', cwd: '/tmp' });
-      (execSync as any).mockReturnValue('%2');
+      mockExecSync.mockReturnValue('%2');
 
       await manager.createPane({
         command: 'ls',
@@ -228,13 +232,13 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should send keys to pane', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -251,13 +255,13 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should handle enter flag', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -268,9 +272,9 @@ describe('Tmux Manager Module', () => {
       manager.sendKeys('0', 'ls', false);
 
       // Without enter, should not include Enter in command
-      const calls = (execSync as any).mock.calls;
-      const sendKeysCall = calls.find((c: any[]) => c[0].includes('send-keys'));
-      expect(sendKeysCall[0]).not.toMatch(/Enter$/);
+      const calls = mockExecSync.mock.calls;
+      const sendKeysCall = calls.find((c) => String(c[0]).includes('send-keys'));
+      expect(sendKeysCall?.[0]).not.toMatch(/Enter$/);
     });
   });
 
@@ -282,14 +286,14 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should return session info', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
       // Setup session
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -313,13 +317,13 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should kill active session', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -340,13 +344,13 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should apply tiled layout by default', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -359,13 +363,13 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should support horizontal layout', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
@@ -381,13 +385,13 @@ describe('Tmux Manager Module', () => {
     });
 
     it('should support vertical layout', async () => {
-      (execSync as any).mockReturnValue('/usr/bin/tmux\n');
-      (existsSync as any).mockReturnValue(true);
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
 
       const manager = new TmuxManager();
       await manager.isInstalled();
 
-      (execSync as any)
+      mockExecSync
         .mockImplementationOnce(() => {
           throw new Error('no session');
         })
