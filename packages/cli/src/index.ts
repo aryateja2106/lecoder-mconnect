@@ -97,7 +97,17 @@ program
     }
   });
 
-async function runWizard(options: Record<string, unknown>): Promise<void> {
+interface WizardOptions {
+  preset?: string;
+  guardrails?: string;
+  dir?: string;
+  tmux?: boolean;
+  port?: string;
+  code?: boolean;
+  webUrl?: string;
+}
+
+async function runWizard(options: WizardOptions): Promise<void> {
   console.clear();
 
   p.intro(chalk.bgCyan(chalk.black(` MConnect ${VERSION_DISPLAY} `)));

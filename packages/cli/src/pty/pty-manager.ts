@@ -166,7 +166,10 @@ function validateShell(shellPath: string): { valid: boolean; error?: string } {
 
     // Windows: skip 'which' (not available)
     if (process.platform === 'win32') {
-      return { valid: false, error: `Shell not found: ${shellPath} (use absolute path on Windows)` };
+      return {
+        valid: false,
+        error: `Shell not found: ${shellPath} (use absolute path on Windows)`,
+      };
     }
 
     // Non-absolute paths: resolve via 'which' (SAFE - uses execFileSync)
