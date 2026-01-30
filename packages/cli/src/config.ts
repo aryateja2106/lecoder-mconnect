@@ -1,5 +1,5 @@
 /**
- * MConnect Configuration Module v0.2.0
+ * MConnect Configuration Module
  *
  * Handles:
  * - Environment variables (MCONNECT_HOME, MCONNECT_PORT, etc.)
@@ -10,6 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { VERSION } from './version.js';
 
 // ============================================
 // Constants
@@ -128,7 +129,7 @@ export interface MConnectConfig {
 }
 
 const DEFAULT_CONFIG: MConnectConfig = {
-  version: '0.2.0',
+  version: VERSION,
   port: 8765,
   logLevel: 'info',
   maxSessions: 5,
@@ -177,7 +178,7 @@ export function migrateConfig(): { migrated: boolean; message?: string } {
     const newConfig: MConnectConfig = {
       ...DEFAULT_CONFIG,
       ...oldConfig,
-      version: '0.2.0',
+      version: VERSION,
     };
 
     // Ensure data directory exists
@@ -239,7 +240,7 @@ export function saveConfig(config: Partial<MConnectConfig>): void {
 
   // Merge with existing config
   const existingConfig = loadConfig();
-  const newConfig = { ...existingConfig, ...config, version: '0.2.0' };
+  const newConfig = { ...existingConfig, ...config, version: VERSION };
 
   writeFileSync(configPath, JSON.stringify(newConfig, null, 2));
 }

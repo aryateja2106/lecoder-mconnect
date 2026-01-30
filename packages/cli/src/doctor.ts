@@ -10,6 +10,7 @@ import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import chalk from 'chalk';
+import { PRODUCT_NAME } from './version.js';
 
 // Use createRequire to load CommonJS modules in ESM
 const require = createRequire(import.meta.url);
@@ -504,7 +505,7 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
  * Print diagnostic results
  */
 export function printDiagnostics(results: DiagnosticResult[]): void {
-  console.log(`\n${chalk.bold('MConnect v0.2.0 - System Diagnostics')}\n`);
+  console.log(`\n${chalk.bold(`${PRODUCT_NAME} - System Diagnostics`)}\n`);
 
   let hasErrors = false;
   let hasWarnings = false;

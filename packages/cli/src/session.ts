@@ -1,5 +1,5 @@
 /**
- * Session Manager v2 for MConnect v0.1.2
+ * Session Manager v2 for MConnect
  *
  * Orchestrates multi-agent sessions with PTY management,
  * WebSocket hub, and optional tmux visualization.
@@ -8,6 +8,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
+import { PRODUCT_NAME } from './version.js';
 import qrcode from 'qrcode-terminal';
 import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
@@ -326,7 +327,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const connectUrlString = connectUrl.toString();
 
   console.log('\n');
-  p.log.success('MConnect v0.1.2 - Multi-Agent Session');
+  p.log.success(`${PRODUCT_NAME} - Multi-Agent Session`);
   console.log('\n');
 
   // Display QR code
