@@ -6,7 +6,7 @@
  * Priority order: EXCLUSIVE > HIGH > NORMAL > LOW > OBSERVER
  */
 
-import type { Priority, ClientType } from '../session/types.js';
+import type { ClientType, Priority } from '../session/types.js';
 
 export interface QueuedClient {
   clientId: string;

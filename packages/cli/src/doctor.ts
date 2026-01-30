@@ -6,9 +6,9 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { createRequire } from 'node:module';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import chalk from 'chalk';
 
 // Use createRequire to load CommonJS modules in ESM
@@ -393,7 +393,9 @@ function checkDatabase(): DiagnosticResult {
     const db = new Database(dbPath, { readonly: true });
 
     // Quick query to verify database is valid
-    const result = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'").get();
+    const result = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'")
+      .get();
     db.close();
 
     if (result) {

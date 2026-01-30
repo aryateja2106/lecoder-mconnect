@@ -29,13 +29,15 @@ jobs:
       - name: Run type check
         run: npm run typecheck --workspace=lecoder-mconnect
 
-      - name: Run tests
+      - name: Run tests (skip native module tests on Linux)
         run: npm run test --workspace=lecoder-mconnect
+        env:
+          SKIP_NATIVE_TESTS: 'true'
 
       - name: Build
         run: npm run build --workspace=lecoder-mconnect
 
-  # Optionally test on macOS for node-pty
+  # Full test suite on macOS (including native module tests)
   test-macos:
     runs-on: macos-latest
 
@@ -52,5 +54,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Rebuild native modules
+        run: npm rebuild
+
+      - name: Run full test suite
         run: npm run test --workspace=lecoder-mconnect

@@ -3,14 +3,14 @@
  * MConnect v0.2.0
  */
 
-export { PriorityQueue, type QueuedClient } from './PriorityQueue.js';
-export { IdleDetector, type IdleState, type IdleDetectorConfig } from './IdleDetector.js';
+export { IdleDetector, type IdleDetectorConfig, type IdleState } from './IdleDetector.js';
 export {
+  type ArbiterEvents,
+  type AuditEventType,
+  type AuditLogCallback,
+  type AuditLogEntry,
   InputArbiter,
   type InputArbiterConfig,
   type InputResult,
-  type ArbiterEvents,
-  type AuditEventType,
-  type AuditLogEntry,
-  type AuditLogCallback,
 } from './InputArbiter.js';
+export { PriorityQueue, type QueuedClient } from './PriorityQueue.js';

@@ -123,11 +123,14 @@ export interface ScrollbackResponseMessage {
 export interface ControlStatusMessage {
   type: 'control_status';
   sessionId: string;
-  currentOwner?: {
-    clientId: string;
-    clientType: ClientType;
-    priority: Priority;
-  } | string | null; // Can be object, string clientId, or null
+  currentOwner?:
+    | {
+        clientId: string;
+        clientType: ClientType;
+        priority: Priority;
+      }
+    | string
+    | null; // Can be object, string clientId, or null
   pcStatus?: 'active' | 'idle' | 'disconnected';
   exclusiveExpires?: number; // Unix timestamp if exclusive
   // Extended fields for internal use

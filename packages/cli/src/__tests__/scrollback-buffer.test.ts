@@ -3,12 +3,12 @@
  * MConnect v0.2.0
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ScrollbackBuffer } from '../session/ScrollbackBuffer.js';
-import { SessionStore } from '../session/SessionStore.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ScrollbackBuffer } from '../session/ScrollbackBuffer.js';
+import { SessionStore } from '../session/SessionStore.js';
 
 describe('ScrollbackBuffer', () => {
   let store: SessionStore;

@@ -6,17 +6,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { SessionStore } from './SessionStore.js';
 import { ScrollbackBuffer } from './ScrollbackBuffer.js';
-import type {
-  Session,
-  SessionState,
-  AgentConfig,
-  Client,
-  ClientType,
-  Priority,
-  DEFAULT_SESSION_CONFIG,
-} from './types.js';
+import { SessionStore } from './SessionStore.js';
+import type { AgentConfig, Client, ClientType, Priority, Session, SessionState } from './types.js';
 
 export interface SessionManagerConfig {
   dataDir: string;
@@ -68,10 +60,7 @@ export class SessionManager {
   /**
    * Create a new session
    */
-  createSession(
-    agentConfig: AgentConfig,
-    workingDirectory: string
-  ): Session {
+  createSession(agentConfig: AgentConfig, workingDirectory: string): Session {
     const id = randomUUID();
 
     const session = this.store.createSession({
@@ -157,7 +146,7 @@ export class SessionManager {
    */
   detachClient(clientId: string): boolean {
     // Find the session this client is attached to
-    for (const [sessionId, active] of this.activeSessions) {
+    for (const [_sessionId, active] of this.activeSessions) {
       if (active.clients.has(clientId)) {
         active.clients.delete(clientId);
         this.store.removeClient(clientId);
@@ -302,12 +291,15 @@ export class SessionManager {
    */
   private startCleanupTimer(): void {
     // Run cleanup every hour
-    this.cleanupTimer = setInterval(() => {
-      const deleted = this.cleanupCompletedSessions();
-      if (deleted > 0) {
-        console.log(`Cleaned up ${deleted} completed sessions`);
-      }
-    }, 60 * 60 * 1000);
+    this.cleanupTimer = setInterval(
+      () => {
+        const deleted = this.cleanupCompletedSessions();
+        if (deleted > 0) {
+          console.log(`Cleaned up ${deleted} completed sessions`);
+        }
+      },
+      60 * 60 * 1000
+    );
   }
 
   /**

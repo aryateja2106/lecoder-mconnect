@@ -5,8 +5,8 @@
  * Background service that manages sessions, WebSocket server, and IPC
  */
 
+import { existsSync, unlinkSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
-import { unlinkSync, existsSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
 import { DaemonLogger } from './logging.js';
 import { setupSignalHandlers } from './signals.js';
@@ -162,7 +162,7 @@ export class MConnectDaemon {
           reject(error);
         });
 
-        this.wsServer.on('connection', (ws, req) => {
+        this.wsServer.on('connection', (_ws, req) => {
           this.logger.debug(`New WebSocket connection from ${req.socket.remoteAddress}`);
           // TODO: Handle connection with protocol v2
         });
@@ -190,7 +190,7 @@ export class MConnectDaemon {
             try {
               const message = JSON.parse(data.toString());
               this.handleIPCMessage(message, socket);
-            } catch (error) {
+            } catch (_error) {
               socket.write(JSON.stringify({ status: 'error', message: 'Invalid JSON' }));
             }
           });
@@ -218,7 +218,10 @@ export class MConnectDaemon {
   /**
    * Handle IPC messages from CLI
    */
-  private handleIPCMessage(message: { action: string; [key: string]: unknown }, socket: import('node:net').Socket): void {
+  private handleIPCMessage(
+    message: { action: string; [key: string]: unknown },
+    socket: import('node:net').Socket
+  ): void {
     switch (message.action) {
       case 'status':
         socket.write(JSON.stringify({ status: 'ok', data: this.getStatus() }));
@@ -250,7 +253,9 @@ export class MConnectDaemon {
         break;
 
       default:
-        socket.write(JSON.stringify({ status: 'error', message: `Unknown action: ${message.action}` }));
+        socket.write(
+          JSON.stringify({ status: 'error', message: `Unknown action: ${message.action}` })
+        );
     }
   }
 }

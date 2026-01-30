@@ -13,7 +13,12 @@ import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
-import { generateSecureToken, generateSessionId, getPairingCodeManager, hashForLogging } from './security.js';
+import {
+  generateSecureToken,
+  generateSessionId,
+  getPairingCodeManager,
+  hashForLogging,
+} from './security.js';
 import type { SessionManager } from './session/SessionManager.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
@@ -97,7 +102,8 @@ export async function tryInitOptionalComponent<T>(
     return await init();
   } catch (error) {
     if (!options.silent) {
-      const message = options.warnMessage ||
+      const message =
+        options.warnMessage ||
         `Could not initialize ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
       p.log.warning(message);
     }
@@ -128,7 +134,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     // Detect protocol from X-Forwarded-Proto (set by cloudflared/proxies) or default to http
     const forwardedProto = req.headers['x-forwarded-proto'];
-    const protocol = (typeof forwardedProto === 'string' ? forwardedProto : 'http') + ':';
+    const protocol = `${typeof forwardedProto === 'string' ? forwardedProto : 'http'}:`;
     // Use X-Forwarded-Host if available (for proxy/tunnel scenarios)
     const forwardedHost = req.headers['x-forwarded-host'];
     const host = typeof forwardedHost === 'string' ? forwardedHost : req.headers.host;
@@ -269,7 +275,10 @@ export async function startSession(config: SessionConfig): Promise<void> {
   if (tunnelUrl) {
     initStatus.tunnel = { success: true, url: tunnelUrl };
   } else {
-    initStatus.tunnel = { success: false, error: 'Cloudflared not available or tunnel creation failed' };
+    initStatus.tunnel = {
+      success: false,
+      error: 'Cloudflared not available or tunnel creation failed',
+    };
   }
 
   // Store session
@@ -285,7 +294,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     tunnelUrl,
     context: {
       sessionManager: null, // Will be initialized in Phase 6 (US4)
-      inputArbiter: null,   // Will be initialized in Phase 7 (US5)
+      inputArbiter: null, // Will be initialized in Phase 7 (US5)
       sessionId,
     },
     initStatus,
@@ -309,12 +318,18 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Display initialization status summary (T013)
   console.log('\n');
   p.log.info('Component Status:');
-  const statusIcon = (success: boolean) => success ? chalk.green('✓') : chalk.yellow('○');
+  const statusIcon = (success: boolean) => (success ? chalk.green('✓') : chalk.yellow('○'));
   console.log(`  ${statusIcon(initStatus.httpServer.success)} HTTP Server`);
   console.log(`  ${statusIcon(initStatus.websocket.success)} WebSocket`);
-  console.log(`  ${statusIcon(initStatus.pty.success)} PTY Manager${initStatus.pty.error ? chalk.dim(` (${initStatus.pty.error})`) : ''}`);
-  console.log(`  ${statusIcon(initStatus.tunnel.success)} Tunnel${initStatus.tunnel.error ? chalk.dim(` (${initStatus.tunnel.error})`) : ''}`);
-  console.log(`  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`);
+  console.log(
+    `  ${statusIcon(initStatus.pty.success)} PTY Manager${initStatus.pty.error ? chalk.dim(` (${initStatus.pty.error})`) : ''}`
+  );
+  console.log(
+    `  ${statusIcon(initStatus.tunnel.success)} Tunnel${initStatus.tunnel.error ? chalk.dim(` (${initStatus.tunnel.error})`) : ''}`
+  );
+  console.log(
+    `  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`
+  );
 
   // Display session info
   const serverUrl = tunnelUrl || `http://localhost:${port}`;
@@ -325,7 +340,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     try {
       connectUrl = new URL(config.webUrl);
       usingWebUrl = true;
-    } catch (error) {
+    } catch (_error) {
       p.log.warning(`Invalid web URL provided: ${config.webUrl}`);
       p.log.warning('Falling back to the built-in web client.');
     }
@@ -431,7 +446,7 @@ function cleanup(): void {
 /**
  * Get unauthorized page HTML
  */
-function getUnauthorizedHTML(): string {
+function _getUnauthorizedHTML(): string {
   return `<!DOCTYPE html>
 <html>
 <head>

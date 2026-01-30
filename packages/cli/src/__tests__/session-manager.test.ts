@@ -3,11 +3,11 @@
  * MConnect v0.2.0
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { SessionManager } from '../session/SessionManager.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SessionManager } from '../session/SessionManager.js';
 
 describe('SessionManager', () => {
   let sessionManager: SessionManager;
@@ -41,10 +41,7 @@ describe('SessionManager', () => {
 
     it('should assign creation timestamp', () => {
       const before = new Date();
-      const session = sessionManager.createSession(
-        { preset: 'single', agents: [] },
-        '/tmp'
-      );
+      const session = sessionManager.createSession({ preset: 'single', agents: [] }, '/tmp');
       const after = new Date();
 
       expect(session.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());

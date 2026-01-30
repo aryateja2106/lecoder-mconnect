@@ -5,7 +5,7 @@
  */
 
 import type { AgentConfig, AgentInfo, AgentStatus } from '../agents/types.js';
-import type { ServerMessageV2, ClientMessageV2 } from './protocol.js';
+import type { ClientMessageV2, ServerMessageV2 } from './protocol.js';
 
 // ============================================
 // Client -> Server Messages

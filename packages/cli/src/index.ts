@@ -15,11 +15,11 @@ import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { AGENT_PRESETS, getDefaultShell } from './agents/types.js';
-import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
-import { startSession } from './session.js';
+import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
-import { createAttachCommand } from './cli/commands/attach.js';
+import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
+import { startSession } from './session.js';
 
 const program = new Command();
 

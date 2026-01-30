@@ -15,11 +15,9 @@ import type {
   ControlState,
   Priority,
   RejectReason,
-  InputConfig,
-  DEFAULT_INPUT_CONFIG,
 } from '../session/types.js';
-import { PriorityQueue, type QueuedClient } from './PriorityQueue.js';
 import { IdleDetector } from './IdleDetector.js';
+import { PriorityQueue, type QueuedClient } from './PriorityQueue.js';
 
 export interface InputArbiterConfig {
   /** PC idle threshold in ms (default: 30s) */
@@ -318,9 +316,10 @@ export class InputArbiter extends EventEmitter {
     return {
       state: this.state,
       currentOwner: activeClient?.clientId,
-      exclusiveExpires: this.exclusiveClientId && this.exclusiveTimeout
-        ? new Date(Date.now() + this.config.exclusiveTimeoutMs)
-        : undefined,
+      exclusiveExpires:
+        this.exclusiveClientId && this.exclusiveTimeout
+          ? new Date(Date.now() + this.config.exclusiveTimeoutMs)
+          : undefined,
       lastPcInput: this.getLastPcActivity(),
     };
   }
@@ -414,7 +413,7 @@ export class InputArbiter extends EventEmitter {
     }
   }
 
-  private handleClientIdle(clientId: string, clientType: ClientType): void {
+  private handleClientIdle(_clientId: string, clientType: ClientType): void {
     if (clientType === 'pc' && this.state === 'pc_active') {
       // All PC clients idle: transition to pc_idle
       if (this.idleDetector.allPcClientsIdle()) {
@@ -425,7 +424,7 @@ export class InputArbiter extends EventEmitter {
     }
   }
 
-  private handleClientActive(clientId: string, clientType: ClientType): void {
+  private handleClientActive(_clientId: string, clientType: ClientType): void {
     if (clientType === 'pc') {
       // PC became active
       if (this.state === 'pc_idle' || this.state === 'pc_disconnected') {

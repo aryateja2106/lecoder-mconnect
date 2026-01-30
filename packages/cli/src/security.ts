@@ -306,7 +306,12 @@ export class PairingCodeManager {
   /**
    * Validate a pairing code and return the session token
    */
-  validateCode(code: string): { valid: boolean; token?: string; sessionId?: string; reason?: string } {
+  validateCode(code: string): {
+    valid: boolean;
+    token?: string;
+    sessionId?: string;
+    reason?: string;
+  } {
     const normalizedCode = code.toUpperCase().replace(/\s/g, '');
     const now = Date.now();
 

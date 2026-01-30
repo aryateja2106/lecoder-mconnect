@@ -5,24 +5,23 @@
  * Handles database connection, migrations, and CRUD operations
  */
 
-import Database from 'better-sqlite3';
-import { readFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Database from 'better-sqlite3';
 import type {
+  AgentConfig,
+  Client,
+  ClientRow,
+  InputLogEntry,
+  InputLogRow,
+  Priority,
+  RejectReason,
+  ScrollbackLine,
+  ScrollbackRow,
   Session,
   SessionRow,
   SessionState,
-  Client,
-  ClientRow,
-  ClientType,
-  Priority,
-  ScrollbackLine,
-  ScrollbackRow,
-  InputLogEntry,
-  InputLogRow,
-  RejectReason,
-  AgentConfig,
 } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -171,7 +170,9 @@ export class SessionStore {
   }
 
   getSession(id: string): Session | null {
-    const row = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as SessionRow | undefined;
+    const row = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as
+      | SessionRow
+      | undefined;
     return row ? this.rowToSession(row) : null;
   }
 
@@ -211,7 +212,9 @@ export class SessionStore {
 
   deleteCompletedSessions(olderThanMs: number): number {
     const cutoff = Date.now() - olderThanMs;
-    const stmt = this.db.prepare("DELETE FROM sessions WHERE state = 'completed' AND last_activity < ?");
+    const stmt = this.db.prepare(
+      "DELETE FROM sessions WHERE state = 'completed' AND last_activity < ?"
+    );
     const result = stmt.run(cutoff);
     return result.changes;
   }
@@ -245,7 +248,9 @@ export class SessionStore {
   }
 
   getClient(id: string): Client | null {
-    const row = this.db.prepare('SELECT * FROM connected_clients WHERE id = ?').get(id) as ClientRow | undefined;
+    const row = this.db.prepare('SELECT * FROM connected_clients WHERE id = ?').get(id) as
+      | ClientRow
+      | undefined;
     return row ? this.rowToClient(row) : null;
   }
 

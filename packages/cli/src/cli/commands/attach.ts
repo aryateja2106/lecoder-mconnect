@@ -5,13 +5,12 @@
  * Use Ctrl+D to detach without killing the session
  */
 
-import { Command } from 'commander';
-import chalk from 'chalk';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
-import { createConnection, type Socket } from 'node:net';
 import { existsSync } from 'node:fs';
-import * as readline from 'node:readline';
+import { createConnection, type Socket } from 'node:net';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import chalk from 'chalk';
+import { Command } from 'commander';
 
 function getDataDir(): string {
   return process.env.MCONNECT_DATA_DIR || join(homedir(), '.mconnect');
@@ -56,12 +55,12 @@ async function attachToSession(sessionId: string): Promise<void> {
     client.on('connect', () => {
       // Send attach request
       client.write(
-        JSON.stringify({
+        `${JSON.stringify({
           type: 'session_attach',
           sessionId,
           clientId: `cli-${process.pid}`,
           clientType: 'pc',
-        }) + '\n'
+        })}\n`
       );
     });
 
@@ -122,9 +121,9 @@ async function attachToSession(sessionId: string): Promise<void> {
           // Second Ctrl+D - detach
           console.log(chalk.dim('\nDetaching...'));
           client.write(
-            JSON.stringify({
+            `${JSON.stringify({
               type: 'session_detach',
-            }) + '\n'
+            })}\n`
           );
         } else {
           // First Ctrl+D - show hint
@@ -142,10 +141,10 @@ async function attachToSession(sessionId: string): Promise<void> {
 
       // Forward input to session
       client.write(
-        JSON.stringify({
+        `${JSON.stringify({
           type: 'terminal_input',
           data: data.toString(),
-        }) + '\n'
+        })}\n`
       );
     });
 
@@ -166,11 +165,11 @@ async function attachToSession(sessionId: string): Promise<void> {
 
       const { columns, rows } = process.stdout;
       client.write(
-        JSON.stringify({
+        `${JSON.stringify({
           type: 'resize',
           cols: columns,
           rows: rows,
-        }) + '\n'
+        })}\n`
       );
     });
 
@@ -188,10 +187,10 @@ async function attachToSession(sessionId: string): Promise<void> {
       // Forward Ctrl+C to session instead of exiting
       if (attached) {
         client.write(
-          JSON.stringify({
+          `${JSON.stringify({
             type: 'terminal_input',
             data: '\x03', // Ctrl+C
-          }) + '\n'
+          })}\n`
         );
       }
     });
@@ -207,18 +206,23 @@ export function createAttachCommand(): Command {
   return new Command('attach')
     .description('Attach to an existing session')
     .argument('<sessionId>', 'Session ID to attach to')
-    .addHelpText('after', `
+    .addHelpText(
+      'after',
+      `
 Examples:
   $ mconnect session attach abc123     Attach to session abc123
 
 Controls:
   Ctrl+D    Detach from session (press twice)
-  Ctrl+C    Send interrupt to session (doesn't detach)`)
+  Ctrl+C    Send interrupt to session (doesn't detach)`
+    )
     .action(async (sessionId: string) => {
       try {
         await attachToSession(sessionId);
       } catch (error) {
-        console.error(chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        console.error(
+          chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        );
         process.exit(1);
       }
     });

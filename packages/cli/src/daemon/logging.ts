@@ -5,7 +5,15 @@
  * Log rotation and file-based logging for daemon operations
  */
 
-import { appendFileSync, existsSync, mkdirSync, statSync, renameSync, readdirSync, unlinkSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -23,13 +31,11 @@ const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_LOG_FILES = 5;
 
 export class DaemonLogger {
-  private dataDir: string;
   private logDir: string;
   private logFile: string;
   private minLevel: LogLevel;
 
   constructor(dataDir: string, minLevel: LogLevel = 'info') {
-    this.dataDir = dataDir;
     this.logDir = join(dataDir, DEFAULT_LOG_DIR);
     this.logFile = join(this.logDir, DEFAULT_LOG_FILE);
     this.minLevel = minLevel;
@@ -132,7 +138,7 @@ export class DaemonLogger {
       this.rotateIfNeeded();
 
       // Append to log file
-      appendFileSync(this.logFile, entry + '\n', 'utf-8');
+      appendFileSync(this.logFile, `${entry}\n`, 'utf-8');
     } catch (error) {
       // Can't log to file, just continue
       console.error('Failed to write to log file:', error);
