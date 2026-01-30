@@ -6,7 +6,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { join, dirname, basename } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { DevContainerConfig } from './types.js';
 
 /**
@@ -236,17 +236,13 @@ export function getContainerImage(
  * @param workspaceDir - Host workspace directory
  * @returns Array of Docker volume mount strings
  */
-export function getVolumeMounts(
-  config: DevContainerConfig | null,
-  workspaceDir: string
-): string[] {
+export function getVolumeMounts(config: DevContainerConfig | null, workspaceDir: string): string[] {
   const mounts: string[] = [];
 
   // Default workspace mount
   const workspaceFolder = config?.workspaceFolder || '/workspace';
   const workspaceMount =
-    config?.workspaceMount ||
-    `type=bind,source=${workspaceDir},target=${workspaceFolder}`;
+    config?.workspaceMount || `type=bind,source=${workspaceDir},target=${workspaceFolder}`;
 
   mounts.push(workspaceMount);
 

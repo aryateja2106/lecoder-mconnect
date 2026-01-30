@@ -8,8 +8,14 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join, basename } from 'node:path';
 import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
+import {
+  createDefaultDevContainerConfig,
+  getVolumeMounts,
+  parseDevContainer,
+} from './devcontainer.js';
+import { DEFAULT_DOCKERFILE } from './dockerfile.js';
 import type {
   ContainerConfig,
   ContainerExecOptions,
@@ -18,12 +24,6 @@ import type {
   DevContainerConfig,
   DockerInfo,
 } from './types.js';
-import {
-  parseDevContainer,
-  getVolumeMounts,
-  createDefaultDevContainerConfig,
-} from './devcontainer.js';
-import { DEFAULT_DOCKERFILE } from './dockerfile.js';
 
 /**
  * Container name prefix for MConnect containers
@@ -34,11 +34,10 @@ const CONTAINER_PREFIX = 'mconnect';
  * Generate a deterministic container name from workspace path
  */
 function generateContainerName(workspaceDir: string, sessionId?: string): string {
-  const hash = createHash('sha256')
-    .update(workspaceDir)
-    .digest('hex')
-    .substring(0, 8);
-  const baseName = basename(workspaceDir).toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const hash = createHash('sha256').update(workspaceDir).digest('hex').substring(0, 8);
+  const baseName = basename(workspaceDir)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-');
   const suffix = sessionId ? `-${sessionId.substring(0, 6)}` : '';
   return `${CONTAINER_PREFIX}-${baseName}-${hash}${suffix}`;
 }
@@ -253,7 +252,9 @@ export class ContainerManager {
     }
 
     if (!(await this.isDockerRunning())) {
-      throw new Error('Docker daemon is not running. Please start Docker Desktop or the Docker service.');
+      throw new Error(
+        'Docker daemon is not running. Please start Docker Desktop or the Docker service.'
+      );
     }
 
     const containerName = generateContainerName(workspaceDir, sessionId);
@@ -397,20 +398,15 @@ export class ContainerManager {
       if (typeof command === 'string') {
         console.log(`[Container] Running postCreateCommand: ${command}`);
         // For shell commands, we use /bin/sh -c inside the container
-        dockerExec([
-          'exec',
-          '-w', instance.containerWorkDir,
-          instance.name,
-          '/bin/sh', '-c', command,
-        ], { timeout: 300000 }); // 5 minute timeout for setup commands
+        dockerExec(
+          ['exec', '-w', instance.containerWorkDir, instance.name, '/bin/sh', '-c', command],
+          { timeout: 300000 }
+        ); // 5 minute timeout for setup commands
       } else if (Array.isArray(command)) {
         console.log(`[Container] Running postCreateCommand: ${command.join(' ')}`);
-        dockerExec([
-          'exec',
-          '-w', instance.containerWorkDir,
-          instance.name,
-          ...command,
-        ], { timeout: 300000 });
+        dockerExec(['exec', '-w', instance.containerWorkDir, instance.name, ...command], {
+          timeout: 300000,
+        });
       }
       // Object format (parallel commands) not implemented yet
     } catch (error) {
@@ -539,7 +535,7 @@ export class ContainerManager {
     const containerName = generateContainerName(workspaceDir, options?.sessionId);
 
     // Check for existing container
-    if (!options?.forceNew && await this.isContainerRunning(containerName)) {
+    if (!options?.forceNew && (await this.isContainerRunning(containerName))) {
       const existingInstance = this.containers.get(containerName);
       if (existingInstance) {
         return existingInstance;
@@ -568,11 +564,10 @@ export class ContainerManager {
   /**
    * Build a container image from Dockerfile
    */
-  async buildImage(
-    workspaceDir: string,
-    config?: DevContainerConfig
-  ): Promise<string> {
-    const imageName = `mconnect-${basename(workspaceDir).toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+  async buildImage(workspaceDir: string, config?: DevContainerConfig): Promise<string> {
+    const imageName = `mconnect-${basename(workspaceDir)
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')}`;
 
     // Check for existing Dockerfile
     let dockerfilePath: string;

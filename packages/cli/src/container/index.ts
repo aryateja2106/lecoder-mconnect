@@ -5,6 +5,35 @@
  * Supports both inline container configuration and Dev Container spec.
  */
 
+// Container Manager
+export {
+  ContainerManager,
+  getContainerManager,
+  resetContainerManager,
+} from './container-manager.js';
+// DevContainer parser
+export {
+  createDefaultDevContainerConfig,
+  findDevContainerConfig,
+  getContainerEnv,
+  getContainerImage,
+  getContainerUser,
+  getDockerRunArgs,
+  getVolumeMounts,
+  hasDevContainerConfig,
+  parseDevContainer,
+  resolveVariables,
+} from './devcontainer.js';
+// Dockerfile templates
+export {
+  DEFAULT_DOCKERFILE,
+  detectProjectTemplate,
+  generateDockerfile,
+  getDockerfileTemplate,
+  MINIMAL_DOCKERFILE,
+  NODEJS_DOCKERFILE,
+  PYTHON_DOCKERFILE,
+} from './dockerfile.js';
 // Types
 export type {
   ContainerConfig,
@@ -15,41 +44,8 @@ export type {
   DevContainerConfig,
   DockerInfo,
 } from './types.js';
-
 export {
+  ARM64_COMPATIBLE_IMAGES,
   DEFAULT_CONTAINER_CONFIG,
   MCONNECT_DEFAULT_IMAGE,
-  ARM64_COMPATIBLE_IMAGES,
 } from './types.js';
-
-// DevContainer parser
-export {
-  findDevContainerConfig,
-  hasDevContainerConfig,
-  parseDevContainer,
-  resolveVariables,
-  getContainerImage,
-  getVolumeMounts,
-  getContainerEnv,
-  getContainerUser,
-  getDockerRunArgs,
-  createDefaultDevContainerConfig,
-} from './devcontainer.js';
-
-// Dockerfile templates
-export {
-  DEFAULT_DOCKERFILE,
-  MINIMAL_DOCKERFILE,
-  NODEJS_DOCKERFILE,
-  PYTHON_DOCKERFILE,
-  getDockerfileTemplate,
-  generateDockerfile,
-  detectProjectTemplate,
-} from './dockerfile.js';
-
-// Container Manager
-export {
-  ContainerManager,
-  getContainerManager,
-  resetContainerManager,
-} from './container-manager.js';

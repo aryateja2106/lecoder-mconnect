@@ -9,10 +9,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import {
-  getContainerManager,
-  type ContainerInstance,
-} from '../container/index.js';
+import { type ContainerInstance, getContainerManager } from '../container/index.js';
 import { getPTYManager, type PTYManager } from '../pty/pty-manager.js';
 import type { PTYInstance } from '../pty/types.js';
 import type { AgentConfig, AgentInfo, AgentStatus } from './types.js';
@@ -82,13 +79,10 @@ export class AgentInstance {
         console.log(`[Agent ${this.id}] Starting in container mode...`);
 
         // Create/ensure container is running
-        this.containerInstance = await containerManager.ensureContainer(
-          this.config.cwd,
-          {
-            sessionId: this.id,
-            config: this.config.container,
-          }
-        );
+        this.containerInstance = await containerManager.ensureContainer(this.config.cwd, {
+          sessionId: this.id,
+          config: this.config.container,
+        });
 
         // Build docker exec command
         const shell = this.config.command || '/bin/bash';

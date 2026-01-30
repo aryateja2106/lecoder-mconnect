@@ -189,7 +189,9 @@ async function runWizard(options: any): Promise<void> {
       }
       finalPreset = 'shell-only';
     } else {
-      p.log.info(chalk.green(`Docker ${dockerStatus.version || ''} detected - container isolation available`));
+      p.log.info(
+        chalk.green(`Docker ${dockerStatus.version || ''} detected - container isolation available`)
+      );
     }
   }
 

@@ -256,7 +256,9 @@ export function generateDockerfile(options: {
  * @param workspaceDir - Path to workspace
  * @returns Suggested template name
  */
-export function detectProjectTemplate(workspaceDir: string): 'default' | 'nodejs' | 'python' | 'minimal' {
+export function detectProjectTemplate(
+  workspaceDir: string
+): 'default' | 'nodejs' | 'python' | 'minimal' {
   const { existsSync } = require('node:fs');
   const { join } = require('node:path');
 
