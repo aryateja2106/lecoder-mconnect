@@ -18,6 +18,7 @@ import { AGENT_PRESETS, getDefaultShell } from './agents/types.js';
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
+import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
 
@@ -42,7 +43,7 @@ program
   .option('-d, --dir <directory>', 'Working directory')
   .option(
     '-p, --preset <name>',
-    'Agent preset (single, research-spec-test, dev-review, shell-only)'
+    'Agent preset (single, research-spec-test, dev-review, shell-only, container-dev)'
   )
   .option('-g, --guardrails <level>', 'Guardrails level (default, strict, permissive, none)')
   .option('--port <number>', 'Server port (default: 8765)')
@@ -130,6 +131,11 @@ async function runWizard(options: any): Promise<void> {
           hint: '2 shells for development workflow',
         },
         {
+          value: 'container-dev',
+          label: 'Container Dev (Docker)',
+          hint: 'Isolated shell in Docker container',
+        },
+        {
           value: 'custom',
           label: 'Custom Setup',
           hint: 'Configure multiple shells manually',
@@ -142,13 +148,58 @@ async function runWizard(options: any): Promise<void> {
     process.exit(0);
   }
 
+  // Check Docker availability for container preset
+  let finalPreset = preset;
+  if (preset === 'container-dev') {
+    const containerManager = getContainerManager();
+    const dockerStatus = await containerManager.checkDockerStatus();
+
+    if (!dockerStatus.installed) {
+      p.log.warn(
+        chalk.yellow(
+          'Docker is not installed. Container isolation requires Docker.\n' +
+            'Install from: https://docker.com/products/docker-desktop'
+        )
+      );
+      const fallback = await p.confirm({
+        message: 'Continue with shell-only preset instead?',
+        initialValue: true,
+      });
+      if (p.isCancel(fallback) || !fallback) {
+        p.cancel('Session cancelled.');
+        process.exit(0);
+      }
+      finalPreset = 'shell-only';
+    } else if (!dockerStatus.running) {
+      p.log.warn(
+        chalk.yellow(
+          'Docker daemon is not running. Please start Docker first.\n' +
+            (process.platform === 'darwin'
+              ? 'Start Docker Desktop application.'
+              : 'Run: sudo systemctl start docker')
+        )
+      );
+      const fallback = await p.confirm({
+        message: 'Continue with shell-only preset instead?',
+        initialValue: true,
+      });
+      if (p.isCancel(fallback) || !fallback) {
+        p.cancel('Session cancelled.');
+        process.exit(0);
+      }
+      finalPreset = 'shell-only';
+    } else {
+      p.log.info(chalk.green(`Docker ${dockerStatus.version || ''} detected - container isolation available`));
+    }
+  }
+
   // Get agents configuration
   let agents: any[] = [];
 
-  if (preset === 'custom') {
+  if (finalPreset === 'custom') {
     agents = await configureCustomAgents();
   } else {
-    const presetConfig = AGENT_PRESETS.find((p) => p.name === preset);
+    const presetConfig = AGENT_PRESETS.find((p) => p.name === finalPreset);
     if (presetConfig) {
       agents = [...presetConfig.agents]; // Clone the array
     } else {

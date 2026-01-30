@@ -1,6 +1,6 @@
 {
   "name": "lecoder-mconnect",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "Mobile terminal control for AI coding agents - Terminal in your pocket",
   "type": "module",
   "main": "./dist/index.js",
@@ -41,7 +41,9 @@
     "aider",
     "remote-terminal",
     "pty",
-    "websocket"
+    "websocket",
+    "docker",
+    "devcontainer"
   ],
   "author": "Arya Teja Rudraraju <aryateja2106@gmail.com>",
   "license": "MIT",

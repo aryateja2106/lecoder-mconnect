@@ -4,7 +4,7 @@
  * Checks all dependencies and provides clear guidance on what's missing.
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
@@ -268,6 +268,58 @@ function checkCloudflared(): DiagnosticResult {
 }
 
 /**
+ * Check Docker (optional - for container isolation)
+ */
+function checkDocker(): DiagnosticResult {
+  // Check if Docker CLI is installed
+  if (!commandExists('docker')) {
+    return {
+      name: 'Docker',
+      status: 'warning',
+      message: 'Docker not found (optional - for container isolation)',
+      fix:
+        process.platform === 'darwin'
+          ? 'Install Docker Desktop from https://docker.com/products/docker-desktop'
+          : 'Run: sudo apt install docker.io',
+    };
+  }
+
+  // Check if Docker daemon is running using execFileSync (no shell injection)
+  try {
+    execFileSync('docker', ['info'], { stdio: 'pipe' });
+
+    // Get Docker version
+    let version: string | null = null;
+    try {
+      const versionOutput = execFileSync('docker', ['version', '--format', '{{.Server.Version}}'], {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+      version = versionOutput.trim();
+    } catch {
+      // Version check failed but daemon is running
+    }
+
+    const arch = process.arch === 'arm64' ? ' (ARM64)' : '';
+    return {
+      name: 'Docker',
+      status: 'ok',
+      message: `Docker ${version || 'installed'} - daemon running${arch}`,
+    };
+  } catch {
+    return {
+      name: 'Docker',
+      status: 'warning',
+      message: 'Docker CLI found but daemon not running',
+      fix:
+        process.platform === 'darwin'
+          ? 'Start Docker Desktop application'
+          : 'Run: sudo systemctl start docker',
+    };
+  }
+}
+
+/**
  * Check default shell
  */
 function checkShell(): DiagnosticResult {
@@ -438,6 +490,7 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
   // Optional checks
   results.push(checkTmux());
   results.push(checkCloudflared());
+  results.push(checkDocker());
 
   // Daemon checks (v0.2.0+)
   results.push(checkDaemon());
