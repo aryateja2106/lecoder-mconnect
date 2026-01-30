@@ -61,22 +61,6 @@ function dockerExec(args: string[], options?: { timeout?: number }): string {
 }
 
 /**
- * Execute a Docker command and return success status (for checks)
- */
-function dockerCheck(args: string[]): boolean {
-  try {
-    execFileSync('docker', args, {
-      encoding: 'utf-8',
-      timeout: 10000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Container Manager class
  * Handles Docker container lifecycle for MConnect sessions
  */
