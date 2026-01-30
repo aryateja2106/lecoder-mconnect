@@ -211,7 +211,12 @@ export class ContainerManager {
    * Check if a container exists (running or stopped)
    */
   async containerExists(containerName: string): Promise<boolean> {
-    return dockerCheck(['ps', '-a', '-q', '-f', `name=^${containerName}$`]);
+    try {
+      const output = dockerExec(['ps', '-a', '-q', '-f', `name=^${containerName}$`]);
+      return output.length > 0;
+    } catch {
+      return false;
+    }
   }
 
   /**

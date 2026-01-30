@@ -5,6 +5,9 @@
  * that work on both x86_64 and ARM64 (Raspberry Pi).
  */
 
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 /**
  * Default Dockerfile for MConnect development containers
  *
@@ -259,9 +262,6 @@ export function generateDockerfile(options: {
 export function detectProjectTemplate(
   workspaceDir: string
 ): 'default' | 'nodejs' | 'python' | 'minimal' {
-  const { existsSync } = require('node:fs');
-  const { join } = require('node:path');
-
   // Check for Node.js project
   if (existsSync(join(workspaceDir, 'package.json'))) {
     return 'nodejs';
