@@ -70,4 +70,6 @@ export interface TmuxManagerConfig {
   sessionPrefix?: string;
   /** Default shell */
   defaultShell?: string;
+  /** Enable mouse support in tmux sessions (default: true) */
+  mouseSupport?: boolean;
 }
