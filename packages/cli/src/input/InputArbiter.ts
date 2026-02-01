@@ -9,6 +9,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { getObservability } from '../observability/index.js';
 import type {
   ArbiterState,
   ClientType,
@@ -191,6 +192,11 @@ export class InputArbiter extends EventEmitter {
 
     // Check rate limiting
     if (this.isRateLimited(clientId, input.length)) {
+      // Trace input rejection
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceInputDecision('rejected', clientId, 'rate_limited');
+      }
       this.emit('inputRejected', clientId, input, 'rate_limited');
       return { accepted: false, rejectReason: 'rate_limited' };
     }
@@ -201,6 +207,11 @@ export class InputArbiter extends EventEmitter {
     // Check exclusive control
     if (this.exclusiveClientId && this.exclusiveClientId !== clientId) {
       const reason: RejectReason = 'other_exclusive';
+      // Trace input rejection
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceInputDecision('rejected', clientId, reason);
+      }
       this.emit('inputRejected', clientId, input, reason);
       return { accepted: false, rejectReason: reason };
     }
@@ -208,6 +219,11 @@ export class InputArbiter extends EventEmitter {
     // Check state-based control
     const canInput = this.canClientInput(clientId, client.clientType);
     if (!canInput.allowed) {
+      // Trace input rejection
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceInputDecision('rejected', clientId, canInput.reason);
+      }
       this.emit('inputRejected', clientId, input, canInput.reason!);
       return { accepted: false, rejectReason: canInput.reason };
     }
@@ -215,7 +231,11 @@ export class InputArbiter extends EventEmitter {
     // Track rate
     this.trackInputRate(clientId, input.length);
 
-    // Input accepted
+    // Input accepted - trace acceptance
+    const obs = getObservability();
+    if (obs.isEnabled()) {
+      obs.traceInputDecision('accepted', clientId);
+    }
     this.emit('inputAccepted', clientId, input);
     return { accepted: true };
   }
@@ -261,6 +281,12 @@ export class InputArbiter extends EventEmitter {
       `Exclusive control granted to mobile client (timeout: ${this.config.exclusiveTimeoutMs}ms)`
     );
 
+    // Trace control change
+    const obs = getObservability();
+    if (obs.isEnabled()) {
+      obs.traceControlChange('exclusive_granted', clientId);
+    }
+
     this.emit('controlGranted', clientId, 'exclusive');
     return true;
   }
@@ -302,6 +328,12 @@ export class InputArbiter extends EventEmitter {
         ? 'Exclusive control timed out automatically'
         : 'Exclusive control released by client'
     );
+
+    // Trace control change
+    const obs = getObservability();
+    if (obs.isEnabled()) {
+      obs.traceControlChange(isTimeout ? 'timeout' : 'exclusive_released', clientId);
+    }
 
     this.emit('controlReleased', clientId);
     return true;
@@ -468,6 +500,12 @@ export class InputArbiter extends EventEmitter {
       activeClient?.clientId || 'system',
       `Control state changed: ${oldState} → ${this.state}`
     );
+
+    // Trace arbiter state change
+    const obs = getObservability();
+    if (obs.isEnabled()) {
+      obs.traceArbiterState(this.state, oldState);
+    }
 
     this.emit('stateChange', this.state, oldState, this.getControlState());
   }

@@ -5,11 +5,12 @@
  * Uses execFileSync for safe command execution (no shell injection risk).
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
+import { getObservability } from '../observability/index.js';
 import {
   createDefaultDevContainerConfig,
   getVolumeMounts,
@@ -24,6 +25,64 @@ import type {
   DevContainerConfig,
   DockerInfo,
 } from './types.js';
+
+/**
+ * Cache for docker binary path
+ */
+let cachedDockerPath: string | null = null;
+
+/**
+ * Find the full path to the docker binary
+ */
+function findDockerPath(): string {
+  if (cachedDockerPath) {
+    return cachedDockerPath;
+  }
+
+  // Common docker paths on different systems
+  const commonPaths = [
+    '/usr/local/bin/docker',
+    '/opt/homebrew/bin/docker', // macOS Homebrew ARM
+    '/usr/bin/docker',
+    '/usr/local/docker/bin/docker',
+  ];
+
+  // Check common paths first
+  for (const path of commonPaths) {
+    if (existsSync(path)) {
+      cachedDockerPath = path;
+      return path;
+    }
+  }
+
+  // Fall back to 'which docker' (works on macOS and Linux)
+  try {
+    const result = execSync('which docker', { encoding: 'utf-8', timeout: 5000 });
+    const path = result.trim();
+    if (path && existsSync(path)) {
+      cachedDockerPath = path;
+      return path;
+    }
+  } catch {
+    // 'which' failed, continue to next fallback
+  }
+
+  // Fall back to 'command -v docker' (POSIX compliant)
+  try {
+    const result = execSync('command -v docker', { encoding: 'utf-8', timeout: 5000, shell: '/bin/sh' });
+    const path = result.trim();
+    if (path && existsSync(path)) {
+      cachedDockerPath = path;
+      return path;
+    }
+  } catch {
+    // command -v failed
+  }
+
+  // Last resort: just return 'docker' and hope it's in PATH
+  // This will likely fail in the PTY validation but provides a clear error
+  return 'docker';
+}
 
 /**
  * Container name prefix for MConnect containers
@@ -354,7 +413,21 @@ export class ContainerManager {
 
     // Create container
     console.log(`[Container] Creating container: ${containerName}`);
-    const containerId = dockerExec(args);
+    let containerId: string;
+    try {
+      containerId = dockerExec(args);
+    } catch (error) {
+      // Trace container error
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceContainerLifecycle('error', containerName, {
+          image,
+          workDir,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      throw error;
+    }
 
     const instance: ContainerInstance = {
       id: containerId.trim(),
@@ -367,6 +440,15 @@ export class ContainerManager {
     };
 
     this.containers.set(containerName, instance);
+
+    // Trace container creation
+    const obs = getObservability();
+    if (obs.isEnabled()) {
+      obs.traceContainerLifecycle('create', containerName, {
+        image,
+        workDir,
+      });
+    }
 
     // Run post-create commands if any
     await this.runLifecycleCommands(instance, config);
@@ -448,8 +530,17 @@ export class ContainerManager {
       args.push(...options.args);
     }
 
+    // Use full path to docker binary to pass PTY validation
+    const dockerPath = findDockerPath();
+
+    // Trace container exec
+    const obs = getObservability();
+    if (obs.isEnabled()) {
+      obs.traceContainerExec(options.containerId, options.command);
+    }
+
     return {
-      command: 'docker',
+      command: dockerPath,
       args,
       env: options.env,
     };
@@ -475,9 +566,22 @@ export class ContainerManager {
         dockerExec(['rm', '-f', containerName]);
       }
 
+      // Trace container stop
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceContainerLifecycle('stop', containerName);
+      }
+
       this.containers.delete(containerName);
     } catch (error) {
       console.warn(`[Container] Failed to stop/remove: ${error}`);
+      // Trace container error
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceContainerLifecycle('error', containerName, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       if (instance) {
         instance.state = 'error';
       }
@@ -601,7 +705,31 @@ export class ContainerManager {
 
     args.push(context);
 
-    dockerExec(args, { timeout: 600000 }); // 10 minute timeout for builds
+    const startTime = Date.now();
+    try {
+      dockerExec(args, { timeout: 600000 }); // 10 minute timeout for builds
+      const durationMs = Date.now() - startTime;
+
+      // Trace successful build
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceContainerBuild(imageName, true, durationMs);
+      }
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+
+      // Trace failed build
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceContainerBuild(
+          imageName,
+          false,
+          durationMs,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+      throw error;
+    }
 
     return imageName;
   }

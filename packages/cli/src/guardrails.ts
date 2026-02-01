@@ -2,6 +2,8 @@
  * Guardrails configuration and command checking
  */
 
+import { getObservability } from './observability/index.js';
+
 export interface GuardrailConfig {
   level: 'default' | 'strict' | 'permissive' | 'none';
   blockedPatterns: RegExp[];
@@ -89,33 +91,57 @@ export function loadGuardrails(level: string): GuardrailConfig {
  * Check if a command should be blocked or requires approval
  */
 export function checkCommand(command: string, config: GuardrailConfig): CommandCheck {
+  let result: CommandCheck;
+
   // Check blocked patterns first
   for (const pattern of config.blockedPatterns) {
     if (pattern.test(command)) {
-      return {
+      result = {
         blocked: true,
         requiresApproval: false,
         reason: `Command blocked: matches dangerous pattern`,
       };
+      // Trace guardrail check
+      traceGuardrailCheck(command, config, result);
+      return result;
     }
   }
 
   // Check approval patterns
   for (const pattern of config.approvalPatterns) {
     if (pattern.test(command)) {
-      return {
+      result = {
         blocked: false,
         requiresApproval: true,
         reason: `Command requires approval: ${getApprovalReason(command)}`,
       };
+      // Trace guardrail check
+      traceGuardrailCheck(command, config, result);
+      return result;
     }
   }
 
   // Command is allowed
-  return {
+  result = {
     blocked: false,
     requiresApproval: false,
   };
+
+  // Only trace if blocked or requires approval (to avoid noise)
+  // Uncomment the line below if you want to trace all commands
+  // traceGuardrailCheck(command, config, result);
+
+  return result;
+}
+
+/**
+ * Trace a guardrail check with Opik
+ */
+function traceGuardrailCheck(command: string, config: GuardrailConfig, result: CommandCheck): void {
+  const observability = getObservability();
+  if (observability.isEnabled()) {
+    observability.traceGuardrailCheck(command, config, result);
+  }
 }
 
 /**

@@ -468,7 +468,7 @@ describe('Container Module', () => {
           interactive: true,
         });
 
-        expect(result.command).toBe('docker');
+        expect(result.command).toMatch(/docker$/);
         expect(result.args).toContain('exec');
         expect(result.args).toContain('-i');
         expect(result.args).toContain('-t');
