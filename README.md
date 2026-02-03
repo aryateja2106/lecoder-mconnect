@@ -10,6 +10,7 @@ Control your AI coding agents from anywhere with your phone.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-blue.svg)]()
+[![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
 
 </div>
 
@@ -33,6 +34,7 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 
 ## ✨ Features
 
+### Core Features
 - **🤖 Multi-Agent Support** - Run Claude Code, Gemini CLI, Cursor Agent, Codex, Aider in parallel
 - **📱 Mobile-First UI** - Touch-optimized terminal with smooth scrolling
 - **🔒 Read-Only by Default** - Safely monitor without accidental interruption
@@ -40,6 +42,15 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 - **🛡️ Guardrails** - Block dangerous commands, require approval for risky ones
 - **📷 QR Code Connect** - Scan to connect instantly
 - **⚡ Shell-First Architecture** - Reliable PTY handling that actually works
+
+### New in v0.1.7
+- **🐳 Container Isolation** - Run agents in Docker containers for safety and reproducibility
+- **📦 Dev Container Support** - Use standard `.devcontainer/devcontainer.json` configurations
+- **🖥️ Direct Input Mode** - Tap terminal to type directly on mobile
+- **🌍 IME Support** - International input (Chinese, Japanese, Korean, etc.)
+- **📴 Offline Queue** - Commands queued when disconnected, sent on reconnect
+- **🔐 Exclusive Control** - 5-minute mobile control window with PC notifications
+- **📲 PWA Support** - Install as app on your phone
 
 ## 🚀 Quick Start
 
@@ -49,6 +60,7 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 - **Python 3** (for node-pty compilation)
 - **C++ compiler** (Xcode CLI tools on macOS, build-essential on Linux)
 - **cloudflared** (for remote access)
+- **Docker** (optional, for container isolation)
 - **tmux** (optional, for server-side visualization)
 
 ### Installation
@@ -93,7 +105,7 @@ mconnect
 # Start with specific preset
 mconnect start --preset research-spec-test
 
-# Run system diagnostics
+# Run system diagnostics (checks Docker too)
 mconnect doctor
 
 # List available presets
@@ -118,7 +130,81 @@ mconnect presets
 | **Single Agent** | 1 AI agent | Simple tasks |
 | **Research + Spec + Tests** | 3 agents | Parallel workflows |
 | **Dev + Reviewer** | 2 agents | Code review |
+| **Container Dev** | 1 containerized shell | Isolated development |
 | **Custom** | You choose | Advanced setups |
+
+## 🐳 Container Support
+
+Run agents in isolated Docker containers for safety and reproducibility.
+
+### Quick Start with Containers
+
+```bash
+# Check Docker is available
+mconnect doctor
+
+# Select "Container Dev" preset in the wizard
+mconnect
+```
+
+### Dev Container Configuration
+
+MConnect supports the standard [Dev Container spec](https://containers.dev/). Create a `.devcontainer/devcontainer.json`:
+
+```json
+{
+  "name": "My Project",
+  "image": "node:22-bookworm",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "npm install",
+  "remoteUser": "node"
+}
+```
+
+### Built-in Dockerfile Templates
+
+| Template | Base | Best For |
+|----------|------|----------|
+| **Default** | Ubuntu 22.04 | General development (Node.js + Python) |
+| **Minimal** | Alpine 3.19 | Raspberry Pi, resource-constrained |
+| **Node.js** | node:22-bookworm | Node.js projects |
+| **Python** | python:3.12-bookworm | Python projects |
+
+### Container Features
+
+- **Auto-detection** - Detects project type and suggests appropriate template
+- **ARM64 Support** - Pre-tested images for Raspberry Pi
+- **Variable Interpolation** - Supports `${localWorkspaceFolder}`, `${localEnv:VAR}`, etc.
+- **Lifecycle Hooks** - `postCreateCommand`, `onCreateCommand` support
+- **Port Forwarding** - Expose container ports to host
+- **Volume Mounts** - Mount host directories into container
+- **Auto-cleanup** - Containers removed on session exit
+
+## 📱 Mobile UI
+
+### Direct Mode (New!)
+
+Tap the terminal to activate your phone's keyboard and type directly. No more switching between input fields.
+
+### Input Modes
+
+| Mode | Description |
+|------|-------------|
+| **Direct Mode** | Tap terminal → keyboard appears → type directly |
+| **Input Bar** | Use the input field at bottom for commands |
+| **Read-Only** | View output without accidental input |
+
+### Touch Controls
+
+- **Scroll** - Swipe up/down in terminal
+- **Enter** - Send command or newline
+- **Ctrl+C** - Kill/interrupt current process
+- **Tab** - Autocomplete
+- **Arrow Keys** - Navigate history/cursor
+
+### Exclusive Control
+
+When you take control on mobile, PC input is paused for 5 minutes. The PC user sees a notification and countdown timer.
 
 ## 🛡️ Security
 
@@ -132,6 +218,7 @@ MConnect takes security seriously:
 | **Guardrails** | Configurable command blocking |
 | **Tunnel Encryption** | All traffic encrypted via Cloudflare |
 | **No Persistence** | Sessions are ephemeral |
+| **Container Isolation** | Optional Docker sandboxing |
 
 ### Guardrail Levels
 
@@ -150,8 +237,8 @@ MConnect takes security seriously:
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │  MConnect CLI                                              │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
-│  │  │ PTY Manager │  │ Agent       │  │ Tmux Manager    │   │  │
-│  │  │ (node-pty)  │  │ Manager     │  │ (visualization) │   │  │
+│  │  │ PTY Manager │  │ Agent       │  │ Container       │   │  │
+│  │  │ (node-pty)  │  │ Manager     │  │ Manager (Docker)│   │  │
 │  │  └──────┬──────┘  └──────┬──────┘  └────────┬────────┘   │  │
 │  │         └────────────────┴──────────────────┘             │  │
 │  │                          │                                 │  │
@@ -166,20 +253,21 @@ MConnect takes security seriously:
 ┌─────────────────────────────────────────────────────────────────┐
 │  YOUR PHONE                                                      │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Mobile Web UI                                             │  │
+│  │  Mobile Web UI (PWA)                                       │  │
 │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                      │  │
 │  │  │Research │ │  Spec   │ │  Tests  │  ← Agent Tabs        │  │
 │  │  └─────────┘ └─────────┘ └─────────┘                      │  │
 │  │  ┌───────────────────────────────────────────────────┐    │  │
-│  │  │  xterm.js Terminal                                │    │  │
-│  │  │  - Touch scrolling                                │    │  │
-│  │  │  - TUI app support (Claude Code, vim, etc.)      │    │  │
+│  │  │  xterm.js Terminal (Direct Mode)                  │    │  │
+│  │  │  - Tap to type directly                          │    │  │
+│  │  │  - 10K line scrollback                           │    │  │
+│  │  │  - IME support for international input           │    │  │
 │  │  └───────────────────────────────────────────────────┘    │  │
-│  │  [Enter] [Copy] [Ctrl] [Tab] [Esc] [↑] [↓] [^C]          │  │
+│  │  [Enter] [Del] [Ctrl] [Tab] [Esc] [↑] [↓] [^C]           │  │
 │  │  ┌─────────────────────────────────────┐ ┌─────┐          │  │
 │  │  │ $ type command...                   │ │ Run │          │  │
 │  │  └─────────────────────────────────────┘ └─────┘          │  │
-│  │  [INPUT MODE]                            [KILL ^C]        │  │
+│  │  [DIRECT MODE]                           [KILL ^C]        │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -205,8 +293,11 @@ cd lecoder-mconnect
 # Install dependencies
 npm install
 
-# Build
+# Build CLI
 npm run build --workspace=lecoder-mconnect
+
+# Build Web UI
+npm run build --workspace=@lecoder/web
 
 # Run tests
 npm run test
@@ -216,6 +307,23 @@ cd packages/cli && npm run test:coverage
 
 # Start development (watches for changes)
 cd packages/cli && npm run dev
+```
+
+### Project Structure
+
+```
+lecoder-mconnect/
+├── packages/
+│   └── cli/              # Main CLI package
+│       └── src/
+│           ├── agents/   # Agent management
+│           ├── container/# Docker/DevContainer support
+│           ├── pty/      # PTY management
+│           └── server/   # WebSocket server
+├── apps/
+│   ├── web/              # Mobile web UI
+│   └── website/          # Landing page
+└── docs/                 # Documentation
 ```
 
 ## 🐛 Troubleshooting
@@ -239,6 +347,17 @@ sudo apt install build-essential python3
 
 # Then reinstall
 npm install -g lecoder-mconnect
+```
+
+### Docker not detected
+
+```bash
+# Check Docker is installed and running
+docker --version
+docker ps
+
+# Run diagnostics
+mconnect doctor
 ```
 
 ### Check all dependencies
@@ -276,5 +395,7 @@ Part of the [LeCoder](https://github.com/aryateja2106/lecoder) project.
 <div align="center">
 
 **⭐ Star this repo if you find it useful!**
+
+[Report Bug](https://github.com/aryateja2106/lecoder-mconnect/issues) · [Request Feature](https://github.com/aryateja2106/lecoder-mconnect/issues)
 
 </div>
