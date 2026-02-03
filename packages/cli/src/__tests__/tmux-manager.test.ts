@@ -298,6 +298,7 @@ describe('Tmux Manager Module', () => {
           throw new Error('no session');
         })
         .mockImplementationOnce(() => '') // new-session
+        .mockImplementationOnce(() => '') // set-option mouse (new)
         .mockImplementationOnce(() => 'mconnect-test:$1:0:1704067200') // display-message
         .mockImplementationOnce(() => '0:agents:1') // list-windows
         .mockImplementationOnce(() => '0:%1:Shell:1:120:30:zsh'); // list-panes
@@ -417,6 +418,133 @@ describe('Tmux Manager Module', () => {
     it('should accept initial config', () => {
       const manager = getTmuxManager({ sessionPrefix: 'custom' });
       expect(manager).toBeDefined();
+    });
+  });
+
+  describe('Mouse Support', () => {
+    beforeEach(() => {
+      mockExecSync.mockReturnValue('/usr/bin/tmux\n');
+      mockExistsSync.mockReturnValue(true);
+    });
+
+    it('should enable mouse support by default after session creation', async () => {
+      const manager = new TmuxManager();
+      await manager.isInstalled();
+
+      // Mock session check (not exists) and creation
+      mockExecSync
+        .mockImplementationOnce(() => {
+          throw new Error('session not found');
+        })
+        .mockReturnValue('');
+
+      await manager.createSession({
+        name: 'test',
+        cwd: '/tmp',
+      });
+
+      // Check that set-option mouse on was called with session target
+      expect(execSync).toHaveBeenCalledWith(
+        expect.stringMatching(/set-option\s+-t\s+mconnect-test\s+mouse\s+on/),
+        expect.any(Object)
+      );
+    });
+
+    it('should not enable mouse support when mouseSupport: false', async () => {
+      const manager = new TmuxManager({ mouseSupport: false });
+      await manager.isInstalled();
+
+      mockExecSync
+        .mockImplementationOnce(() => {
+          throw new Error('session not found');
+        })
+        .mockReturnValue('');
+
+      await manager.createSession({
+        name: 'test',
+        cwd: '/tmp',
+      });
+
+      // Check that set-option mouse on was NOT called
+      const calls = mockExecSync.mock.calls;
+      const mouseCall = calls.find((c) => String(c[0]).includes('mouse on'));
+      expect(mouseCall).toBeUndefined();
+    });
+
+    it('should enable mouse support when mouseSupport: true explicitly', async () => {
+      const manager = new TmuxManager({ mouseSupport: true });
+      await manager.isInstalled();
+
+      mockExecSync
+        .mockImplementationOnce(() => {
+          throw new Error('session not found');
+        })
+        .mockReturnValue('');
+
+      await manager.createSession({
+        name: 'test',
+        cwd: '/tmp',
+      });
+
+      expect(execSync).toHaveBeenCalledWith(
+        expect.stringMatching(/set-option\s+-t\s+mconnect-test\s+mouse\s+on/),
+        expect.any(Object)
+      );
+    });
+
+    it('should not fail session creation if mouse config fails', async () => {
+      const manager = new TmuxManager();
+      await manager.isInstalled();
+
+      let callCount = 0;
+      mockExecSync.mockImplementation((cmd) => {
+        callCount++;
+        const cmdStr = String(cmd);
+        // First call: has-session check (fails = session doesn't exist)
+        if (callCount === 1 && cmdStr.includes('has-session')) {
+          throw new Error('session not found');
+        }
+        // Second call: new-session (succeeds)
+        if (cmdStr.includes('new-session')) {
+          return '';
+        }
+        // Third call: set-option mouse (fails)
+        if (cmdStr.includes('mouse')) {
+          throw new Error('unknown option: mouse');
+        }
+        return '';
+      });
+
+      // Should not throw despite mouse config failure
+      const sessionName = await manager.createSession({
+        name: 'test',
+        cwd: '/tmp',
+      });
+
+      expect(sessionName).toBe('mconnect-test');
+      expect(manager.getCurrentSession()).toBe('mconnect-test');
+    });
+
+    it('should use session-specific target for mouse setting', async () => {
+      const manager = new TmuxManager({ sessionPrefix: 'custom' });
+      await manager.isInstalled();
+
+      mockExecSync
+        .mockImplementationOnce(() => {
+          throw new Error('session not found');
+        })
+        .mockReturnValue('');
+
+      await manager.createSession({
+        name: 'myapp',
+        cwd: '/tmp',
+      });
+
+      // Verify the -t flag uses the correct session name
+      expect(execSync).toHaveBeenCalledWith(
+        expect.stringMatching(/set-option\s+-t\s+custom-myapp\s+mouse\s+on/),
+        expect.any(Object)
+      );
     });
   });
 });

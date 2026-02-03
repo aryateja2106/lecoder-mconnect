@@ -34,11 +34,13 @@ export class TmuxManager {
   private sessionPrefix: string;
   private defaultShell: string;
   private currentSession: string | null = null;
+  private mouseSupport: boolean;
 
   constructor(config: TmuxManagerConfig = {}) {
     this.sessionPrefix = config.sessionPrefix || 'mconnect';
     this.defaultShell = config.defaultShell || process.env.SHELL || '/bin/bash';
     this.tmuxPath = config.tmuxPath || null;
+    this.mouseSupport = config.mouseSupport !== false;
   }
 
   /**
@@ -127,7 +129,28 @@ export class TmuxManager {
     this.exec(['new-session', '-d', '-s', sessionName, '-n', windowName, '-c', config.cwd]);
 
     this.currentSession = sessionName;
+
+    // Configure mouse support if enabled
+    this.configureMouseSupport();
+
     return sessionName;
+  }
+
+  /**
+   * Configure mouse support for the current session
+   * Uses session-specific target to avoid affecting other tmux sessions
+   */
+  private configureMouseSupport(): void {
+    if (!this.mouseSupport || !this.currentSession) {
+      return;
+    }
+
+    try {
+      this.exec(['set-option', '-t', this.currentSession, 'mouse', 'on']);
+    } catch {
+      // Gracefully handle failures - don't fail session creation
+      // This can fail on very old tmux versions (pre-2.1)
+    }
   }
 
   /**
