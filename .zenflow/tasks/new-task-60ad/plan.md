@@ -86,7 +86,8 @@ Create the demo session data structure and pre-recorded terminal output.
 
 ---
 
-### [ ] Step 2: Implement MockWebSocket Class
+### [x] Step 2: Implement MockWebSocket Class
+<!-- chat-id: d2df8b5c-6a20-4e21-95ff-b9e5de56e661 -->
 
 Create a mock WebSocket that simulates the real CLI protocol for demo mode.
 
@@ -118,6 +119,21 @@ Create a mock WebSocket that simulates the real CLI protocol for demo mode.
 - MockWebSocket can be instantiated with demo data
 - Events fire in correct order (onopen → onmessage sequence)
 - Approval flow interaction works
+
+**Completed:** Created `apps/web/src/lib/mock-websocket.ts` with:
+- `MockWebSocket` class implementing full browser WebSocket interface
+- Static and instance constants: `CONNECTING`, `OPEN`, `CLOSING`, `CLOSED`
+- Event handlers: `onopen`, `onclose`, `onmessage`, `onerror`
+- `MockWebSocketOptions` with scenario, playbackSpeed, loop, initialSessionId
+- `connect()` method with simulated handshake and initial protocol messages
+- Frame playback with `setTimeout`-based scheduling
+- Protocol message conversion for `output`, `approval_request`, `session_info`, etc.
+- `send()` method handling `approval_response`, `mode_change`, `ping`, `session_attach`, `terminal_input`
+- Playback controls: `pause()`, `resume()`, `seek(timestamp)`, `restart()`, `switchSession()`
+- `close()` method with timer cleanup
+- Getters: `getPlaybackState()`, `getCurrentTimestamp()`, `getTotalDuration()`, `getCurrentSessionId()`, `getAllSessions()`, `hasPendingApproval()`
+- Factory function `createMockWebSocket()` and helper `isDemoModeEnabled()`
+- All tests passing, TypeScript compiles, build succeeds
 
 ---
 
