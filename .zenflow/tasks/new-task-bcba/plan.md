@@ -192,17 +192,18 @@ Define agent preset configurations.
 - [x] Write tests for preset loading
 - [x] Verify: Can create Claude Code agent in container
 
-### [ ] Step: Migrate guardrails from V1
+### [x] Step: Migrate guardrails from V1
+<!-- chat-id: f59230d9-0d0e-4781-b40e-a75424d99491 -->
 
 Port and enhance command filtering.
 
-- [ ] Enhance `packages/shared/src/guardrails/` with approval patterns from spec §6.5
-- [ ] Implement `filterCommand()` with blocked/approval pattern matching
-- [ ] Implement 4-tier guardrail levels (none, permissive, default, strict)
-- [ ] Integrate guardrails into agent input path
-- [ ] Add `input_rejected` WebSocket message for blocked commands
-- [ ] Write tests for all guardrail levels
-- [ ] Verify: `rm -rf /` is blocked, `rm -rf ./temp` requires approval on default level
+- [x] Enhance `packages/shared/src/guardrails/` with approval patterns from spec §6.5
+- [x] Implement `filterCommand()` with blocked/approval pattern matching
+- [x] Implement 4-tier guardrail levels (none, permissive, default, strict)
+- [x] Integrate guardrails into agent input path
+- [x] Add `input_rejected` WebSocket message for blocked commands
+- [x] Write tests for all guardrail levels
+- [x] Verify: `rm -rf /` is blocked, `rm -rf ./temp` requires approval on default level
 
 ### [ ] Step: Add tracing to agent operations
 

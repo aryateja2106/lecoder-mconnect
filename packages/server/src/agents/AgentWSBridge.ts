@@ -8,7 +8,7 @@
  * - Routes MCP messages between WebSocket clients and agents
  */
 
-import type { AgentStatus, MCPMessage } from '@lecoder/shared';
+import type { AgentStatus, MCPMessage, GuardrailLevel } from '@lecoder/shared';
 import type {
   TerminalOutputMessage,
   AgentStatusMessage,
@@ -145,11 +145,34 @@ export class AgentWSBridge {
   }
 
   /**
-   * Register all handlers for a session (convenience method)
+   * Set guardrail level for a session
+   *
+   * Configures the WSHub to check commands against the specified guardrail
+   * level before forwarding input to agents.
    */
-  registerSessionHandlers(sessionId: string): void {
+  setSessionGuardrails(sessionId: string, level: GuardrailLevel): void {
+    this.wsHub.setSessionGuardrails(sessionId, level);
+  }
+
+  /**
+   * Remove guardrail config for a session
+   */
+  removeSessionGuardrails(sessionId: string): void {
+    this.wsHub.removeSessionGuardrails(sessionId);
+  }
+
+  /**
+   * Register all handlers for a session (convenience method)
+   *
+   * @param sessionId - Session ID
+   * @param guardrailLevel - Optional guardrail level (defaults to no guardrails)
+   */
+  registerSessionHandlers(sessionId: string, guardrailLevel?: GuardrailLevel): void {
     this.registerSessionInputHandler(sessionId);
     this.registerSessionMCPHandler(sessionId);
+    if (guardrailLevel) {
+      this.setSessionGuardrails(sessionId, guardrailLevel);
+    }
   }
 
   /**
@@ -158,6 +181,7 @@ export class AgentWSBridge {
   unregisterSessionHandlers(sessionId: string): void {
     this.unregisterSessionInputHandler(sessionId);
     this.unregisterSessionMCPHandler(sessionId);
+    this.removeSessionGuardrails(sessionId);
   }
 
   /**

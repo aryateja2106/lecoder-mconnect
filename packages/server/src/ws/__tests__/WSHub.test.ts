@@ -857,3 +857,669 @@ describe('WSHub Singleton', () => {
     // (this is tested indirectly by the singleton behavior)
   });
 });
+
+// ============================================================================
+// Guardrails Integration Tests
+// ============================================================================
+
+describe('Guardrails Integration', () => {
+  let hub: WSHub;
+
+  beforeEach(() => {
+    initializeJWTService({ secret: TEST_SECRET });
+    hub = new WSHub();
+    hub.start();
+  });
+
+  afterEach(() => {
+    hub.stop();
+    resetWSHub();
+    resetJWTService();
+  });
+
+  async function createAuthenticatedClient(
+    clientId: string,
+    clientType: 'pc' | 'mobile' = 'pc'
+  ): Promise<ServerWebSocket<WebSocketData> & { _messages: string[] }> {
+    const ws = createMockWebSocket(clientId) as ServerWebSocket<WebSocketData> & {
+      _messages: string[];
+    };
+
+    hub.handleConnection(ws);
+
+    const jwtService = await import('../../auth/jwt.js').then((m) => m.getJWTService());
+    const token = await jwtService.createAccessToken({
+      id: `user-${clientId}`,
+      email: 'test@example.com',
+      name: 'Test User',
+      provider: 'github',
+      providerId: 'gh-123',
+      createdAt: new Date(),
+    });
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'auth',
+        token,
+        protocolVersion: '3.0',
+        clientType,
+      })
+    );
+
+    return ws;
+  }
+
+  // --------------------------------------------------------------------------
+  // Session guardrail configuration
+  // --------------------------------------------------------------------------
+
+  test('setSessionGuardrails stores config for session', () => {
+    hub.setSessionGuardrails('session-1', 'default');
+    const config = hub.getSessionGuardrails('session-1');
+    expect(config).toBeDefined();
+    expect(config!.level).toBe('default');
+  });
+
+  test('setSessionGuardrails replaces existing config', () => {
+    hub.setSessionGuardrails('session-1', 'default');
+    hub.setSessionGuardrails('session-1', 'strict');
+    const config = hub.getSessionGuardrails('session-1');
+    expect(config!.level).toBe('strict');
+  });
+
+  test('removeSessionGuardrails clears config', () => {
+    hub.setSessionGuardrails('session-1', 'default');
+    hub.removeSessionGuardrails('session-1');
+    expect(hub.getSessionGuardrails('session-1')).toBeUndefined();
+  });
+
+  test('getSessionGuardrails returns undefined for unconfigured session', () => {
+    expect(hub.getSessionGuardrails('nonexistent')).toBeUndefined();
+  });
+
+  // --------------------------------------------------------------------------
+  // Blocked commands (default level)
+  // --------------------------------------------------------------------------
+
+  test('blocks rm -rf / with default guardrails', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+
+    // Attach to session
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+
+    // Set guardrails
+    hub.setSessionGuardrails('session-1', 'default');
+
+    // Register input handler to track if input was forwarded
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+
+    ws._messages.length = 0;
+
+    // Send blocked command
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf /',
+      })
+    );
+
+    // Should receive input_rejected with guardrail_blocked
+    expect(ws._messages.length).toBe(1);
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(response.command).toBe('rm -rf /');
+
+    // Input should NOT have been forwarded
+    expect(inputReceived).toBe(false);
+  });
+
+  test('blocks rm -rf ~ with default guardrails', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf ~',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('blocks fork bomb with default guardrails', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: ':(){:|:&};:',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('blocks mkfs with default guardrails', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'mkfs -t ext4 /dev/sda1',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('blocks dd if= with default guardrails', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'dd if=/dev/zero of=/dev/sda',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  // --------------------------------------------------------------------------
+  // Approval-required commands (default level - treated as blocked)
+  // --------------------------------------------------------------------------
+
+  test('blocks approval-required commands (git push --force) on default', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'git push --force origin main',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(response.command).toBe('git push --force origin main');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('blocks approval-required commands (npm publish) on default', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'npm publish',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('blocks rm -rf ./temp on default (requires approval)', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf ./temp',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  // --------------------------------------------------------------------------
+  // Allowed commands (default level)
+  // --------------------------------------------------------------------------
+
+  test('allows normal commands (ls -la) on default', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let receivedInput = '';
+    hub.registerInputHandler('session-1', (_agentId, data) => { receivedInput = data; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'ls -la',
+      })
+    );
+
+    // No rejection message
+    const hasRejection = ws._messages.some(
+      (m) => JSON.parse(m).type === 'input_rejected'
+    );
+    expect(hasRejection).toBe(false);
+    expect(receivedInput).toBe('ls -la');
+  });
+
+  test('allows git push (non-force) on default', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    let receivedInput = '';
+    hub.registerInputHandler('session-1', (_agentId, data) => { receivedInput = data; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'git push origin main',
+      })
+    );
+
+    const hasRejection = ws._messages.some(
+      (m) => JSON.parse(m).type === 'input_rejected'
+    );
+    expect(hasRejection).toBe(false);
+    expect(receivedInput).toBe('git push origin main');
+  });
+
+  // --------------------------------------------------------------------------
+  // Strict level
+  // --------------------------------------------------------------------------
+
+  test('strict blocks git push (non-force)', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'strict');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'git push origin main',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('strict blocks docker rm', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'strict');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'docker rm container-1',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('strict blocks kubectl delete', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'strict');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'kubectl delete pod my-pod',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('strict allows ls -la', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'strict');
+
+    let receivedInput = '';
+    hub.registerInputHandler('session-1', (_agentId, data) => { receivedInput = data; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'ls -la',
+      })
+    );
+
+    const hasRejection = ws._messages.some(
+      (m) => JSON.parse(m).type === 'input_rejected'
+    );
+    expect(hasRejection).toBe(false);
+    expect(receivedInput).toBe('ls -la');
+  });
+
+  // --------------------------------------------------------------------------
+  // Permissive level
+  // --------------------------------------------------------------------------
+
+  test('permissive allows rm -rf ./node_modules', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'permissive');
+
+    let receivedInput = '';
+    hub.registerInputHandler('session-1', (_agentId, data) => { receivedInput = data; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf ./node_modules',
+      })
+    );
+
+    const hasRejection = ws._messages.some(
+      (m) => JSON.parse(m).type === 'input_rejected'
+    );
+    expect(hasRejection).toBe(false);
+    expect(receivedInput).toBe('rm -rf ./node_modules');
+  });
+
+  test('permissive still blocks rm -rf /', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'permissive');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf /',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  test('permissive blocks force push (requires approval)', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'permissive');
+
+    let inputReceived = false;
+    hub.registerInputHandler('session-1', () => { inputReceived = true; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'git push --force origin main',
+      })
+    );
+
+    const response = JSON.parse(ws._messages[0]);
+    expect(response.type).toBe('input_rejected');
+    expect(response.reason).toBe('guardrail_blocked');
+    expect(inputReceived).toBe(false);
+  });
+
+  // --------------------------------------------------------------------------
+  // None level
+  // --------------------------------------------------------------------------
+
+  test('none level allows everything including rm -rf /', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'none');
+
+    let receivedInput = '';
+    hub.registerInputHandler('session-1', (_agentId, data) => { receivedInput = data; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf /',
+      })
+    );
+
+    const hasRejection = ws._messages.some(
+      (m) => JSON.parse(m).type === 'input_rejected'
+    );
+    expect(hasRejection).toBe(false);
+    expect(receivedInput).toBe('rm -rf /');
+  });
+
+  // --------------------------------------------------------------------------
+  // No guardrails configured
+  // --------------------------------------------------------------------------
+
+  test('no guardrails configured allows everything', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    // Do NOT set guardrails
+
+    let receivedInput = '';
+    hub.registerInputHandler('session-1', (_agentId, data) => { receivedInput = data; });
+    ws._messages.length = 0;
+
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({
+        type: 'terminal_input',
+        agentId: 'agent-1',
+        data: 'rm -rf /',
+      })
+    );
+
+    const hasRejection = ws._messages.some(
+      (m) => JSON.parse(m).type === 'input_rejected'
+    );
+    expect(hasRejection).toBe(false);
+    expect(receivedInput).toBe('rm -rf /');
+  });
+
+  // --------------------------------------------------------------------------
+  // Cleanup
+  // --------------------------------------------------------------------------
+
+  test('guardrails cleaned up when all clients leave session', async () => {
+    const ws = await createAuthenticatedClient('client-1', 'pc');
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_attach', sessionId: 'session-1' })
+    );
+    hub.setSessionGuardrails('session-1', 'default');
+
+    expect(hub.getSessionGuardrails('session-1')).toBeDefined();
+
+    // Detach from session
+    await hub.handleMessage(
+      ws,
+      JSON.stringify({ type: 'session_detach' })
+    );
+
+    // Guardrails should be cleaned up
+    expect(hub.getSessionGuardrails('session-1')).toBeUndefined();
+  });
+});

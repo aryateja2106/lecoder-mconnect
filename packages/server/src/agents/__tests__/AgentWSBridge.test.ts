@@ -109,6 +109,8 @@ function createMockWSHub(): WSHub {
       messages.push(message);
     }),
     getSessionClients: mock((_sessionId: string) => []),
+    setSessionGuardrails: mock((_sessionId: string, _level: string) => {}),
+    removeSessionGuardrails: mock((_sessionId: string) => {}),
     // Test helpers
     _getInputHandler: (sessionId: string) => inputHandlers.get(sessionId),
     _getMCPHandler: (sessionId: string) => mcpHandlers.get(sessionId),
@@ -369,6 +371,48 @@ describe('AgentWSBridge', () => {
       expect(bridge.getSessionAgents('session-2')).toHaveLength(0);
       expect(bridge.getAgentSession('agent-1')).toBeUndefined();
       expect(bridge.getAgentSession('agent-2')).toBeUndefined();
+    });
+  });
+
+  // ==========================================================================
+  // Guardrails Integration Tests
+  // ==========================================================================
+
+  describe('Guardrails', () => {
+    it('should set guardrails on WSHub via setSessionGuardrails', () => {
+      bridge.setSessionGuardrails('session-1', 'default');
+
+      expect(mockWSHub.setSessionGuardrails).toHaveBeenCalledWith('session-1', 'default');
+    });
+
+    it('should remove guardrails on WSHub via removeSessionGuardrails', () => {
+      bridge.removeSessionGuardrails('session-1');
+
+      expect(mockWSHub.removeSessionGuardrails).toHaveBeenCalledWith('session-1');
+    });
+
+    it('should set guardrails when registerSessionHandlers called with level', () => {
+      bridge.registerSessionHandlers('session-1', 'strict');
+
+      expect(mockWSHub.registerInputHandler).toHaveBeenCalledWith('session-1', expect.any(Function));
+      expect(mockWSHub.registerMCPHandler).toHaveBeenCalledWith('session-1', expect.any(Function));
+      expect(mockWSHub.setSessionGuardrails).toHaveBeenCalledWith('session-1', 'strict');
+    });
+
+    it('should not set guardrails when registerSessionHandlers called without level', () => {
+      bridge.registerSessionHandlers('session-1');
+
+      expect(mockWSHub.registerInputHandler).toHaveBeenCalledWith('session-1', expect.any(Function));
+      expect(mockWSHub.registerMCPHandler).toHaveBeenCalledWith('session-1', expect.any(Function));
+      expect(mockWSHub.setSessionGuardrails).not.toHaveBeenCalled();
+    });
+
+    it('should remove guardrails when unregisterSessionHandlers is called', () => {
+      bridge.unregisterSessionHandlers('session-1');
+
+      expect(mockWSHub.unregisterInputHandler).toHaveBeenCalledWith('session-1');
+      expect(mockWSHub.unregisterMCPHandler).toHaveBeenCalledWith('session-1');
+      expect(mockWSHub.removeSessionGuardrails).toHaveBeenCalledWith('session-1');
     });
   });
 });

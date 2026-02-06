@@ -15,6 +15,12 @@ import type {
   Priority,
   ClientInfo,
   AccessTokenClaims,
+  GuardrailLevel,
+  GuardrailConfig,
+} from '@lecoder/shared';
+import {
+  loadGuardrails,
+  checkCommand,
 } from '@lecoder/shared';
 import type {
   ClientMessage,
@@ -127,6 +133,9 @@ export class WSHub {
   private inputHandlers: Map<string, InputHandler> = new Map(); // sessionId -> handler
   private mcpHandlers: Map<string, MCPHandler> = new Map(); // sessionId -> handler
 
+  /** Guardrail configs per session */
+  private sessionGuardrails: Map<string, GuardrailConfig> = new Map(); // sessionId -> config
+
   constructor(config: Partial<WSHubConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -165,6 +174,9 @@ export class WSHub {
       arbiter.stop();
     }
     this.sessionArbiters.clear();
+
+    // Clear guardrail configs
+    this.sessionGuardrails.clear();
 
     // Close all connections
     for (const client of this.clients.values()) {
@@ -440,6 +452,27 @@ export class WSHub {
   }
 
   /**
+   * Set the guardrail level for a session
+   */
+  setSessionGuardrails(sessionId: string, level: GuardrailLevel): void {
+    this.sessionGuardrails.set(sessionId, loadGuardrails(level));
+  }
+
+  /**
+   * Get the guardrail config for a session
+   */
+  getSessionGuardrails(sessionId: string): GuardrailConfig | undefined {
+    return this.sessionGuardrails.get(sessionId);
+  }
+
+  /**
+   * Remove guardrail config for a session
+   */
+  removeSessionGuardrails(sessionId: string): void {
+    this.sessionGuardrails.delete(sessionId);
+  }
+
+  /**
    * Attach a client to a session
    */
   attachToSession(clientId: string, sessionId: string): boolean {
@@ -504,10 +537,11 @@ export class WSHub {
     if (arbiter) {
       arbiter.removeClient(clientId);
 
-      // If no more clients in session, stop arbiter
+      // If no more clients in session, stop arbiter and clean up
       if (arbiter.getClients().length === 0) {
         arbiter.stop();
         this.sessionArbiters.delete(sessionId);
+        this.sessionGuardrails.delete(sessionId);
       }
     }
 
@@ -669,12 +703,29 @@ export class WSHub {
       return;
     }
 
-    // Process input through arbiter
+    // Process input through arbiter (PC priority, rate limiting, etc.)
     const result = this.processInput(clientId, message.data);
 
     if (!result.accepted) {
       this.sendInputRejected(clientId, result.rejectReason!);
       return;
+    }
+
+    // Check guardrails for the session
+    const guardrailConfig = this.sessionGuardrails.get(client.sessionId);
+    if (guardrailConfig) {
+      const check = checkCommand(message.data, guardrailConfig);
+
+      if (check.blocked) {
+        this.sendInputRejected(clientId, 'guardrail_blocked', message.data);
+        return;
+      }
+
+      if (check.requiresApproval) {
+        // Approval not yet implemented - block with guardrail reason
+        this.sendInputRejected(clientId, 'guardrail_blocked', message.data);
+        return;
+      }
     }
 
     // Forward to input handler
@@ -896,11 +947,13 @@ export class WSHub {
    */
   private sendInputRejected(
     clientId: string,
-    reason: 'pc_typing' | 'other_exclusive' | 'rate_limited' | 'read_only' | 'guardrail_blocked'
+    reason: 'pc_typing' | 'other_exclusive' | 'rate_limited' | 'read_only' | 'guardrail_blocked',
+    command?: string
   ): void {
     const message: InputRejectedMessage = {
       type: 'input_rejected',
       reason,
+      ...(reason === 'guardrail_blocked' && command ? { command } : {}),
       timestamp: Date.now(),
     };
 
