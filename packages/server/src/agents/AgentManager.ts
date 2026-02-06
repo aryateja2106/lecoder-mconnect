@@ -24,6 +24,7 @@ import {
 } from './ContainerRuntime.js';
 import { agentRepository, type CreateAgentInput } from '../db/repositories/agent.js';
 import { getOpikService, type TraceContext } from '../observability/OpikService.js';
+import { getTracingMiddleware } from '../observability/TracingMiddleware.js';
 import { MCPBridge, createMCPBridge, removeMCPBridge } from '../mcp/MCPBridge.js';
 
 // ============================================================================
@@ -122,12 +123,20 @@ export class AgentManager extends EventEmitter {
    */
   async createAgent(sessionId: string, config: AgentConfig): Promise<Agent> {
     const opik = getOpikService();
+    const tracing = getTracingMiddleware();
     const traceCtx = opik.startTrace('agent:create', {
       sessionId,
       agentType: config.type,
       agentName: config.name,
       hasContainer: !!config.container,
     });
+
+    // Apply user attribution from session context
+    const sessionCtx = tracing.getSessionContext(sessionId);
+    if (sessionCtx) {
+      traceCtx.userId = sessionCtx.userId;
+      traceCtx.sessionId = sessionCtx.sessionId;
+    }
 
     try {
       // Create agent in database
@@ -140,6 +149,12 @@ export class AgentManager extends EventEmitter {
       };
 
       const agent = await agentRepository.create(createInput);
+
+      // Start agent lifecycle trace via middleware
+      tracing.startAgentTrace(agent.id, sessionId, {
+        agentType: config.type,
+        agentName: config.name,
+      });
 
       // Initialize runtime state
       const runtime: AgentRuntime = {
@@ -207,10 +222,18 @@ export class AgentManager extends EventEmitter {
   async startAgent(agentId: string): Promise<void> {
     const runtime = this.getRuntime(agentId);
     const opik = getOpikService();
+    const tracing = getTracingMiddleware();
     const traceCtx = opik.startTrace('agent:start', {
       agentId,
       sessionId: runtime.sessionId,
     });
+
+    // Apply user attribution
+    const sessionCtx = tracing.getSessionContext(runtime.sessionId);
+    if (sessionCtx) {
+      traceCtx.userId = sessionCtx.userId;
+      traceCtx.sessionId = sessionCtx.sessionId;
+    }
 
     try {
       // Update status
@@ -270,10 +293,18 @@ export class AgentManager extends EventEmitter {
   async stopAgent(agentId: string, signal?: string): Promise<void> {
     const runtime = this.getRuntime(agentId);
     const opik = getOpikService();
+    const tracing = getTracingMiddleware();
     const traceCtx = opik.startTrace('agent:stop', {
       agentId,
       signal: signal ?? 'SIGTERM',
     });
+
+    // Apply user attribution
+    const sessionCtx = tracing.getSessionContext(runtime.sessionId);
+    if (sessionCtx) {
+      traceCtx.userId = sessionCtx.userId;
+      traceCtx.sessionId = sessionCtx.sessionId;
+    }
 
     try {
       if (runtime.containerId) {
@@ -309,34 +340,52 @@ export class AgentManager extends EventEmitter {
       return;
     }
 
-    // Stop if running
-    if (runtime.status === 'running' || runtime.status === 'starting') {
-      try {
-        await this.stopAgent(agentId);
-      } catch {
-        // Continue cleanup even if stop fails
+    const opik = getOpikService();
+    const traceCtx = opik.startTrace('agent:remove', {
+      agentId,
+      sessionId: runtime.sessionId,
+      status: runtime.status,
+    });
+
+    try {
+      // Stop if running
+      if (runtime.status === 'running' || runtime.status === 'starting') {
+        try {
+          await this.stopAgent(agentId);
+        } catch {
+          // Continue cleanup even if stop fails
+        }
       }
-    }
 
-    // Cleanup MCP bridge if exists
-    this.cleanupMCPBridge(agentId);
+      // Cleanup MCP bridge if exists
+      this.cleanupMCPBridge(agentId);
 
-    // Remove container if exists
-    if (runtime.containerId) {
-      try {
-        await this.containerRuntime.removeContainer(runtime.containerId, true);
-      } catch {
-        // Container may already be removed
+      // Remove container if exists
+      if (runtime.containerId) {
+        try {
+          await this.containerRuntime.removeContainer(runtime.containerId, true);
+        } catch {
+          // Container may already be removed
+        }
       }
+
+      // End agent lifecycle trace
+      const tracing = getTracingMiddleware();
+      tracing.endAgentTrace(agentId, { removed: true });
+
+      // Clear callbacks
+      runtime.outputCallbacks.clear();
+      runtime.statusCallbacks.clear();
+      runtime.mcpTools.clear();
+
+      // Remove from map
+      this.agents.delete(agentId);
+
+      opik.endTrace(traceCtx, { removed: true });
+    } catch (error) {
+      opik.endTrace(traceCtx, undefined, error as Error);
+      throw error;
     }
-
-    // Clear callbacks
-    runtime.outputCallbacks.clear();
-    runtime.statusCallbacks.clear();
-    runtime.mcpTools.clear();
-
-    // Remove from map
-    this.agents.delete(agentId);
   }
 
   // ==========================================================================
@@ -351,6 +400,17 @@ export class AgentManager extends EventEmitter {
 
     if (runtime.status !== 'running' && runtime.status !== 'idle') {
       throw new Error(`Agent ${agentId} is not running (status: ${runtime.status})`);
+    }
+
+    const tracing = getTracingMiddleware();
+    const agentTrace = tracing.getAgentTrace(agentId);
+    if (agentTrace) {
+      const opik = getOpikService();
+      const span = opik.startSpan(agentTrace, 'agent:write', 'general', {
+        agentId,
+        dataLength: data.length,
+      });
+      opik.endSpan(span, { written: true });
     }
 
     if (runtime.streams) {
@@ -415,10 +475,18 @@ export class AgentManager extends EventEmitter {
     }
 
     const opik = getOpikService();
+    const tracing = getTracingMiddleware();
     const traceCtx = opik.startTrace('mcp:initialize', {
       agentId,
       sessionId: runtime.sessionId,
     });
+
+    // Apply user attribution
+    const sessionCtx = tracing.getSessionContext(runtime.sessionId);
+    if (sessionCtx) {
+      traceCtx.userId = sessionCtx.userId;
+      traceCtx.sessionId = sessionCtx.sessionId;
+    }
 
     try {
       // Create and connect MCP bridge
@@ -483,14 +551,19 @@ export class AgentManager extends EventEmitter {
       throw new Error('MCP message must have a method');
     }
 
+    const tracing = getTracingMiddleware();
+    const spanInfo = tracing.traceMCPRequest(agentId, message.method, message.params);
+
     try {
       const result = await runtime.mcpBridge.sendRequest(message.method, message.params);
+      tracing.endMCPRequest(spanInfo, result);
       return {
         jsonrpc: '2.0',
         id: message.id ?? 0,
         result,
       };
     } catch (error) {
+      tracing.endMCPRequest(spanInfo, undefined, error as Error);
       return {
         jsonrpc: '2.0',
         id: message.id ?? 0,
@@ -516,7 +589,17 @@ export class AgentManager extends EventEmitter {
       throw new Error(`Agent ${agentId} does not have MCP enabled`);
     }
 
-    return runtime.mcpBridge.callTool(toolName, args);
+    const tracing = getTracingMiddleware();
+    const spanInfo = tracing.traceMCPRequest(agentId, `tools/call:${toolName}`, args);
+
+    try {
+      const result = await runtime.mcpBridge.callTool(toolName, args);
+      tracing.endMCPRequest(spanInfo, result);
+      return result;
+    } catch (error) {
+      tracing.endMCPRequest(spanInfo, undefined, error as Error);
+      throw error;
+    }
   }
 
   /**
@@ -656,6 +739,12 @@ export class AgentManager extends EventEmitter {
     // Cleanup container runtime
     await this.containerRuntime.cleanup();
 
+    // Cleanup tracing middleware state for this manager
+    const tracing = getTracingMiddleware();
+    for (const agentId of this.agents.keys()) {
+      tracing.endAgentTrace(agentId, { cleanup: true });
+    }
+
     this.agents.clear();
   }
 
@@ -765,6 +854,10 @@ export class AgentManager extends EventEmitter {
     if (!runtime) {
       return;
     }
+
+    // Process output for token usage detection
+    const tracing = getTracingMiddleware();
+    tracing.processAgentOutput(agentId, data);
 
     // Notify callbacks
     for (const callback of runtime.outputCallbacks) {

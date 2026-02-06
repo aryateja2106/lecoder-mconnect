@@ -205,16 +205,17 @@ Port and enhance command filtering.
 - [x] Write tests for all guardrail levels
 - [x] Verify: `rm -rf /` is blocked, `rm -rf ./temp` requires approval on default level
 
-### [ ] Step: Add tracing to agent operations
+### [x] Step: Add tracing to agent operations
+<!-- chat-id: 670da981-c4ae-4bfb-a58c-91e956bea77b -->
 
 Integrate Opik tracing throughout agent lifecycle.
 
-- [ ] Add trace spans to AgentManager operations
-- [ ] Add trace spans to MCP message routing
-- [ ] Add user attribution to all traces
-- [ ] Implement token counting for LLM calls
-- [ ] Create TracingMiddleware for automatic span creation
-- [ ] Verify: Agent operations visible in Opik dashboard
+- [x] Add trace spans to AgentManager operations
+- [x] Add trace spans to MCP message routing
+- [x] Add user attribution to all traces
+- [x] Implement token counting for LLM calls
+- [x] Create TracingMiddleware for automatic span creation
+- [x] Verify: Agent operations visible in Opik dashboard
 
 ---
 

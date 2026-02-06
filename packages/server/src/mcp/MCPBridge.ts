@@ -23,6 +23,7 @@ import type {
 } from '@lecoder/shared';
 import type { ContainerStreams } from '../agents/ContainerRuntime.js';
 import { getOpikService, type TraceContext } from '../observability/OpikService.js';
+import { getTracingMiddleware } from '../observability/TracingMiddleware.js';
 
 // ============================================================================
 // Types
@@ -276,13 +277,15 @@ export class MCPBridge extends EventEmitter {
         }
       }, this.config.requestTimeoutMs);
 
+      const requestStartTime = Date.now();
+
       // Store pending request
       this.pendingRequests.set(id, {
         id,
         method,
         resolve: (response) => {
-          const latency = Date.now() - Date.now();
-          opik.endTrace(traceCtx, { latencyMs: latency, hasResult: !!response.result });
+          const latencyMs = Date.now() - requestStartTime;
+          opik.endTrace(traceCtx, { latencyMs, hasResult: !!response.result });
           resolve(response.result as T);
         },
         reject: (error) => {
@@ -290,7 +293,7 @@ export class MCPBridge extends EventEmitter {
           reject(error);
         },
         timeout,
-        startTime: Date.now(),
+        startTime: requestStartTime,
         traceContext: traceCtx,
       });
 
@@ -320,12 +323,22 @@ export class MCPBridge extends EventEmitter {
    * Call a tool by name
    */
   async callTool(name: string, args?: Record<string, unknown>): Promise<MCPToolCallResult> {
+    const tracing = getTracingMiddleware();
+    const spanInfo = tracing.traceMCPRequest(this.agentId, `tools/call:${name}`, args);
+
     const params: MCPToolCallParams = {
       name,
       arguments: args,
     };
 
-    return this.sendRequest<MCPToolCallResult>('tools/call', params);
+    try {
+      const result = await this.sendRequest<MCPToolCallResult>('tools/call', params);
+      tracing.endMCPRequest(spanInfo, result);
+      return result;
+    } catch (error) {
+      tracing.endMCPRequest(spanInfo, undefined, error as Error);
+      throw error;
+    }
   }
 
   /**

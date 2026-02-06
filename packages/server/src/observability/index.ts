@@ -5,6 +5,7 @@
  * - Trace spans
  * - Token counting
  * - User attribution
+ * - Tracing middleware for automatic span creation
  */
 
 export {
@@ -24,3 +25,16 @@ export {
   type LLMCallData,
   type ObservabilityErrorCode,
 } from './OpikService.js';
+
+export {
+  // Tracing middleware
+  TracingMiddleware,
+  getTracingMiddleware,
+  resetTracingMiddleware,
+  // Token counting utilities
+  extractTokenUsage,
+  detectModel,
+  // Types
+  type TokenUsage,
+  type SessionTraceContext,
+} from './TracingMiddleware.js';

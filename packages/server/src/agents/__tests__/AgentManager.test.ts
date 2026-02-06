@@ -20,6 +20,7 @@ import type {
 } from '../ContainerRuntime.js';
 import * as agentRepo from '../../db/repositories/agent.js';
 import * as opikService from '../../observability/OpikService.js';
+import * as tracingMiddleware from '../../observability/TracingMiddleware.js';
 
 // ============================================================================
 // Mocks
@@ -145,6 +146,7 @@ describe('AgentManager', () => {
   let markStartedSpy: ReturnType<typeof spyOn>;
   let markStoppedSpy: ReturnType<typeof spyOn>;
   let getBySessionSpy: ReturnType<typeof spyOn>;
+  const spies: Array<ReturnType<typeof spyOn>> = [];
 
   beforeEach(() => {
     // Reset singleton
@@ -155,6 +157,9 @@ describe('AgentManager', () => {
 
     // Create manager with mock runtime
     manager = new AgentManager(mockRuntime);
+
+    // Clear spies from previous run
+    spies.length = 0;
 
     // Setup repository spies
     createSpy = spyOn(agentRepo.agentRepository, 'create').mockImplementation(
@@ -167,35 +172,43 @@ describe('AgentManager', () => {
         status: input.status ?? 'starting',
       })
     );
+    spies.push(createSpy);
 
     updateSpy = spyOn(agentRepo.agentRepository, 'update').mockImplementation(
       async (id, input) => createMockAgent({ id, ...input })
     );
+    spies.push(updateSpy);
 
     updateStatusSpy = spyOn(agentRepo.agentRepository, 'updateStatus').mockImplementation(
       async () => true
     );
+    spies.push(updateStatusSpy);
 
     markStartedSpy = spyOn(agentRepo.agentRepository, 'markStarted').mockImplementation(
       async () => true
     );
+    spies.push(markStartedSpy);
 
     markStoppedSpy = spyOn(agentRepo.agentRepository, 'markStopped').mockImplementation(
       async () => true
     );
+    spies.push(markStoppedSpy);
 
     getBySessionSpy = spyOn(agentRepo.agentRepository, 'getBySession').mockImplementation(
       async () => [createMockAgent()]
     );
+    spies.push(getBySessionSpy);
 
-    spyOn(agentRepo.agentRepository, 'findById').mockImplementation(
+    const findByIdSpy = spyOn(agentRepo.agentRepository, 'findById').mockImplementation(
       async (id) => createMockAgent({ id })
     );
+    spies.push(findByIdSpy);
 
     // Mock stopAllForSession
-    spyOn(agentRepo.agentRepository, 'stopAllForSession').mockImplementation(
+    const stopAllSpy = spyOn(agentRepo.agentRepository, 'stopAllForSession').mockImplementation(
       async () => 0
     );
+    spies.push(stopAllSpy);
 
     // Mock Opik service
     const mockOpik = {
@@ -216,13 +229,52 @@ describe('AgentManager', () => {
       endSpan: () => {},
     };
 
-    spyOn(opikService, 'getOpikService').mockReturnValue(mockOpik as any);
+    const opikSpy = spyOn(opikService, 'getOpikService').mockReturnValue(mockOpik as any);
+    spies.push(opikSpy);
+
+    // Mock TracingMiddleware
+    const mockTracingMiddleware = {
+      getSessionContext: () => undefined,
+      setSessionContext: () => {},
+      removeSessionContext: () => {},
+      startAgentTrace: () => ({
+        traceId: 'mock-lifecycle-trace-id',
+        operation: 'agent:lifecycle',
+        startTime: Date.now(),
+        metadata: {},
+      }),
+      endAgentTrace: () => {},
+      getAgentTrace: () => undefined,
+      traceMCPRequest: () => null,
+      endMCPRequest: () => {},
+      traceGuardrailCheck: () => {},
+      processAgentOutput: () => null,
+      getAgentTokenUsage: () => undefined,
+      traceAgentOperation: (
+        _agentId: string,
+        _operation: string,
+        _input: Record<string, unknown>,
+        fn: (span: unknown) => unknown
+      ) => fn({}),
+      cleanup: () => {},
+    };
+
+    const tracingSpy = spyOn(tracingMiddleware, 'getTracingMiddleware').mockReturnValue(
+      mockTracingMiddleware as any
+    );
+    spies.push(tracingSpy);
   });
 
   afterEach(async () => {
     // Cleanup
     await manager.cleanup();
     resetAgentManager();
+
+    // Restore all spies to prevent leaking into other test files
+    for (const spy of spies) {
+      spy.mockRestore();
+    }
+    spies.length = 0;
   });
 
   // ==========================================================================
