@@ -379,17 +379,17 @@ Write user and developer documentation.
 - [x] Update root `README.md` with V2 overview
 - [x] Create `.env.example` with all environment variables (documented in server README; .env file writes blocked by security hook)
 
-### [ ] Step: CI/CD pipeline
+### [x] Step: CI/CD pipeline
 <!-- chat-id: 2288b216-9a17-44d7-a66c-e4af15be6a48 -->
 
 Set up automated testing.
 
-- [ ] Create `.github/workflows/ci.yml` per spec §9.3
-- [ ] Add server test job with PostgreSQL service
-- [ ] Add iOS test job on macos-14 runner
-- [ ] Add linting and typecheck jobs
-- [ ] Configure test coverage reporting
-- [ ] Verify: All CI jobs pass on push
+- [x] Create `.github/workflows/ci.yml` per spec §9.3
+- [x] Add server test job with PostgreSQL service
+- [x] Add iOS test job on macos-14 runner
+- [x] Add linting and typecheck jobs
+- [x] Configure test coverage reporting
+- [x] Verify: All CI jobs pass on push
 
 ---
 
