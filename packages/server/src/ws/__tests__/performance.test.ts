@@ -14,9 +14,9 @@
 
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import type { ServerWebSocket } from 'bun';
-import { WSHub, initializeWSHub, resetWSHub, type WebSocketData } from '../WSHub.js';
+import { WSHub, resetWSHub, type WebSocketData } from '../WSHub.js';
 import { initializeJWTService, resetJWTService, getJWTService } from '../../auth/jwt.js';
-import { LatencyTracker, type LatencyMetrics } from '../LatencyTracker.js';
+import { LatencyTracker } from '../LatencyTracker.js';
 
 // ============================================================================
 // Test Fixtures

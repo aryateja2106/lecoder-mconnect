@@ -248,9 +248,9 @@ describe('GitHubProvider.getUserInfo', () => {
   });
 
   test('throws when no email available', async () => {
-    let callCount = 0;
+    let _callCount = 0;
     const mockFetch = mock((url: string) => {
-      callCount++;
+      _callCount++;
       if (url.includes('/user/emails')) {
         return Promise.resolve(
           new Response(

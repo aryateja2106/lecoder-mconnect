@@ -441,8 +441,8 @@ export class MCPBridge extends EventEmitter {
     this.inputBuffer += data.toString('utf-8');
 
     // Process complete messages (newline-delimited)
-    let newlineIndex: number;
-    while ((newlineIndex = this.inputBuffer.indexOf('\n')) !== -1) {
+    let newlineIndex: number = this.inputBuffer.indexOf('\n');
+    while (newlineIndex !== -1) {
       const line = this.inputBuffer.substring(0, newlineIndex).trim();
       this.inputBuffer = this.inputBuffer.substring(newlineIndex + 1);
 
@@ -450,6 +450,7 @@ export class MCPBridge extends EventEmitter {
         this.emit('rawMessage', line);
         this.parseAndHandleMessage(line);
       }
+      newlineIndex = this.inputBuffer.indexOf('\n');
     }
 
     // Check for buffer overflow
