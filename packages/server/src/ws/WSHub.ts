@@ -858,11 +858,24 @@ export class WSHub {
     const client = this.clients.get(clientId);
     if (!client) return;
 
+    // Validate token format (hex string, 64+ chars for APNs)
+    if (!message.deviceToken || typeof message.deviceToken !== 'string' || !/^[a-f0-9]{64,}$/i.test(message.deviceToken)) {
+      console.warn(`[WSHub] Invalid device token format from client ${clientId}`);
+      return;
+    }
+
+    // Validate platform
+    const platform = message.platform ?? 'ios';
+    if (!['ios', 'android', 'web'].includes(platform)) {
+      console.warn(`[WSHub] Invalid platform '${platform}' from client ${clientId}`);
+      return;
+    }
+
     try {
       await deviceTokenRepository.registerToken({
         userId: client.userId,
         token: message.deviceToken,
-        platform: message.platform,
+        platform: platform as 'ios' | 'android' | 'web',
       });
     } catch (error) {
       console.error(`[WSHub] Failed to register device token for client ${clientId}:`, error);

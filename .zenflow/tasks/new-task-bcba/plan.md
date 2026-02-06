@@ -355,17 +355,17 @@ Add robust reconnection logic.
 - [x] Test reconnection scenarios
 - [x] Verify: Reconnects within 5s of network recovery
 
-### [ ] Step: Performance optimization
+### [x] Step: Performance optimization
 <!-- chat-id: cc6f7801-d3a5-4efc-8fd0-b97be3488ebe -->
 
 Optimize for latency targets.
 
-- [ ] Profile WebSocket message latency
-- [ ] Optimize terminal rendering performance
-- [ ] Implement scrollback buffer limits
-- [ ] Profile and optimize iOS app launch time
-- [ ] Benchmark against spec §9.4 targets
-- [ ] Verify: Input latency <100ms, app launch <2s
+- [x] Profile WebSocket message latency
+- [x] Optimize terminal rendering performance
+- [x] Implement scrollback buffer limits
+- [x] Profile and optimize iOS app launch time
+- [x] Benchmark against spec §9.4 targets
+- [x] Verify: Input latency <100ms, app launch <2s
 
 ### [ ] Step: Create documentation
 

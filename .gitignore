@@ -3,6 +3,8 @@ node_modules/
 
 # Build outputs
 packages/cli/dist/
+packages/shared/dist/
+packages/server/dist/
 apps/web/.next/
 apps/web/out/
 apps/website/.next/
