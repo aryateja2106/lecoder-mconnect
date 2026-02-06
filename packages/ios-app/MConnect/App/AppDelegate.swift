@@ -8,10 +8,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
-        // Register background tasks before app finishes launching
-        Task { @MainActor in
-            BackgroundSessionManager.shared.registerBackgroundTasks()
-        }
+        // Register background tasks synchronously — Apple requires this completes
+        // before didFinishLaunchingWithOptions returns.
+        BackgroundSessionManager.registerBackgroundTaskHandlers()
 
         // Defer push notification permission request to avoid blocking launch UI
         Task { @MainActor in

@@ -21,6 +21,10 @@ export class NotificationBridge {
   private pushService: PushService;
   private listening = false;
 
+  // Store bound references so stop() can remove the exact same listeners
+  private boundStatusChange?: (agentId: string, status: AgentStatus, previousStatus: AgentStatus) => void;
+  private boundError?: (agentId: string, error: Error) => void;
+
   constructor(agentManager?: AgentManager, pushService?: PushService) {
     this.agentManager = agentManager ?? getAgentManager();
     this.pushService = pushService ?? getPushService();
@@ -32,8 +36,11 @@ export class NotificationBridge {
   start(): void {
     if (this.listening) return;
 
-    this.agentManager.on('statusChange', this.handleStatusChange.bind(this));
-    this.agentManager.on('error', this.handleError.bind(this));
+    this.boundStatusChange = this.handleStatusChange.bind(this);
+    this.boundError = this.handleError.bind(this);
+
+    this.agentManager.on('statusChange', this.boundStatusChange);
+    this.agentManager.on('error', this.boundError);
     this.listening = true;
 
     console.log('[NotificationBridge] Listening for agent events');
@@ -45,8 +52,14 @@ export class NotificationBridge {
   stop(): void {
     if (!this.listening) return;
 
-    this.agentManager.removeListener('statusChange', this.handleStatusChange.bind(this));
-    this.agentManager.removeListener('error', this.handleError.bind(this));
+    if (this.boundStatusChange) {
+      this.agentManager.removeListener('statusChange', this.boundStatusChange);
+    }
+    if (this.boundError) {
+      this.agentManager.removeListener('error', this.boundError);
+    }
+    this.boundStatusChange = undefined;
+    this.boundError = undefined;
     this.listening = false;
   }
 

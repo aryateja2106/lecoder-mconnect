@@ -1,5 +1,6 @@
 import UIKit
 import BackgroundTasks
+import Combine
 import os
 
 /// Manages WebSocket connection lifecycle across app state transitions.
@@ -47,30 +48,54 @@ class BackgroundSessionManager: ObservableObject {
     /// Reference to the WSClient to manage.
     private weak var wsClient: WSClient?
 
+    /// Subscriptions for reactive connection-state observation.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// Maximum time to wait for the connection to reach `.connected` before giving up.
+    private let connectionRestorationTimeout: TimeInterval = 10.0
+
     private init() {}
+
+    #if DEBUG
+    /// Reset all state for testing. Only available in debug builds.
+    func resetForTesting() {
+        isInBackground = false
+        wasConnectedBeforeBackground = false
+        lastConnectedHost = nil
+        lastAttachedSessionId = nil
+        backgroundTaskId = .invalid
+        wsClient = nil
+        cancellables.removeAll()
+    }
+    #endif
 
     // MARK: - Configuration
 
-    /// Set the WSClient instance to manage. Call once during app startup.
+    /// Set the WSClient instance to manage.
+    /// Safe to call multiple times — only updates if the client has changed.
     func configure(wsClient: WSClient) {
+        guard self.wsClient !== wsClient else { return }
         self.wsClient = wsClient
     }
 
     // MARK: - BGTaskScheduler Registration
 
-    /// Register the background processing task with the system.
-    /// Must be called before the app finishes launching (in `didFinishLaunchingWithOptions`).
-    func registerBackgroundTasks() {
+    /// Register the background processing task handler with the system.
+    ///
+    /// **Must** be called synchronously during `application(_:didFinishLaunchingWithOptions:)`
+    /// before the method returns. Apple requires all `BGTaskScheduler` registrations to happen
+    /// in that window. This is `nonisolated` and `static` so it can be called directly from
+    /// the non-isolated `AppDelegate` without going through a `Task`.
+    nonisolated static func registerBackgroundTaskHandlers() {
         BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: Self.keepAliveTaskIdentifier,
+            forTaskWithIdentifier: keepAliveTaskIdentifier,
             using: nil
-        ) { [weak self] task in
+        ) { task in
             guard let task = task as? BGProcessingTask else { return }
             Task { @MainActor in
-                self?.handleKeepAliveTask(task)
+                BackgroundSessionManager.shared.handleKeepAliveTask(task)
             }
         }
-        logger.info("Registered background keepalive task")
     }
 
     // MARK: - App Lifecycle: Enter Background
@@ -165,7 +190,10 @@ class BackgroundSessionManager: ObservableObject {
 
     /// Schedule a BGProcessingTask for longer-term keepalive.
     /// The system decides when to run it based on power and network conditions.
+    /// Only schedules if a connection was active before backgrounding.
     private func scheduleKeepAliveTask() {
+        guard wasConnectedBeforeBackground else { return }
+
         let request = BGProcessingTaskRequest(identifier: Self.keepAliveTaskIdentifier)
         request.requiresNetworkConnectivity = true
         request.requiresExternalPower = false
@@ -184,44 +212,60 @@ class BackgroundSessionManager: ObservableObject {
     private func handleKeepAliveTask(_ task: BGProcessingTask) {
         logger.info("BGProcessingTask running: keepalive")
 
-        guard let client = wsClient else {
-            task.setTaskCompleted(success: true)
+        // Track whether the task has already been completed to avoid double-completion.
+        var isCompleted = false
+        let completeTask: (Bool) -> Void = { [weak self] success in
+            guard !isCompleted else { return }
+            isCompleted = true
+            task.setTaskCompleted(success: success)
+            self?.logger.info("BGProcessingTask completed (success: \(success))")
+        }
+
+        // Set up expiration handler first — the system can fire this at any time.
+        task.expirationHandler = { [weak self] in
+            Task { @MainActor in
+                self?.logger.info("BGProcessingTask expired by system")
+                completeTask(false)
+            }
+        }
+
+        guard let client = wsClient, wasConnectedBeforeBackground else {
+            completeTask(true)
             return
         }
 
-        // If the client is connected, send a heartbeat ack to keep it alive
         if client.connectionState == .connected {
+            // Connection survived — send a ping to keep it alive
             client.ping()
             logger.info("Sent keepalive ping during background processing")
-        } else if wasConnectedBeforeBackground, let host = lastConnectedHost {
-            // Try to reconnect
+            scheduleKeepAliveTask()
+            completeTask(true)
+        } else if let host = lastConnectedHost {
+            // Try to reconnect, then complete once done (or after timeout)
             logger.info("Attempting reconnect during background processing")
             client.connect(to: host)
-            if let sessionId = lastAttachedSessionId {
-                // Re-attach after a brief delay to allow auth to complete
-                Task {
-                    try? await Task.sleep(for: .seconds(2))
-                    if client.connectionState == .connected {
+
+            // Use Combine to wait for connected state, then complete
+            client.$connectionState
+                .first(where: { $0 == .connected })
+                .timeout(.seconds(8), scheduler: DispatchQueue.main)
+                .sink(
+                    receiveCompletion: { [weak self] completion in
+                        if case .failure = completion {
+                            self?.logger.warning("BGProcessingTask reconnect timed out")
+                        }
+                        self?.scheduleKeepAliveTask()
+                        completeTask(true)
+                    },
+                    receiveValue: { [weak self, weak client] _ in
+                        guard let client, let sessionId = self?.lastAttachedSessionId else { return }
                         client.attachToSession(sessionId)
+                        self?.logger.info("Re-attached to session during background processing")
                     }
-                }
-            }
-        }
-
-        // Set up expiration handler
-        task.expirationHandler = { [weak self] in
-            Task { @MainActor in
-                self?.logger.info("BGProcessingTask expired")
-            }
-        }
-
-        // Schedule next keepalive
-        scheduleKeepAliveTask()
-
-        // Complete after a brief window
-        Task {
-            try? await Task.sleep(for: .seconds(5))
-            task.setTaskCompleted(success: true)
+                )
+                .store(in: &cancellables)
+        } else {
+            completeTask(true)
         }
     }
 
@@ -234,26 +278,30 @@ class BackgroundSessionManager: ObservableObject {
             return
         }
 
-        // Reset reconnect attempts since this is a fresh foreground restore
         client.connect(to: host)
 
-        // Re-attach to session after connection is established
-        if let sessionId = lastAttachedSessionId {
-            // We need to wait for the connection to be established before re-attaching.
-            // The WSClient will fire auth and connect; we observe the state.
-            Task {
-                // Poll for connected state with timeout
-                let deadline = Date().addingTimeInterval(10)
-                while Date() < deadline {
-                    if client.connectionState == .connected {
-                        client.attachToSession(sessionId)
-                        logger.info("Re-attached to session \(sessionId) after foregrounding")
-                        return
+        // Re-attach to session reactively once the connection reaches `.connected`.
+        guard let sessionId = lastAttachedSessionId else { return }
+
+        // Cancel any previous restoration subscription
+        cancellables.removeAll()
+
+        client.$connectionState
+            .first(where: { $0 == .connected })
+            .timeout(.seconds(connectionRestorationTimeout), scheduler: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure = completion {
+                        self?.logger.warning("Timed out waiting for connection to restore session attachment")
                     }
-                    try? await Task.sleep(for: .milliseconds(200))
+                    self?.cancellables.removeAll()
+                },
+                receiveValue: { [weak self, weak client] _ in
+                    guard let client else { return }
+                    client.attachToSession(sessionId)
+                    self?.logger.info("Re-attached to session \(sessionId) after foregrounding")
                 }
-                logger.warning("Timed out waiting for connection to restore session attachment")
-            }
-        }
+            )
+            .store(in: &cancellables)
     }
 }
