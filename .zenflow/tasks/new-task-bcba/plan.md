@@ -368,6 +368,7 @@ Optimize for latency targets.
 - [x] Verify: Input latency <100ms, app launch <2s
 
 ### [ ] Step: Create documentation
+<!-- chat-id: 84f1c50c-a576-4de4-a156-42e3949fd43a -->
 
 Write user and developer documentation.
 

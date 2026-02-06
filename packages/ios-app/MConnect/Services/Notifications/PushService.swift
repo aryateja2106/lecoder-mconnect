@@ -92,7 +92,10 @@ class PushService: ObservableObject {
     // MARK: - Notification Handling
 
     /// Process a remote notification payload and dispatch to in-app handlers.
-    func handleNotificationPayload(_ userInfo: [AnyHashable: Any]) {
+    ///
+    /// When `navigate` is true (e.g. user tapped the notification), also posts
+    /// an `.openSession` notification for deep linking.
+    func handleNotificationPayload(_ userInfo: [AnyHashable: Any], navigate: Bool = false) {
         guard let type = userInfo["type"] as? String else { return }
 
         let sessionId = userInfo["sessionId"] as? String
@@ -115,6 +118,15 @@ class PushService: ObservableObject {
             NotificationCenter.default.post(name: .sessionIdle, object: nil, userInfo: info)
         default:
             break
+        }
+
+        // Navigate to the relevant session when the user interacted with the notification
+        if navigate, let sessionId {
+            NotificationCenter.default.post(
+                name: .openSession,
+                object: nil,
+                userInfo: ["sessionId": sessionId]
+            )
         }
     }
 

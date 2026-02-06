@@ -96,22 +96,9 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     ) {
         let userInfo = response.notification.request.content.userInfo
 
-        // Route the notification payload through PushService
+        // Route the notification payload through PushService (navigate on tap)
         Task { @MainActor in
-            PushService.shared.handleNotificationPayload(userInfo)
-        }
-
-        // Handle notification tap - navigate to relevant session
-        if let sessionId = userInfo["sessionId"] as? String {
-            NotificationCenter.default.post(
-                name: .openSession,
-                object: nil,
-                userInfo: ["sessionId": sessionId]
-            )
-        }
-
-        // Clear badge on tap
-        Task { @MainActor in
+            PushService.shared.handleNotificationPayload(userInfo, navigate: true)
             PushService.shared.clearBadge()
         }
 
