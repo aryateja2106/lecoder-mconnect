@@ -1,7 +1,26 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
   "extends": ["../../packages/cli/biome.json"],
   "files": {
     "includes": ["src/**/*.ts"]
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/**/__tests__/**",
+        "src/**/*.test.ts",
+        "src/**/*.integration.test.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    }
+  ]
 }

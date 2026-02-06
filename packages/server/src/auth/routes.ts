@@ -472,7 +472,10 @@ export async function handleDevToken(request: Request): Promise<Response> {
     body = Object.fromEntries(new URLSearchParams(text));
   }
 
-  const userId = body.user_id || process.env.DEV_USER_ID || 'dev-user-' + crypto.randomUUID().slice(0, 8);
+  const userId =
+    body.user_id ||
+    process.env.DEV_USER_ID ||
+    `dev-user-${crypto.randomUUID().slice(0, 8)}`;
   const email = body.email || 'dev@localhost';
   const name = body.name || 'Dev User';
 

@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test';
 import {
-  ContainerRuntime,
+  type ContainerRuntime,
   createContainerRuntime,
   createContainerOptions,
   type ContainerCreateOptions,

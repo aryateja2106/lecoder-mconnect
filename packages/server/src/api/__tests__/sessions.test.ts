@@ -21,7 +21,7 @@ import {
 
 // Test user
 const testUser = {
-  id: 'test-user-' + crypto.randomUUID().slice(0, 8),
+  id: `test-user-${crypto.randomUUID().slice(0, 8)}`,
   email: 'test@example.com',
   name: 'Test User',
   provider: 'github' as const,

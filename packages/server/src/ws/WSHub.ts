@@ -32,6 +32,7 @@ import type {
   PongMessage,
   ErrorMessage,
   ControlStatusMessage,
+  InputRejectionReason,
   InputRejectedMessage,
   ClientJoinedMessage,
   ClientLeftMessage,
@@ -955,8 +956,8 @@ export class WSHub {
       this.broadcastControlStatus(sessionId, controlState);
     });
 
-    arbiter.on('inputRejected', (clientId: string, _input: string, reason: string) => {
-      this.sendInputRejected(clientId, reason as any);
+    arbiter.on('inputRejected', (clientId: string, _input: string, reason: InputRejectionReason) => {
+      this.sendInputRejected(clientId, reason);
     });
 
     arbiter.on('controlGranted', (clientId: string, _priority: Priority) => {
@@ -1032,7 +1033,7 @@ export class WSHub {
    */
   private sendInputRejected(
     clientId: string,
-    reason: 'pc_typing' | 'other_exclusive' | 'rate_limited' | 'read_only' | 'guardrail_blocked',
+    reason: InputRejectionReason,
     command?: string
   ): void {
     const message: InputRejectedMessage = {

@@ -225,6 +225,24 @@ describe('Input Processing', () => {
 
     expect(result.accepted).toBe(true);
   });
+
+  test('rejects mobile input when PC is active', async () => {
+    arbiter.stop();
+    arbiter = new InputArbiter(TEST_SESSION_ID, {
+      mobileGracePeriodMs: 0,
+    });
+    arbiter.start();
+    arbiter.addClient('pc-1', 'pc');
+    arbiter.addClient('mobile-1', 'mobile');
+
+    arbiter.processInput('pc-1', 'typing');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const result = arbiter.processInput('mobile-1', 'test input');
+
+    expect(result.accepted).toBe(false);
+    expect(result.rejectReason).toBe('pc_typing');
+  });
 });
 
 // ============================================================================

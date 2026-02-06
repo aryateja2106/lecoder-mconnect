@@ -2,6 +2,9 @@
 node_modules/
 
 # Build outputs
+dist/
+build/
+.cache/
 packages/cli/dist/
 packages/shared/dist/
 packages/server/dist/

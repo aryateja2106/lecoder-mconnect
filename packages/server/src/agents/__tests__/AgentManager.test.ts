@@ -20,7 +20,9 @@ import type {
 } from '../ContainerRuntime.js';
 import * as agentRepo from '../../db/repositories/agent.js';
 import * as opikService from '../../observability/OpikService.js';
+import type { OpikService, SpanContext, TraceContext } from '../../observability/OpikService.js';
 import * as tracingMiddleware from '../../observability/TracingMiddleware.js';
+import type { TracingMiddleware } from '../../observability/TracingMiddleware.js';
 
 // ============================================================================
 // Mocks
@@ -211,25 +213,46 @@ describe('AgentManager', () => {
     spies.push(stopAllSpy);
 
     // Mock Opik service
+    const createTraceContext = (
+      operation: string,
+      metadata: Record<string, unknown>
+    ): TraceContext => ({
+      traceId: 'mock-trace-id',
+      operation,
+      startTime: Date.now(),
+      metadata,
+    });
+
+    const createSpanContext = (
+      trace: TraceContext,
+      name: string,
+      type: SpanContext['type'],
+      input?: Record<string, unknown>
+    ): SpanContext => ({
+      spanId: 'mock-span-id',
+      trace,
+      name,
+      type,
+      startTime: Date.now(),
+      input,
+    });
+
     const mockOpik = {
-      startTrace: () => ({
-        traceId: 'mock-trace-id',
-        operation: 'test',
-        startTime: Date.now(),
-        metadata: {},
-      }),
+      startTrace: (operation: string, metadata: Record<string, unknown>) =>
+        createTraceContext(operation, metadata),
       endTrace: () => {},
-      startSpan: () => ({
-        spanId: 'mock-span-id',
-        trace: {} as any,
-        name: 'test',
-        type: 'general' as const,
-        startTime: Date.now(),
-      }),
+      startSpan: (
+        trace: TraceContext,
+        name: string,
+        type: SpanContext['type'],
+        input?: Record<string, unknown>
+      ) => createSpanContext(trace, name, type, input),
       endSpan: () => {},
     };
 
-    const opikSpy = spyOn(opikService, 'getOpikService').mockReturnValue(mockOpik as any);
+    const opikSpy = spyOn(opikService, 'getOpikService').mockReturnValue(
+      mockOpik as unknown as OpikService
+    );
     spies.push(opikSpy);
 
     // Mock TracingMiddleware
@@ -260,7 +283,7 @@ describe('AgentManager', () => {
     };
 
     const tracingSpy = spyOn(tracingMiddleware, 'getTracingMiddleware').mockReturnValue(
-      mockTracingMiddleware as any
+      mockTracingMiddleware as unknown as TracingMiddleware
     );
     spies.push(tracingSpy);
   });

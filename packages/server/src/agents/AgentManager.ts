@@ -25,7 +25,7 @@ import {
 import { agentRepository, type CreateAgentInput } from '../db/repositories/agent.js';
 import { getOpikService, type TraceContext } from '../observability/OpikService.js';
 import { getTracingMiddleware } from '../observability/TracingMiddleware.js';
-import { MCPBridge, createMCPBridge, removeMCPBridge } from '../mcp/MCPBridge.js';
+import { type MCPBridge, createMCPBridge, removeMCPBridge } from '../mcp/MCPBridge.js';
 
 // ============================================================================
 // Types
