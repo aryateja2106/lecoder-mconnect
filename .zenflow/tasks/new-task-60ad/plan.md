@@ -179,7 +179,7 @@ Create React context for demo mode state management.
 
 ---
 
-### [ ] Step 4: Integrate Demo Mode into Main Page
+### [x] Step 4: Integrate Demo Mode into Main Page
 <!-- chat-id: 218c50dd-68e3-4705-8c29-8bf3bf541cd4 -->
 
 Modify the main page to use demo mode when enabled.
@@ -215,6 +215,37 @@ For `layout.tsx`:
 - Approval modal appears at correct time
 - Approve/Deny buttons work (simulated)
 - No errors in console
+
+**Completed:** Integrated demo mode into the main page with:
+
+For `page.tsx`:
+- Imported `DemoProvider`, `useDemoContext`, and `isDemoModeEnabled` from context
+- Created `DemoControls` component with play/pause/restart buttons and progress bar
+- Refactored into `Home` (wrapper with DemoProvider) and `HomeContent` (main logic)
+- Added conditional logic in `HomeContent`:
+  - Detects demo mode and skips token resolution
+  - Initializes MockWebSocket via `demoConnect()` on mount
+  - Overrides status to 'connected' in demo mode
+  - Overrides pendingApproval and attachedSessionId from demo context
+  - Skips pairing code entry screen in demo mode
+  - Shows "Demo" status badge instead of connection status
+  - Handles approval responses through demo context
+  - Shows "Claude Code" label in header during demo mode
+  - Renders DemoControls overlay above terminal
+- Added `RotateCcw` icon import for restart button
+
+For `layout.tsx`:
+- Added `DemoModeBanner` server component
+- Banner renders when `NEXT_PUBLIC_DEMO_MODE=true`
+- Styled with amber/yellow colors: `bg-amber-500/10 border-b border-amber-500/20`
+- Text: "🎮 Demo Mode — This is a simulated session showcasing MConnect's features"
+
+**Verification completed:**
+- `NEXT_PUBLIC_DEMO_MODE=true npm run dev` starts successfully
+- Demo banner renders at top of page
+- Header shows "MConnect", "Claude Code", "Read-only", and "Demo" badges
+- Build succeeds with `NEXT_PUBLIC_DEMO_MODE=true npm run build`
+- TypeScript compiles without errors
 
 ---
 
