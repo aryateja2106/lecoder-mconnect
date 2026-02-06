@@ -273,17 +273,18 @@ Create protocol v3 WebSocket client.
 - [x] Write tests for WebSocket client
 - [x] Verify: XCTest passes
 
-### [ ] Step: Create Host management views
+### [x] Step: Create Host management views
+<!-- chat-id: bcdf4191-743f-484e-a893-90d0a57c1eea -->
 
 Build host profile UI.
 
-- [ ] Create `MConnect/Views/Hosts/HostListView.swift`
-- [ ] Create `MConnect/Views/Hosts/HostDetailView.swift` for add/edit
-- [ ] Create `MConnect/Views/Hosts/QRScannerView.swift` using AVFoundation
-- [ ] Create `MConnect/Models/Host.swift` with Codable
-- [ ] Persist hosts in Keychain
-- [ ] Write UI tests for host management
-- [ ] Verify: XCUITest passes
+- [x] Create `MConnect/Views/Hosts/HostListView.swift`
+- [x] Create `MConnect/Views/Hosts/HostDetailView.swift` for add/edit
+- [x] Create `MConnect/Views/Hosts/QRScannerView.swift` using AVFoundation
+- [x] Create `MConnect/Models/Host.swift` with Codable
+- [x] Persist hosts in Keychain
+- [x] Write UI tests for host management
+- [x] Verify: XCUITest passes
 
 ### [ ] Step: Implement terminal view
 
