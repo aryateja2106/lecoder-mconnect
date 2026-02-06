@@ -140,17 +140,18 @@ Set up Opik for observability.
 
 # Phase 2: Agent Runtime
 
-### [ ] Step: Implement Docker API container lifecycle
+### [x] Step: Implement Docker API container lifecycle
+<!-- chat-id: 66876d07-e499-4481-a8d3-08cda1ec0218 -->
 
 Create container management using Docker API.
 
-- [ ] Create `packages/server/src/agents/ContainerRuntime.ts` using dockerode
-- [ ] Implement `createContainer()` with security profile from spec §6.4
-- [ ] Implement `startContainer()`, `stopContainer()`, `removeContainer()`
-- [ ] Implement `attachToContainer()` for stdin/stdout streams
-- [ ] Implement resource limit enforcement (CPU, memory, pids)
-- [ ] Write tests with Docker integration
-- [ ] Verify: `bun test:integration src/agents` passes
+- [x] Create `packages/server/src/agents/ContainerRuntime.ts` using dockerode
+- [x] Implement `createContainer()` with security profile from spec §6.4
+- [x] Implement `startContainer()`, `stopContainer()`, `removeContainer()`
+- [x] Implement `attachToContainer()` for stdin/stdout streams
+- [x] Implement resource limit enforcement (CPU, memory, pids)
+- [x] Write tests with Docker integration
+- [x] Verify: `bun test:integration src/agents` passes
 
 ### [ ] Step: Implement Agent Manager
 
