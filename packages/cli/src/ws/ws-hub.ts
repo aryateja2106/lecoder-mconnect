@@ -11,6 +11,7 @@ import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
 import { InputArbiter } from '../input/InputArbiter.js';
+import { getOpikTracer } from '../opik/index.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { ClientType, ControlState, Priority } from '../session/types.js';
@@ -859,6 +860,10 @@ export class WSHub {
    * Handle input to an agent
    */
   private handleInput(ws: WebSocket, agentId: string, data: string): void {
+    const clientInfo = this.clients.get(ws);
+    const clientType = clientInfo?.clientType || 'pc';
+    const sessionId = this.config.sessionId;
+
     if (!this.agentManager) {
       this.sendToClient(ws, {
         type: 'error',
@@ -887,6 +892,17 @@ export class WSHub {
     if (isCommand && this.guardrailConfig) {
       // Check for injection
       if (detectInjection(sanitized)) {
+        // Track blocked command with Opik
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: '[hidden for security]',
+          source: clientType,
+          blocked: true,
+          blockReason: 'Potential injection detected',
+          requiresApproval: false,
+          timestamp: Date.now(),
+        });
+
         this.broadcast({
           type: 'command_blocked',
           agentId,
@@ -900,6 +916,17 @@ export class WSHub {
       // Check guardrails
       const check = checkCommand(sanitized, this.guardrailConfig);
       if (check.blocked) {
+        // Track blocked command with Opik
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: sanitized,
+          source: clientType,
+          blocked: true,
+          blockReason: check.reason || 'Command blocked by guardrails',
+          requiresApproval: false,
+          timestamp: Date.now(),
+        });
+
         this.broadcast({
           type: 'command_blocked',
           agentId,
@@ -911,6 +938,24 @@ export class WSHub {
       }
 
       if (check.requiresApproval) {
+        // Track approval request with Opik
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: sanitized,
+          source: clientType,
+          blocked: false,
+          requiresApproval: true,
+          timestamp: Date.now(),
+        });
+
+        // Also start an approval span
+        getOpikTracer().approvalRequest(sessionId, {
+          agentId,
+          command: sanitized,
+          reason: check.reason || 'Command requires approval',
+          requestTime: Date.now(),
+        });
+
         this.broadcast({
           type: 'approval_request',
           agentId,
@@ -920,6 +965,18 @@ export class WSHub {
         });
         return;
       }
+    }
+
+    // Track executed command with Opik (only for actual commands, not just keystrokes)
+    if (isCommand) {
+      getOpikTracer().commandExecute(sessionId, {
+        agentId,
+        command: sanitized,
+        source: clientType,
+        blocked: false,
+        requiresApproval: false,
+        timestamp: Date.now(),
+      });
     }
 
     // Send to agent

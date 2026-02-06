@@ -374,7 +374,8 @@ Write the hackathon submission document.
 
 ---
 
-### [ ] Step 8: Add Opik Integration to CLI
+### [x] Step 8: Add Opik Integration to CLI
+<!-- chat-id: f33a8521-7743-4182-af6d-ce3b39a1ca0e -->
 
 Integrate Opik SDK for observability tracing.
 
@@ -424,6 +425,66 @@ For integration:
 - CLI starts without errors when OPIK_API_KEY not set (graceful fallback)
 - With OPIK_API_KEY set, traces appear in Opik dashboard
 - All span types visible with correct attributes
+
+**Completed:** Implemented full Opik integration for observability tracing with:
+
+**Files created:**
+- `packages/cli/src/opik/types.ts` - Comprehensive type definitions:
+  - `OpikConfig` interface with apiKey, apiUrl, projectName, workspaceName, environment
+  - `SessionSpanAttributes` for session traces (sessionId, guardrailsPreset, workDir, startTime, feature flags)
+  - `AgentSpanAttributes` for agent lifecycle (agentId, agentType, agentName, workDir, isContainerized, containerId)
+  - `AgentExitData` for exit tracking (exitCode, signal, duration)
+  - `CommandSpanAttributes` for command execution (command, source, blocked, requiresApproval)
+  - `ApprovalSpanAttributes` and `ApprovalResponseData` for approval flow tracking
+  - `ClientConnectionAttributes` for client connection tracking
+  - Union types for span types: `MConnectSpanType`, `SpanAttributes`
+
+- `packages/cli/src/opik/index.ts` - OpikTracer class implementation:
+  - Dynamic `import('opik')` for optional dependency handling
+  - `initialize()` with graceful fallback when OPIK_API_KEY not set
+  - Session lifecycle: `startSession()`, `endSession()` with root trace management
+  - Agent lifecycle: `agentSpawn()`, `agentExit()` with child spans
+  - Command tracking: `commandExecute()` for blocked, approved, and executed commands
+  - Approval flow: `approvalRequest()`, `approvalResponse()` with span lifecycle
+  - Client connection: `clientConnected()`, `clientDisconnected()`
+  - `flush()` for flushing pending traces before exit
+  - Singleton pattern with `getOpikTracer()`, `initializeOpikTracer()`, `resetOpikTracer()`
+
+**Files modified:**
+- `packages/cli/package.json`:
+  - Added `opik` as optional dependency (^1.0.0)
+
+- `packages/cli/src/session.ts`:
+  - Import `getOpikTracer`, `initializeOpikTracer` from opik module
+  - Added `opik` field to `InitializationStatus` interface
+  - Initialize Opik tracer during session startup (with spinner message)
+  - Track `opikEnabled` status in initStatus
+  - Call `startSession()` after all components initialized
+  - Display Opik status in Component Status output
+  - Updated `cleanup()` to async for proper tracer cleanup
+  - Call `endSession()` and `flush()` in cleanup before exit
+  - Set sessionId on AgentManager for agent tracing
+
+- `packages/cli/src/agents/agent-manager.ts`:
+  - Import `getOpikTracer` from opik module
+  - Added `agentStartTimes` Map for duration tracking
+  - Added `sessionId` field and `setSessionId()` method
+  - Track agent spawn in `createAgent()` with Opik span
+  - Track agent exit in exit handler with duration calculation
+
+- `packages/cli/src/ws/ws-hub.ts`:
+  - Import `getOpikTracer` from opik module
+  - Track blocked commands (injection detected, guardrails blocked)
+  - Track commands requiring approval with `commandExecute()` and `approvalRequest()`
+  - Track executed commands with `commandExecute()`
+  - Include client type (mobile/pc) as command source
+
+**Verification completed:**
+- `npm install` succeeds with opik as optional dependency
+- `npm run build` succeeds (tsup bundles OpikTracer correctly)
+- CLI `--help` works without OPIK_API_KEY (graceful fallback)
+- Build output includes "[OpikTracer] No OPIK_API_KEY found - tracing disabled" message
+- All span types implemented: session, agent, command, approval, client_connection
 
 ---
 
