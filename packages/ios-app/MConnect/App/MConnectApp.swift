@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 @main
 struct MConnectApp: App {
@@ -39,6 +40,9 @@ struct MConnectApp: App {
 struct ContentView: View {
     @EnvironmentObject var router: Router
 
+    /// Tracks the app process start time for launch profiling.
+    private static let processStartTime = ProcessInfo.processInfo.systemUptime
+
     var body: some View {
         TabView(selection: $router.selectedTab) {
             HostListView()
@@ -47,17 +51,41 @@ struct ContentView: View {
                 }
                 .tag(Router.Tab.hosts)
 
-            AgentDashboard()
+            LazyView { AgentDashboard() }
                 .tabItem {
                     Label("Agents", systemImage: "cpu")
                 }
                 .tag(Router.Tab.agents)
 
-            VaultView()
+            LazyView { VaultView() }
                 .tabItem {
                     Label("Vault", systemImage: "lock.shield")
                 }
                 .tag(Router.Tab.vault)
+        }
+        .onAppear {
+            let launchDuration = ProcessInfo.processInfo.systemUptime - Self.processStartTime
+            Logger(subsystem: "com.lecoder.mconnect", category: "LaunchTime")
+                .info("App launch to first frame: \(launchDuration, format: .fixed(precision: 3))s")
+        }
+    }
+}
+
+/// A view that defers building its content until it first appears.
+struct LazyView<Content: View>: View {
+    let build: () -> Content
+    @State private var hasAppeared = false
+
+    init(@ViewBuilder _ build: @escaping () -> Content) {
+        self.build = build
+    }
+
+    var body: some View {
+        if hasAppeared {
+            build()
+        } else {
+            Color.clear
+                .onAppear { hasAppeared = true }
         }
     }
 }

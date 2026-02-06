@@ -280,6 +280,12 @@ class TerminalViewModel: ObservableObject {
 
     private var rejectionDismissTask: Task<Void, Never>?
 
+    /// Pending display update task for batching rapid output.
+    private var displayUpdateTask: Task<Void, Never>?
+
+    /// Interval for batching display updates (33ms = ~30fps).
+    private let displayUpdateInterval: Duration = .milliseconds(33)
+
     // MARK: - Init
 
     init(host: Host, wsClient: WSClient) {
@@ -349,6 +355,16 @@ class TerminalViewModel: ObservableObject {
         displayText = terminalBuffer.displayText(forAgent: agentId)
     }
 
+    /// Schedule a batched display update. Multiple calls within the interval are coalesced.
+    private func scheduleDisplayUpdate() {
+        displayUpdateTask?.cancel()
+        displayUpdateTask = Task {
+            try? await Task.sleep(for: displayUpdateInterval)
+            guard !Task.isCancelled else { return }
+            updateDisplayText()
+        }
+    }
+
     private func showRejection(_ message: String) {
         inputRejectionMessage = message
         rejectionDismissTask?.cancel()
@@ -377,7 +393,7 @@ extension TerminalViewModel: WSClientDelegate {
     func wsClient(_ client: WSClient, didReceiveOutput data: String, fromAgent agentId: String) {
         terminalBuffer.append(data, forAgent: agentId)
         if agentId == activeAgent?.id {
-            updateDisplayText()
+            scheduleDisplayUpdate()
         }
     }
 

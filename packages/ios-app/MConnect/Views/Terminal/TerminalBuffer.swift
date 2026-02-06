@@ -12,6 +12,9 @@ final class TerminalBuffer {
     /// Maximum number of scrollback lines to retain per agent.
     let maxScrollbackLines: Int
 
+    /// Maximum raw buffer size in bytes per agent (2MB default).
+    let maxRawBufferSize: Int
+
     // MARK: - Per-Agent Buffers
 
     /// Per-agent line buffers (ANSI stripped for display).
@@ -20,14 +23,21 @@ final class TerminalBuffer {
     /// Per-agent raw output (preserves ANSI for SwiftTerm).
     private var rawBuffers: [String: String] = [:]
 
+    /// Cached display text per agent to avoid rejoining all lines.
+    private var displayTextCache: [String: String] = [:]
+
+    /// Number of lines already in the cache per agent.
+    private var cachedLineCount: [String: Int] = [:]
+
     // MARK: - Logger
 
     private let logger = Logger(subsystem: "com.lecoder.mconnect", category: "TerminalBuffer")
 
     // MARK: - Init
 
-    init(maxScrollbackLines: Int = 10_000) {
+    init(maxScrollbackLines: Int = 10_000, maxRawBufferSize: Int = 2 * 1024 * 1024) {
         self.maxScrollbackLines = maxScrollbackLines
+        self.maxRawBufferSize = maxRawBufferSize
     }
 
     // MARK: - Public API
@@ -62,15 +72,50 @@ final class TerminalBuffer {
         buffers[agentId] = currentBuffer
         trimBuffer(forAgent: agentId)
 
+        // Trim raw buffer if it exceeds size limit
+        if let raw = rawBuffers[agentId], raw.utf8.count > maxRawBufferSize {
+            let excess = raw.utf8.count - maxRawBufferSize
+            // Find a safe trim point (after a newline if possible)
+            if let trimRange = raw.range(of: "\n", range: raw.index(raw.startIndex, offsetBy: excess)..<raw.endIndex) {
+                rawBuffers[agentId] = String(raw[trimRange.upperBound...])
+            } else {
+                let trimIndex = raw.index(raw.startIndex, offsetBy: excess)
+                rawBuffers[agentId] = String(raw[trimIndex...])
+            }
+        }
+
         logger.debug("Appended \(data.count) bytes to agent \(agentId), now \(currentBuffer.count) lines")
     }
 
     /// Get display text for an agent (ANSI stripped for plain text fallback).
+    ///
+    /// Uses incremental caching to avoid rejoining all lines on every call.
     func displayText(forAgent agentId: String) -> String {
-        guard let lines = buffers[agentId] else {
-            return ""
+        guard let lines = buffers[agentId] else { return "" }
+
+        let cachedCount = cachedLineCount[agentId, default: 0]
+
+        if cachedCount == lines.count {
+            // Cache is up to date
+            return displayTextCache[agentId] ?? ""
         }
-        return lines.joined(separator: "\n")
+
+        if cachedCount == 0 || cachedCount > lines.count {
+            // Full rebuild needed (cleared or trimmed)
+            let text = lines.joined(separator: "\n")
+            displayTextCache[agentId] = text
+            cachedLineCount[agentId] = lines.count
+            return text
+        }
+
+        // Incremental: append only new lines
+        let newLines = lines[cachedCount...]
+        let newText = newLines.joined(separator: "\n")
+        let cached = displayTextCache[agentId] ?? ""
+        let updated = cached.isEmpty ? newText : cached + "\n" + newText
+        displayTextCache[agentId] = updated
+        cachedLineCount[agentId] = lines.count
+        return updated
     }
 
     /// Get raw output for an agent (preserves ANSI for SwiftTerm).
@@ -87,6 +132,8 @@ final class TerminalBuffer {
     func clear(forAgent agentId: String) {
         buffers.removeValue(forKey: agentId)
         rawBuffers.removeValue(forKey: agentId)
+        displayTextCache.removeValue(forKey: agentId)
+        cachedLineCount.removeValue(forKey: agentId)
         logger.info("Cleared buffer for agent \(agentId)")
     }
 
@@ -94,6 +141,8 @@ final class TerminalBuffer {
     func clearAll() {
         buffers.removeAll()
         rawBuffers.removeAll()
+        displayTextCache.removeAll()
+        cachedLineCount.removeAll()
         logger.info("Cleared all buffers")
     }
 
@@ -112,6 +161,10 @@ final class TerminalBuffer {
         let currentRaw = rawBuffers[agentId, default: ""]
         rawBuffers[agentId] = scrollbackText + currentRaw
 
+        // Invalidate cache since content changed at beginning
+        displayTextCache.removeValue(forKey: agentId)
+        cachedLineCount.removeValue(forKey: agentId)
+
         trimBuffer(forAgent: agentId)
 
         logger.info("Prepended \(lines.count) scrollback lines to agent \(agentId)")
@@ -119,53 +172,47 @@ final class TerminalBuffer {
 
     // MARK: - Private Helpers
 
-    /// Strip ANSI escape sequences from text.
+    /// Strip ANSI escape sequences from text using a single-pass character scanner.
     ///
     /// Handles common escape patterns:
     /// - CSI sequences: ESC [ ... m (colors, cursor movement, etc.)
     /// - OSC sequences: ESC ] ... BEL|ESC\ (window title, etc.)
     /// - Simple escape codes: ESC followed by a single character
+    ///
+    /// This is significantly faster than multiple regex replacements for large output.
     private func stripANSI(_ text: String) -> String {
-        var result = text
+        var result = ""
+        result.reserveCapacity(text.count)
+        var iterator = text.unicodeScalars.makeIterator()
 
-        // CSI sequences: ESC [ ... (letter or @)
-        let csiPattern = "\\u{1B}\\[[0-9;?]*[a-zA-Z@]"
-        result = result.replacingOccurrences(
-            of: csiPattern,
-            with: "",
-            options: .regularExpression
-        )
-
-        // OSC sequences: ESC ] ... BEL or ESC ]...ESC\
-        let oscPattern1 = "\\u{1B}\\][^\\u{07}]*\\u{07}"
-        result = result.replacingOccurrences(
-            of: oscPattern1,
-            with: "",
-            options: .regularExpression
-        )
-
-        let oscPattern2 = "\\u{1B}\\][^\\u{1B}]*\\u{1B}\\\\"
-        result = result.replacingOccurrences(
-            of: oscPattern2,
-            with: "",
-            options: .regularExpression
-        )
-
-        // Simple escape sequences: ESC followed by single char
-        let simplePattern = "\\u{1B}[a-zA-Z]"
-        result = result.replacingOccurrences(
-            of: simplePattern,
-            with: "",
-            options: .regularExpression
-        )
-
-        // Control characters (except newline, tab, carriage return)
-        let controlPattern = "[\\u{00}-\\u{08}\\u{0B}-\\u{0C}\\u{0E}-\\u{1F}]"
-        result = result.replacingOccurrences(
-            of: controlPattern,
-            with: "",
-            options: .regularExpression
-        )
+        while let scalar = iterator.next() {
+            if scalar == "\u{1B}" {
+                // Start of escape sequence
+                guard let next = iterator.next() else { break }
+                if next == "[" {
+                    // CSI sequence: consume until letter or @
+                    while let ch = iterator.next() {
+                        if (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || ch == "@" {
+                            break
+                        }
+                    }
+                } else if next == "]" {
+                    // OSC sequence: consume until BEL or ESC\
+                    while let ch = iterator.next() {
+                        if ch == "\u{07}" { break }
+                        if ch == "\u{1B}" {
+                            let _ = iterator.next() // consume the \
+                            break
+                        }
+                    }
+                }
+                // else: simple escape - next char already consumed
+            } else if scalar.value < 0x20 && scalar != "\n" && scalar != "\t" && scalar != "\r" {
+                // Control character - skip
+            } else {
+                result.unicodeScalars.append(scalar)
+            }
+        }
 
         return result
     }
@@ -180,6 +227,10 @@ final class TerminalBuffer {
         let excess = lines.count - maxScrollbackLines
         lines.removeFirst(excess)
         buffers[agentId] = lines
+
+        // Invalidate cache since lines were removed from the beginning
+        displayTextCache.removeValue(forKey: agentId)
+        cachedLineCount.removeValue(forKey: agentId)
 
         logger.info("Trimmed \(excess) lines from agent \(agentId) buffer")
 

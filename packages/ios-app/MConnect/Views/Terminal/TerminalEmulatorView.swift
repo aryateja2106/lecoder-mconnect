@@ -28,14 +28,20 @@ struct TerminalEmulatorView: View {
 
 /// Pure SwiftUI fallback terminal display.
 /// Renders terminal output as monospaced text with auto-scroll.
+///
+/// Uses debouncing to coalesce rapid output updates and reduce render overhead.
 private struct TerminalTextView: View {
     @ObservedObject var viewModel: TerminalViewModel
     let onTapped: () -> Void
 
+    // Debounce rapid output updates
+    @State private var renderedText: String = ""
+    @State private var updateTask: Task<Void, Never>?
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                Text(viewModel.displayText)
+                Text(renderedText)
                     .font(.system(size: 13, weight: .regular, design: .monospaced))
                     .foregroundColor(.green)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -43,12 +49,23 @@ private struct TerminalTextView: View {
                     .id("terminalBottom")
             }
             .background(Color.black)
-            .onChange(of: viewModel.displayText) { _, _ in
+            .onChange(of: viewModel.displayText) { _, newValue in
+                // Coalesce rapid updates with a small delay
+                updateTask?.cancel()
+                updateTask = Task {
+                    // 16ms = ~60fps frame budget
+                    try? await Task.sleep(for: .milliseconds(16))
+                    guard !Task.isCancelled else { return }
+                    renderedText = newValue
+                }
+            }
+            .onChange(of: renderedText) { _, _ in
                 withAnimation(.easeOut(duration: 0.1)) {
                     proxy.scrollTo("terminalBottom", anchor: .bottom)
                 }
             }
             .onTapGesture { onTapped() }
+            .onAppear { renderedText = viewModel.displayText }
         }
     }
 }

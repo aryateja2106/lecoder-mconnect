@@ -13,8 +13,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             BackgroundSessionManager.shared.registerBackgroundTasks()
         }
 
-        // Request push notification permission on launch
+        // Defer push notification permission request to avoid blocking launch UI
         Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
             _ = await PushService.shared.requestPermission()
         }
 

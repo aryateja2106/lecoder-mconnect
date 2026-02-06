@@ -64,6 +64,14 @@ const server = Bun.serve<WebSocketData>({
       });
     }
 
+    // Latency metrics endpoint
+    if (url.pathname === '/metrics/latency') {
+      return Response.json({
+        websocket: wsHub.getLatencyMetrics(),
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // API version info
     if (url.pathname === '/') {
       return Response.json({

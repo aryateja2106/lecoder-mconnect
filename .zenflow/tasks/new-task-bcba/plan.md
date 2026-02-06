@@ -356,6 +356,7 @@ Add robust reconnection logic.
 - [x] Verify: Reconnects within 5s of network recovery
 
 ### [ ] Step: Performance optimization
+<!-- chat-id: cc6f7801-d3a5-4efc-8fd0-b97be3488ebe -->
 
 Optimize for latency targets.
 

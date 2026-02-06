@@ -45,6 +45,7 @@ import { InputArbiter, type InputResult } from './InputArbiter.js';
 import { getJWTService } from '../auth/jwt.js';
 import type { MCPMessage } from '@lecoder/shared';
 import { deviceTokenRepository } from '../db/repositories/device-token.js';
+import { LatencyTracker, type LatencyMetrics } from './LatencyTracker.js';
 
 // ============================================================================
 // Types
@@ -138,8 +139,12 @@ export class WSHub {
   /** Guardrail configs per session */
   private sessionGuardrails: Map<string, GuardrailConfig> = new Map(); // sessionId -> config
 
+  /** Latency tracking */
+  private latencyTracker: LatencyTracker;
+
   constructor(config: Partial<WSHubConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.latencyTracker = new LatencyTracker({ enabled: true });
   }
 
   /**
@@ -221,6 +226,8 @@ export class WSHub {
    * Handle incoming WebSocket message
    */
   async handleMessage(ws: ServerWebSocket<WebSocketData>, data: string | Buffer): Promise<void> {
+    const stopTimer = this.latencyTracker.startTimer();
+
     const clientId = ws.data.clientId;
     const client = this.clients.get(clientId);
 
@@ -240,6 +247,8 @@ export class WSHub {
       message = JSON.parse(text) as ClientMessage;
     } catch {
       this.sendError(clientId, 'Invalid JSON message', 'INTERNAL_ERROR', false);
+      const latency = stopTimer();
+      this.latencyTracker.record('parse_error', latency);
       return;
     }
 
@@ -248,14 +257,22 @@ export class WSHub {
       if (message.type !== 'auth') {
         this.sendAuthFailed(clientId, 'missing_token');
         ws.close(1008, 'Authentication required');
+        const latency = stopTimer();
+        this.latencyTracker.record('unauthenticated', latency);
         return;
       }
       await this.handleAuthMessage(clientId, message as AuthMessage);
+      const latency = stopTimer();
+      this.latencyTracker.record(message.type, latency);
       return;
     }
 
     // Handle authenticated messages
     await this.handleClientMessage(clientId, message);
+
+    // Record latency after message processing completes
+    const latency = stopTimer();
+    this.latencyTracker.record(message.type, latency);
   }
 
   /**
@@ -334,9 +351,16 @@ export class WSHub {
    * Broadcast a message to all clients in a session
    */
   broadcastToSession(sessionId: string, message: ServerMessage, excludeClientId?: string): void {
+    // Serialize once for all clients (performance optimization)
+    const json = JSON.stringify(message);
+
     for (const client of this.clients.values()) {
       if (client.sessionId === sessionId && client.id !== excludeClientId) {
-        this.sendToClient(client.id, message);
+        try {
+          client.ws.send(json);
+        } catch {
+          // Ignore send errors
+        }
       }
     }
   }
@@ -579,6 +603,13 @@ export class WSHub {
       }
     }
     return count;
+  }
+
+  /**
+   * Get latency metrics for all message types
+   */
+  getLatencyMetrics(): LatencyMetrics[] {
+    return this.latencyTracker.getMetrics();
   }
 
   // ============================================================================
@@ -866,9 +897,16 @@ export class WSHub {
       serverTime: Date.now(),
     };
 
+    // Serialize once for all clients (performance optimization)
+    const json = JSON.stringify(heartbeatMessage);
+
     for (const client of this.clients.values()) {
       if (client.authenticated) {
-        this.sendToClient(client.id, heartbeatMessage);
+        try {
+          client.ws.send(json);
+        } catch {
+          // Ignore send errors
+        }
       }
     }
   }
