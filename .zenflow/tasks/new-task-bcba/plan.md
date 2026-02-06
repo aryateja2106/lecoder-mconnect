@@ -124,6 +124,7 @@ Create REST endpoints for session management.
 - [x] Verify: `bun test src/api` passes
 
 ### [ ] Step: Initialize Opik SDK integration
+<!-- chat-id: 7f7d6aa4-b869-4b7e-9202-acacb64ed653 -->
 
 Set up Opik for observability.
 
