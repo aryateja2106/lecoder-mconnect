@@ -336,7 +336,8 @@ Create deployment configuration and deploy to Vercel.
 
 ---
 
-### [ ] Step 7: Create HACKATHON.md Project Description
+### [x] Step 7: Create HACKATHON.md Project Description
+<!-- chat-id: 603f204b-9acb-4d4c-b4d7-a610cd59c110 -->
 
 Write the hackathon submission document.
 
@@ -361,6 +362,15 @@ Write the hackathon submission document.
 - All sections present and complete
 - Links are valid
 - Clearly explains problem → solution → Opik integration
+
+**Completed:** Created `HACKATHON.md` at project root with:
+- **The Problem** (~70 words): Compelling hook about being tethered to laptops and AI agents needing supervision
+- **The Solution** (~90 words): MConnect value proposition with 4 key features (real-time monitoring, approval, multi-agent, untethered control)
+- **Opik Integration for Observability** (~100 words): Comprehensive tracing details with 4 span types (session, agent, command, approval)
+- **Technical Highlights** (~50 words): 5 bullet points covering shell-first architecture, WebSocket v2.0, multi-agent orchestration, guardrails, zero-config deployment
+- **Impact** (~40 words): Future of AI-assisted development as essential infrastructure
+- Links: Demo URL, GitHub repo, npm package
+- Total word count: 408 words (within 380-420 target range)
 
 ---
 
