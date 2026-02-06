@@ -29,8 +29,42 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_DEMO_MODE` | Set to `true` to enable demo mode with mock WebSocket data | Yes (for demo) |
+| `NEXT_PUBLIC_APP_URL` | Application URL for absolute URLs and metadata | Optional |
+
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Quick Deploy (Demo Mode)
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard:
+   - `NEXT_PUBLIC_DEMO_MODE` = `true`
+3. Deploy
+
+The app will automatically run in demo mode with pre-recorded terminal sessions.
+
+### Vercel CLI Deploy
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy with demo mode
+cd apps/web
+vercel --env NEXT_PUBLIC_DEMO_MODE=true
+```
+
+### Verify Deployment
+
+After deployment, check the health endpoint:
+
+```bash
+curl https://your-domain.vercel.app/api/health
+# Should return: {"status":"ok","version":"0.1.7","mode":"demo",...}
+```
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
