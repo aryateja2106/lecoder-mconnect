@@ -94,20 +94,22 @@ Implement JWT issuance, validation, and refresh.
 - [x] Write tests for JWT operations
 - [x] Verify: `bun test src/auth` passes
 
-### [ ] Step: Implement basic WebSocket hub with protocol v3
+### [x] Step: Implement basic WebSocket hub with protocol v3
+<!-- chat-id: 480f1181-7356-454f-864a-3de32f8b43cd -->
 
 Create WebSocket server with authentication.
 
-- [ ] Create `packages/server/src/ws/WSHub.ts` implementing interface from spec §2.2.4
-- [ ] Implement Bun native WebSocket server
-- [ ] Implement auth message handling (first message must be `type: 'auth'`)
-- [ ] Implement `sendToClient()` and `broadcastToSession()`
-- [ ] Implement heartbeat mechanism (30s interval)
-- [ ] Port InputArbiter from `packages/cli/src/input/InputArbiter.ts`
-- [ ] Write tests for WebSocket hub
-- [ ] Verify: `bun test src/ws` passes
+- [x] Create `packages/server/src/ws/WSHub.ts` implementing interface from spec §2.2.4
+- [x] Implement Bun native WebSocket server
+- [x] Implement auth message handling (first message must be `type: 'auth'`)
+- [x] Implement `sendToClient()` and `broadcastToSession()`
+- [x] Implement heartbeat mechanism (30s interval)
+- [x] Port InputArbiter from `packages/cli/src/input/InputArbiter.ts`
+- [x] Write tests for WebSocket hub
+- [x] Verify: `bun test src/ws` passes
 
 ### [ ] Step: Implement session CRUD via REST API
+<!-- chat-id: 8e7a59f5-05c9-4c42-bd4c-59b0a952c596 -->
 
 Create REST endpoints for session management.
 
