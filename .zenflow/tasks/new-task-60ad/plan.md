@@ -137,7 +137,8 @@ Create a mock WebSocket that simulates the real CLI protocol for demo mode.
 
 ---
 
-### [ ] Step 3: Create Demo Context Provider
+### [x] Step 3: Create Demo Context Provider
+<!-- chat-id: fb49cb11-bf26-4984-b107-ae72c9db3dc8 -->
 
 Create React context for demo mode state management.
 
@@ -162,9 +163,24 @@ Create React context for demo mode state management.
 - Context values update during playback
 - Session switching works
 
+**Completed:** Created `apps/web/src/context/DemoContext.tsx` with:
+- `DemoContextValue` interface with all required state and control functions
+- `DemoProvider` component that:
+  - Detects demo mode via `isDemoModeEnabled()` from environment
+  - Manages `MockWebSocket` lifecycle (init, connect, disconnect)
+  - Tracks playback state, current timestamp, and progress
+  - Handles approval requests from MockWebSocket
+- `DemoProviderInner` component that only mounts in demo mode
+- `useDemoContext` hook for consuming context
+- Control functions: `play()`, `pause()`, `restart()`, `seek()`, `switchSession()`, `respondToApproval()`
+- `getWebSocket()`, `connect()`, `disconnect()` for direct MockWebSocket access
+- `formatDemoTime()` utility for time display
+- TypeScript compiles without errors, build succeeds
+
 ---
 
 ### [ ] Step 4: Integrate Demo Mode into Main Page
+<!-- chat-id: 218c50dd-68e3-4705-8c29-8bf3bf541cd4 -->
 
 Modify the main page to use demo mode when enabled.
 
