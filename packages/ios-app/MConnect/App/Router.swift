@@ -12,6 +12,7 @@ class Router: ObservableObject {
         case hostDetail(Host)
         case terminal(Host)
         case agentDetail(Agent)
+        case agentTerminal(Agent, Host)
         case qrScanner
         case vaultItem(VaultItem?)
     }
@@ -22,7 +23,7 @@ class Router: ObservableObject {
 
     func navigate(to destination: Destination) {
         switch destination {
-        case .hostDetail, .terminal, .qrScanner:
+        case .hostDetail, .terminal, .qrScanner, .agentTerminal:
             selectedTab = .hosts
             hostPath.append(destination)
         case .agentDetail:

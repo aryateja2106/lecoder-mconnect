@@ -300,17 +300,18 @@ Create SwiftUI terminal emulator.
 - [x] Write UI tests for terminal interaction
 - [x] Verify: XCUITest passes
 
-### [ ] Step: Create agent dashboard views
+### [x] Step: Create agent dashboard views
+<!-- chat-id: c57cb654-b07f-49d3-a7e6-68d9e6af3540 -->
 
 Build agent monitoring UI.
 
-- [ ] Create `MConnect/Views/Agents/AgentDashboard.swift`
-- [ ] Create `MConnect/Views/Agents/AgentDetailView.swift`
-- [ ] Create `MConnect/Models/Agent.swift` and `Session.swift`
-- [ ] Implement agent status badges (running, idle, exited)
-- [ ] Implement agent tab switching in terminal
-- [ ] Write UI tests
-- [ ] Verify: XCUITest passes
+- [x] Create `MConnect/Views/Agents/AgentDashboard.swift`
+- [x] Create `MConnect/Views/Agents/AgentDetailView.swift`
+- [x] Create `MConnect/Models/Agent.swift` and `Session.swift`
+- [x] Implement agent status badges (running, idle, exited)
+- [x] Implement agent tab switching in terminal
+- [x] Write UI tests
+- [x] Verify: XCUITest passes
 
 ---
 
