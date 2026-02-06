@@ -553,6 +553,7 @@ Add local installation instructions and polish the demo experience.
 ---
 
 ### [ ] Step 10: Final Testing and Documentation
+<!-- chat-id: 3ec9230e-acb1-458b-bc44-79fb84a0b4a0 -->
 
 Perform comprehensive testing and capture screenshots.
 
