@@ -233,16 +233,17 @@ Initialize iOS app with SwiftUI.
 - [ ] Set up Info.plist with URL scheme (`mconnect://`)
 - [ ] Verify: Xcode builds without errors
 
-### [ ] Step: Implement Keychain service
+### [x] Step: Implement Keychain service
+<!-- chat-id: 3a65425c-1ccf-449c-881c-9d9ee26bef43 -->
 
 Create secure credential storage.
 
-- [ ] Create `MConnect/Services/Keychain/KeychainService.swift`
-- [ ] Implement `save()`, `load()`, `delete()` for Keychain items
-- [ ] Configure access control with biometric protection
-- [ ] Create `BiometricAuth.swift` for Face ID / Touch ID prompts
-- [ ] Write unit tests for Keychain operations
-- [ ] Verify: XCTest passes
+- [x] Create `MConnect/Services/Keychain/KeychainService.swift`
+- [x] Implement `save()`, `load()`, `delete()` for Keychain items
+- [x] Configure access control with biometric protection
+- [x] Create `BiometricAuth.swift` for Face ID / Touch ID prompts
+- [x] Write unit tests for Keychain operations
+- [x] Verify: XCTest passes
 
 ### [ ] Step: Implement OAuth and token management
 

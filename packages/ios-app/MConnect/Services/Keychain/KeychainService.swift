@@ -1,7 +1,27 @@
 import Foundation
 import Security
 
+/// Well-known Keychain item keys matching spec section 6.3.
+struct KeychainItems {
+    // OAuth tokens (encrypted by Keychain)
+    static let accessToken = "com.mconnect.accessToken"
+    static let refreshToken = "com.mconnect.refreshToken"
+
+    // User info (for offline display)
+    static let userProfile = "com.mconnect.userProfile"
+
+    // Host profiles (connection settings)
+    static let hostProfiles = "com.mconnect.hostProfiles"
+
+    // SSH keys (future)
+    static let sshKeys = "com.mconnect.sshKeys"
+}
+
 /// Wrapper for iOS Keychain Services.
+///
+/// All items are stored as `kSecClassGenericPassword` scoped to the
+/// `com.lecoder.mconnect` service identifier. Items are device-only
+/// (no iCloud sync) and optionally require biometric authentication.
 class KeychainService {
     static let shared = KeychainService()
 
@@ -9,8 +29,10 @@ class KeychainService {
 
     private init() {}
 
+    // MARK: - Core Data Operations
+
     func save(_ data: Data, forKey key: String, requireBiometric: Bool = false) throws {
-        // Delete existing item first
+        // Delete existing item first to avoid duplicate errors
         try? delete(forKey: key)
 
         var query: [String: Any] = [
@@ -72,7 +94,35 @@ class KeychainService {
         }
     }
 
-    // Convenience methods for String values
+    /// Check whether an item exists for the given key without loading its data.
+    func exists(forKey key: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnData as String: false,
+        ]
+
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        return status == errSecSuccess
+    }
+
+    /// Delete all items belonging to this service.
+    func deleteAll() throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+        ]
+
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.deleteFailed(status: status)
+        }
+    }
+
+    // MARK: - String Convenience
+
     func saveString(_ value: String, forKey key: String, requireBiometric: Bool = false) throws {
         guard let data = value.data(using: .utf8) else {
             throw KeychainError.encodingFailed
@@ -87,9 +137,29 @@ class KeychainService {
         }
         return string
     }
+
+    // MARK: - Codable Convenience
+
+    /// Encode a `Codable` value as JSON and store it in the Keychain.
+    func saveCodable<T: Encodable>(_ value: T, forKey key: String, requireBiometric: Bool = false) throws {
+        let data = try JSONEncoder().encode(value)
+        try save(data, forKey: key, requireBiometric: requireBiometric)
+    }
+
+    /// Load and decode a `Codable` value from the Keychain.
+    func loadCodable<T: Decodable>(_ type: T.Type, forKey key: String) throws -> T {
+        let data = try load(forKey: key)
+        do {
+            return try JSONDecoder().decode(type, from: data)
+        } catch {
+            throw KeychainError.decodingFailed
+        }
+    }
 }
 
-enum KeychainError: LocalizedError {
+// MARK: - Error Types
+
+enum KeychainError: LocalizedError, Equatable {
     case saveFailed(status: OSStatus)
     case loadFailed(status: OSStatus)
     case deleteFailed(status: OSStatus)
