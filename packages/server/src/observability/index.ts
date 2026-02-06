@@ -7,4 +7,20 @@
  * - User attribution
  */
 
-export {};
+export {
+  // Core service
+  OpikService,
+  ObservabilityError,
+  getOpikService,
+  initializeOpikService,
+  resetOpikService,
+  // Convenience functions
+  traced,
+  withSpan,
+  // Types
+  type OpikConfig,
+  type TraceContext,
+  type SpanContext,
+  type LLMCallData,
+  type ObservabilityErrorCode,
+} from './OpikService.js';

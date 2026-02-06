@@ -123,18 +123,18 @@ Create REST endpoints for session management.
 - [x] Write integration tests
 - [x] Verify: `bun test src/api` passes
 
-### [ ] Step: Initialize Opik SDK integration
+### [x] Step: Initialize Opik SDK integration
 <!-- chat-id: 7f7d6aa4-b869-4b7e-9202-acacb64ed653 -->
 
 Set up Opik for observability.
 
-- [ ] Install `opik` package
-- [ ] Create `packages/server/src/observability/OpikService.ts` implementing interface from spec §2.2.5
-- [ ] Implement `initialize()` with config from env vars
-- [ ] Implement `startTrace()`, `endTrace()`, `startSpan()`, `endSpan()`
-- [ ] Add environment variables to `.env.example` (OPIK_API_KEY, OPIK_PROJECT_NAME)
-- [ ] Create test to verify Opik connection
-- [ ] Verify: Can send test events to Opik dashboard
+- [x] Install `opik` package
+- [x] Create `packages/server/src/observability/OpikService.ts` implementing interface from spec §2.2.5
+- [x] Implement `initialize()` with config from env vars
+- [x] Implement `startTrace()`, `endTrace()`, `startSpan()`, `endSpan()`
+- [x] Add environment variables to `.env.example` (OPIK_API_KEY, OPIK_PROJECT_NAME) - documented in README.md
+- [x] Create test to verify Opik connection
+- [x] Verify: Can send test events to Opik dashboard (integration tests with OPIK_API_KEY)
 
 ---
 
