@@ -74,6 +74,9 @@ const ANSI = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
   dim: '\x1b[2m',
+  italic: '\x1b[3m',
+  underline: '\x1b[4m',
+  // Foreground colors
   green: '\x1b[32m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
@@ -86,6 +89,10 @@ const ANSI = {
   brightBlue: '\x1b[94m',
   brightMagenta: '\x1b[95m',
   brightCyan: '\x1b[96m',
+  brightWhite: '\x1b[97m',
+  // Background colors
+  bgBlack: '\x1b[40m',
+  bgGray: '\x1b[100m',
 };
 
 // ============================================

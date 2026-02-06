@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useWebSocket, type SessionSummary } from '@/hooks/useWebSocket';
 import { ControlBar } from '@/components/terminal/ControlBar';
 import { DemoProvider, useDemoContext, isDemoModeEnabled } from '@/context/DemoContext';
-import { Wifi, WifiOff, Terminal, Loader2, AlertCircle, RefreshCw, Lock, Play, Users, Clock, ArrowLeft, KeyRound, RotateCcw } from 'lucide-react';
+import { Wifi, WifiOff, Terminal, Loader2, AlertCircle, RefreshCw, Lock, Play, Users, Clock, ArrowLeft, KeyRound, RotateCcw, ChevronDown, ChevronUp, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Dynamic import for terminal (needs window)
 const TerminalView = dynamic(
@@ -260,6 +260,122 @@ function DemoControls() {
           />
         </div>
         <span>{formatTime(totalDuration)}</span>
+      </div>
+    </div>
+  );
+}
+
+// "Try Locally" expandable section for demo mode
+function TryLocallySection() {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+  const { isDemoMode } = useDemoContext();
+
+  if (!isDemoMode) return null;
+
+  const copyToClipboard = async (text: string, command: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedCommand(command);
+      setTimeout(() => setCopiedCommand(null), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedCommand(command);
+      setTimeout(() => setCopiedCommand(null), 2000);
+    }
+  };
+
+  const CommandBlock = ({ command, description }: { command: string; description: string }) => (
+    <div className="group">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-zinc-500">{description}</span>
+        <button
+          onClick={() => copyToClipboard(command, command)}
+          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-zinc-700 rounded transition-all"
+          title="Copy command"
+        >
+          {copiedCommand === command ? (
+            <Check size={12} className="text-green-400" />
+          ) : (
+            <Copy size={12} className="text-zinc-400" />
+          )}
+        </button>
+      </div>
+      <div className="bg-zinc-950 rounded-lg p-3 font-mono text-sm text-cyan-400 border border-zinc-800">
+        <span className="text-zinc-500">$ </span>{command}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
+      <div className="bg-zinc-900/95 backdrop-blur rounded-xl border border-zinc-700 shadow-xl overflow-hidden">
+        {/* Collapsed header */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Terminal size={16} className="text-cyan-400" />
+            <span className="text-sm font-medium text-white">Try It Yourself</span>
+          </div>
+          {isExpanded ? (
+            <ChevronDown size={16} className="text-zinc-400" />
+          ) : (
+            <ChevronUp size={16} className="text-zinc-400" />
+          )}
+        </button>
+
+        {/* Expanded content */}
+        {isExpanded && (
+          <div className="px-4 pb-4 space-y-4 border-t border-zinc-800">
+            <p className="text-xs text-zinc-400 mt-3">
+              Run MConnect locally and control your AI agents from your phone.
+            </p>
+
+            <div className="space-y-3">
+              <CommandBlock
+                command="npm install -g lecoder-mconnect"
+                description="Install MConnect globally"
+              />
+              <CommandBlock
+                command="mconnect start"
+                description="Start a session"
+              />
+            </div>
+
+            <p className="text-xs text-zinc-500">
+              Scan the QR code that appears to connect from your phone.
+            </p>
+
+            <div className="flex items-center gap-3 pt-2">
+              <a
+                href="https://github.com/aryateja2106/lecoder-mconnect"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                <ExternalLink size={12} />
+                GitHub
+              </a>
+              <a
+                href="https://www.npmjs.com/package/lecoder-mconnect"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                <ExternalLink size={12} />
+                npm
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -663,6 +779,8 @@ function HomeContent() {
             {renderOverlay()}
             {/* Demo controls overlay */}
             {isDemoMode && <DemoControls />}
+            {/* Try Locally section for demo mode */}
+            {isDemoMode && <TryLocallySection />}
           </div>
 
           {/* Control Bar - v1.0 protocol doesn't show session selection */}

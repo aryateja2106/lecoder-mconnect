@@ -488,7 +488,8 @@ For integration:
 
 ---
 
-### [ ] Step 9: Add "Try Locally" Section and Polish Demo
+### [x] Step 9: Add "Try Locally" Section and Polish Demo
+<!-- chat-id: 852f8064-9e63-4146-9ca3-1394b966a174 -->
 
 Add local installation instructions and polish the demo experience.
 
@@ -516,6 +517,38 @@ Add local installation instructions and polish the demo experience.
 - "Try Locally" section visible in demo mode
 - Commands are copy-able
 - Demo feels polished and realistic
+
+**Completed:** Implemented "Try Locally" section and polished demo experience:
+
+**Files modified:**
+- `apps/web/src/app/page.tsx`:
+  - Added new icon imports: `ChevronDown`, `ChevronUp`, `ExternalLink`, `Copy`, `Check`
+  - Created `TryLocallySection` component with:
+    - Expandable panel below demo controls (bottom-32 position)
+    - "Try It Yourself" header with Terminal icon
+    - Two command blocks with copy-to-clipboard functionality:
+      - `npm install -g lecoder-mconnect`
+      - `mconnect start`
+    - Copy button with visual feedback (shows checkmark on copy)
+    - Description text explaining QR code connection
+    - External links to GitHub and npm
+    - Styled with consistent dark theme (zinc-900 background, cyan accents)
+  - Integrated `TryLocallySection` into main render alongside `DemoControls`
+
+- `apps/web/src/data/demo-session.ts`:
+  - Extended ANSI color helpers with:
+    - `italic` and `underline` styles
+    - `brightWhite` foreground color
+    - `bgBlack` and `bgGray` background colors
+  - Demo data already had realistic timing and syntax highlighting
+
+**Verification completed:**
+- Build succeeds with `npm run build`
+- Build succeeds with `NEXT_PUBLIC_DEMO_MODE=true npm run build`
+- TypeScript compiles without errors (`npx tsc --noEmit`)
+- "Try Locally" section renders in demo mode
+- Commands are copy-able with clipboard API
+- Multi-session switching already implemented via `DemoContext.switchSession()`
 
 ---
 
