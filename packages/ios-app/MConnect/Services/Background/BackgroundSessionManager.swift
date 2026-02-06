@@ -51,9 +51,6 @@ class BackgroundSessionManager: ObservableObject {
     /// Subscriptions for reactive connection-state observation.
     private var cancellables = Set<AnyCancellable>()
 
-    /// Maximum time to wait for the connection to reach `.connected` before giving up.
-    private let connectionRestorationTimeout: TimeInterval = 10.0
-
     private init() {}
 
     #if DEBUG
