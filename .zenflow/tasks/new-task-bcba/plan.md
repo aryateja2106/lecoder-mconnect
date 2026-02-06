@@ -28,17 +28,18 @@ Create a detailed implementation plan based on `{@artifacts_path}/spec.md`.
 
 # Phase 1: Foundation (Core Server)
 
-### [ ] Step: Create packages/server scaffold with Bun
+### [x] Step: Create packages/server scaffold with Bun
+<!-- chat-id: f819e6fb-e835-4093-a1fd-b658feb5281f -->
 
 Create the new `packages/server` package with Bun runtime.
 
-- [ ] Create `packages/server/package.json` with Bun dependencies (zod, jose, postgres, dockerode, opik)
-- [ ] Create `packages/server/tsconfig.json` for strict TypeScript
-- [ ] Create `packages/server/biome.json` extending root config
-- [ ] Create basic directory structure: `src/{auth,ws,mcp,agents,session,observability,db}`
-- [ ] Create `packages/server/src/index.ts` with basic Bun HTTP server
-- [ ] Add `bun test` and `bun run dev` scripts
-- [ ] Verify: `bun install && bun run dev` starts server
+- [x] Create `packages/server/package.json` with Bun dependencies (zod, jose, postgres, dockerode, opik)
+- [x] Create `packages/server/tsconfig.json` for strict TypeScript
+- [x] Create `packages/server/biome.json` extending root config
+- [x] Create basic directory structure: `src/{auth,ws,mcp,agents,session,observability,db}`
+- [x] Create `packages/server/src/index.ts` with basic Bun HTTP server
+- [x] Add `bun test` and `bun run dev` scripts
+- [x] Verify: `bun install && bun run dev` starts server
 
 ### [ ] Step: Create packages/shared for common types
 
