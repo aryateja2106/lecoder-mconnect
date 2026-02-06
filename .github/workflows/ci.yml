@@ -275,6 +275,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build shared package first (dependency for server)
+        run: npm run build --workspace=@lecoder/shared
+
       - name: Build all packages
         run: npm run build
 
