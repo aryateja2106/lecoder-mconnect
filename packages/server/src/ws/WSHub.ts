@@ -39,10 +39,12 @@ import type {
   ControlRequestMessage,
   MCPForwardMessage,
   MCPResponseMessage,
+  DeviceTokenRegisterMessage,
 } from '@lecoder/shared/protocol';
 import { InputArbiter, type InputResult } from './InputArbiter.js';
 import { getJWTService } from '../auth/jwt.js';
 import type { MCPMessage } from '@lecoder/shared';
+import { deviceTokenRepository } from '../db/repositories/device-token.js';
 
 // ============================================================================
 // Types
@@ -684,6 +686,10 @@ export class WSHub {
         await this.handleMCPForward(clientId, message as MCPForwardMessage);
         break;
 
+      case 'device_token_register':
+        await this.handleDeviceTokenRegister(clientId, message as DeviceTokenRegisterMessage);
+        break;
+
       default:
         // Unknown message type
         break;
@@ -808,6 +814,27 @@ export class WSHub {
       };
 
       this.sendToClient(clientId, errorResponse);
+    }
+  }
+
+  /**
+   * Handle device token registration message
+   */
+  private async handleDeviceTokenRegister(
+    clientId: string,
+    message: DeviceTokenRegisterMessage
+  ): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    try {
+      await deviceTokenRepository.registerToken({
+        userId: client.userId,
+        token: message.deviceToken,
+        platform: message.platform,
+      });
+    } catch (error) {
+      console.error(`[WSHub] Failed to register device token for client ${clientId}:`, error);
     }
   }
 

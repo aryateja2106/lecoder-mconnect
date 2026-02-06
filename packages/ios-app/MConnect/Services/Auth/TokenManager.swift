@@ -15,6 +15,7 @@ class TokenManager {
     private let accessTokenKey = "auth.accessToken"
     private let refreshTokenKey = "auth.refreshToken"
     private let userProfileKey = "auth.userProfile"
+    private let serverURLKey = "auth.serverURL"
 
     /// Buffer in seconds subtracted from `exp` when checking if a token is still valid.
     /// This prevents using a token that will expire during a network round-trip.
@@ -48,6 +49,11 @@ class TokenManager {
         keychain.exists(forKey: accessTokenKey)
     }
 
+    /// The server URL associated with the current auth session.
+    var serverURL: String? {
+        try? keychain.loadString(forKey: serverURLKey)
+    }
+
     /// The expiration date of the current access token, or `nil` if unavailable.
     var accessTokenExpiresAt: Date? {
         guard let token = accessToken else { return nil }
@@ -60,9 +66,12 @@ class TokenManager {
     ///
     /// The access token is stored with standard device-only protection.
     /// The refresh token is stored with biometric protection.
-    func storeTokens(accessToken: String, refreshToken: String) throws {
+    func storeTokens(accessToken: String, refreshToken: String, serverURL: String? = nil) throws {
         try keychain.saveString(accessToken, forKey: accessTokenKey)
         try keychain.saveString(refreshToken, forKey: refreshTokenKey, requireBiometric: true)
+        if let serverURL {
+            try keychain.saveString(serverURL, forKey: serverURLKey)
+        }
     }
 
     /// Remove all stored tokens.
@@ -70,6 +79,7 @@ class TokenManager {
         try? keychain.delete(forKey: accessTokenKey)
         try? keychain.delete(forKey: refreshTokenKey)
         try? keychain.delete(forKey: userProfileKey)
+        try? keychain.delete(forKey: serverURLKey)
     }
 
     // MARK: - User Profile

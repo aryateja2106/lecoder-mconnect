@@ -135,9 +135,19 @@ export interface PingMessage extends BaseMessage {
     type: 'ping';
 }
 /**
+ * Register device token for push notifications
+ */
+export interface DeviceTokenRegisterMessage extends BaseMessage {
+    type: 'device_token_register';
+    /** APNs device token (hex string) */
+    deviceToken: string;
+    /** Device platform */
+    platform: 'ios' | 'android' | 'web';
+}
+/**
  * Union type for all client messages
  */
-export type ClientMessage = AuthMessage | SessionAttachMessage | SessionDetachMessage | TerminalInputMessage | ResizeMessage | ControlRequestMessage | ScrollbackRequestMessage | MCPForwardMessage | HeartbeatAckMessage | PingMessage;
+export type ClientMessage = AuthMessage | SessionAttachMessage | SessionDetachMessage | TerminalInputMessage | ResizeMessage | ControlRequestMessage | ScrollbackRequestMessage | MCPForwardMessage | HeartbeatAckMessage | PingMessage | DeviceTokenRegisterMessage;
 /**
  * Authentication success response
  */
@@ -361,6 +371,33 @@ export interface ErrorMessage extends BaseMessage {
     retryAfterMs?: number;
     /** Server timestamp */
     timestamp: number;
+}
+/**
+ * Push notification event types
+ */
+export type PushNotificationType = 'agent_completed' | 'agent_error' | 'approval_required' | 'session_idle';
+/**
+ * Push notification payload structure (sent via APNs)
+ */
+export interface PushNotificationPayload {
+    /** Notification event type */
+    type: PushNotificationType;
+    /** Title for the notification */
+    title: string;
+    /** Body text for the notification */
+    body: string;
+    /** Session ID for deep linking */
+    sessionId?: string;
+    /** Agent ID (if agent-related) */
+    agentId?: string;
+    /** Agent name (human-readable) */
+    agentName?: string;
+    /** Command awaiting approval (if approval_required) */
+    command?: string;
+    /** Badge count */
+    badge?: number;
+    /** Sound name */
+    sound?: string;
 }
 /**
  * Union type for all server messages

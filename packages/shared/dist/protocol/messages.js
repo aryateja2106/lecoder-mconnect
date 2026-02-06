@@ -49,6 +49,7 @@ export function isClientMessage(msg) {
         'mcp_forward',
         'heartbeat_ack',
         'ping',
+        'device_token_register',
     ].includes(msg.type);
 }
 /**

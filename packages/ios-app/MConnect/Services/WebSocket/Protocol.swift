@@ -220,6 +220,19 @@ struct PingMessage: Codable {
     }
 }
 
+/// Device token registration for push notifications.
+struct DeviceTokenRegisterMessage: Codable {
+    let type: String
+    let deviceToken: String
+    let platform: String
+
+    init(deviceToken: String, platform: String = "ios") {
+        self.type = "device_token_register"
+        self.deviceToken = deviceToken
+        self.platform = platform
+    }
+}
+
 // MARK: - Server → Client Messages
 
 /// Authentication success response.

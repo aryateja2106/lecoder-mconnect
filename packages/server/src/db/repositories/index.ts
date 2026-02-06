@@ -28,3 +28,8 @@ export {
   type RefreshToken,
   type CreateRefreshTokenInput,
 } from './refresh-token.js';
+export {
+  deviceTokenRepository,
+  type DeviceToken,
+  type RegisterTokenInput,
+} from './device-token.js';

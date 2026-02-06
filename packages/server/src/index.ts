@@ -8,10 +8,19 @@
 import type { ServerWebSocket } from 'bun';
 import { initializeAuth, handleAuthRoutes } from './auth/index.js';
 import { getWSHub, type WebSocketData } from './ws/WSHub.js';
-import { handleSessionRoutes, handlePresetRoutes } from './api/index.js';
+import { handleSessionRoutes, handlePresetRoutes, handleDeviceRoutes } from './api/index.js';
+import { initializePushService } from './notifications/PushService.js';
+import { initializeNotificationBridge } from './notifications/NotificationBridge.js';
 
 // Initialize modules
 initializeAuth();
+
+// Initialize push notifications (non-blocking, gracefully disabled if APNs not configured)
+initializePushService().then(() => {
+  initializeNotificationBridge();
+}).catch((error) => {
+  console.warn('Push notification initialization failed:', error);
+});
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const HOST = process.env.HOST ?? '0.0.0.0';
@@ -67,6 +76,7 @@ const server = Bun.serve<WebSocketData>({
           sessions: '/sessions/*',
           presets: '/presets/*',
           agents: '/agents/*',
+          devices: '/devices/*',
         },
       });
     }
@@ -92,6 +102,14 @@ const server = Bun.serve<WebSocketData>({
       const presetResponse = await handlePresetRoutes(request, url.pathname);
       if (presetResponse) {
         return presetResponse;
+      }
+    }
+
+    // Device routes (push notification tokens)
+    if (url.pathname.startsWith('/devices')) {
+      const deviceResponse = await handleDeviceRoutes(request, url.pathname);
+      if (deviceResponse) {
+        return deviceResponse;
       }
     }
 

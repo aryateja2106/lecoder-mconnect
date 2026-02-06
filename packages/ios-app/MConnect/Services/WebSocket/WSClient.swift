@@ -203,6 +203,14 @@ class WSClient: ObservableObject {
         send(PingMessage())
     }
 
+    // MARK: - Public API: Device Token
+
+    /// Register a device token for push notifications via WebSocket.
+    func registerDeviceToken(_ token: String) {
+        guard connectionState == .connected else { return }
+        send(DeviceTokenRegisterMessage(deviceToken: token))
+    }
+
     // MARK: - Connection Lifecycle (Private)
 
     private func performConnect(host: Host) {
@@ -365,6 +373,11 @@ class WSClient: ObservableObject {
         setConnectionState(.connected)
         startHeartbeatTimer()
         logger.info("Authenticated as client \(response.clientId)")
+
+        // Register push notification device token if available
+        if let deviceToken = PushService.shared.deviceToken {
+            registerDeviceToken(deviceToken)
+        }
     }
 
     private func handleAuthFailed(_ response: AuthFailedResponse) {

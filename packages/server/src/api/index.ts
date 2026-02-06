@@ -20,3 +20,9 @@ export {
   handleDeletePreset,
   handlePresetRoutes,
 } from './presets.js';
+
+export {
+  handleRegisterToken,
+  handleRemoveToken,
+  handleDeviceRoutes,
+} from './devices.js';

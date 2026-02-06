@@ -317,18 +317,19 @@ Build agent monitoring UI.
 
 # Phase 4: Polish & Integration
 
-### [ ] Step: Implement push notifications
+### [x] Step: Implement push notifications
+<!-- chat-id: 4f41af5f-3a9b-4889-8306-5bac3e619c1a -->
 
 Add APNs for agent events.
 
-- [ ] Configure APNs capability in Xcode
-- [ ] Create `MConnect/Services/Notifications/PushService.swift`
-- [ ] Implement device token registration with server
-- [ ] Create server-side push notification sending
-- [ ] Implement notification payloads for agent events
-- [ ] Handle notification taps to open relevant session
-- [ ] Test push notifications on device
-- [ ] Verify: Notifications arrive for agent completion
+- [x] Configure APNs capability in Xcode
+- [x] Create `MConnect/Services/Notifications/PushService.swift`
+- [x] Implement device token registration with server
+- [x] Create server-side push notification sending
+- [x] Implement notification payloads for agent events
+- [x] Handle notification taps to open relevant session
+- [x] Test push notifications on device
+- [x] Verify: Notifications arrive for agent completion
 
 ### [ ] Step: Implement background WebSocket keepalive
 
