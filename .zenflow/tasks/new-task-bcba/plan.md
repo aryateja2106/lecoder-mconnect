@@ -67,6 +67,7 @@ Set up PostgreSQL connection and schema.
 - [x] Verify: `bun test src/db` passes
 
 ### [ ] Step: Implement OAuth 2.0 with GitHub provider
+<!-- chat-id: 67b16401-69fc-48e5-85f1-ee8c9f2a4283 -->
 
 Implement OAuth flow with PKCE for mobile.
 
