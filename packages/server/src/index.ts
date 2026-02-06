@@ -5,6 +5,11 @@
  * This is the main entry point for the server.
  */
 
+import { initializeAuth, handleAuthRoutes } from './auth/index.js';
+
+// Initialize modules
+initializeAuth();
+
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const HOST = process.env.HOST ?? '0.0.0.0';
 
@@ -12,7 +17,7 @@ const server = Bun.serve({
   port: PORT,
   hostname: HOST,
 
-  fetch(request: Request): Response {
+  async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
     // Health check endpoint
@@ -36,6 +41,14 @@ const server = Bun.serve({
           agents: '/agents/*',
         },
       });
+    }
+
+    // Auth routes
+    if (url.pathname.startsWith('/auth/')) {
+      const authResponse = await handleAuthRoutes(request, url.pathname);
+      if (authResponse) {
+        return authResponse;
+      }
     }
 
     // 404 for unmatched routes

@@ -66,20 +66,21 @@ Set up PostgreSQL connection and schema.
 - [x] Write tests for repositories
 - [x] Verify: `bun test src/db` passes
 
-### [ ] Step: Implement OAuth 2.0 with GitHub provider
+### [x] Step: Implement OAuth 2.0 with GitHub provider
 <!-- chat-id: 67b16401-69fc-48e5-85f1-ee8c9f2a4283 -->
 
 Implement OAuth flow with PKCE for mobile.
 
-- [ ] Create `packages/server/src/auth/oauth.ts` with AuthService interface (spec §2.2.1)
-- [ ] Implement `getAuthorizationUrl()` with PKCE code_challenge generation
-- [ ] Implement `exchangeCode()` for token exchange
-- [ ] Create `packages/server/src/auth/providers/github.ts` provider implementation
-- [ ] Create `/auth/authorize` and `/auth/callback` HTTP endpoints
-- [ ] Write tests for OAuth flow (mock GitHub responses)
-- [ ] Verify: `bun test src/auth` passes
+- [x] Create `packages/server/src/auth/oauth.ts` with AuthService interface (spec §2.2.1)
+- [x] Implement `getAuthorizationUrl()` with PKCE code_challenge generation
+- [x] Implement `exchangeCode()` for token exchange
+- [x] Create `packages/server/src/auth/providers/github.ts` provider implementation
+- [x] Create `/auth/authorize` and `/auth/callback` HTTP endpoints
+- [x] Write tests for OAuth flow (mock GitHub responses)
+- [x] Verify: `bun test src/auth` passes
 
 ### [ ] Step: Implement JWT token management
+<!-- chat-id: 6856b949-de04-4e0c-a130-f7531219e915 -->
 
 Implement JWT issuance, validation, and refresh.
 

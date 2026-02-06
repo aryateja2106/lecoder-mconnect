@@ -23,3 +23,8 @@ export {
   type UpdateClientInput,
   type ClientFilter,
 } from './client.js';
+export {
+  refreshTokenRepository,
+  type RefreshToken,
+  type CreateRefreshTokenInput,
+} from './refresh-token.js';
