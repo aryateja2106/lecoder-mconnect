@@ -477,6 +477,7 @@ export class AgentManager {
     if (agent) {
       await agent.kill(signal);
       this.agents.delete(agentId);
+      this.agentStartTimes.delete(agentId); // Clean up start time tracking
       return true;
     }
     return false;
@@ -489,6 +490,7 @@ export class AgentManager {
     const killPromises = Array.from(this.agents.values()).map((agent) => agent.kill());
     await Promise.all(killPromises);
     this.agents.clear();
+    this.agentStartTimes.clear(); // Clean up all start time tracking
   }
 
   /**
