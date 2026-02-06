@@ -21,11 +21,16 @@ import type {
 // Re-export types for convenience
 export * from './types.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamically imported SDK types
+// The Opik SDK is dynamically imported (optional dependency). We use `any`
+// because our `.end({ output })` calls pass arguments to a method typed as
+// `end: () => this`. At runtime the SDK accepts the argument, but the type
+// definitions don't reflect it.  Switching to the real types would require
+// replacing every `.end({ output })` with `.update(output).end()`.
+// biome-ignore lint/suspicious/noExplicitAny: dynamic SDK – see above
 type OpikClient = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: dynamic SDK
 type OpikTrace = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: dynamic SDK
 type OpikSpan = any;
 
 /**
@@ -72,6 +77,7 @@ export class OpikTracer {
   private config: OpikConfig;
   private activeSessions: Map<string, ActiveSession> = new Map();
   private enabled: boolean = false;
+  private debug: boolean;
 
   constructor(config: Partial<OpikConfig> = {}) {
     this.config = {
@@ -81,6 +87,14 @@ export class OpikTracer {
       workspaceName: config.workspaceName || process.env.OPIK_WORKSPACE_NAME,
       environment: config.environment || process.env.NODE_ENV || 'development',
     };
+    this.debug = process.env.OPIK_DEBUG === 'true' || process.env.DEBUG?.includes('opik') === true;
+  }
+
+  /** Log a message only when debug mode is enabled */
+  private log(message: string): void {
+    if (this.debug) {
+      console.log(message);
+    }
   }
 
   /**
@@ -107,7 +121,7 @@ export class OpikTracer {
       });
 
       this.enabled = true;
-      console.log(`[OpikTracer] Initialized - project: ${this.config.projectName}`);
+      this.log(`[OpikTracer] Initialized - project: ${this.config.projectName}`);
       return true;
     } catch (error) {
       console.warn('[OpikTracer] Failed to initialize Opik SDK:', error);
@@ -150,7 +164,7 @@ export class OpikTracer {
       startTime: attributes.startTime,
     });
 
-    console.log(`[OpikTracer] Session trace started: ${sessionId}`);
+    this.log(`[OpikTracer] Session trace started: ${sessionId}`);
   }
 
   /**
@@ -165,13 +179,13 @@ export class OpikTracer {
     // End any remaining agent spans
     for (const [agentId, span] of session.agentSpans) {
       span.end({ output: { status: 'session_ended' } });
-      console.log(`[OpikTracer] Agent span ended (session cleanup): ${agentId}`);
+      this.log(`[OpikTracer] Agent span ended (session cleanup): ${agentId}`);
     }
 
     // End any remaining approval spans
     for (const [command, span] of session.approvalSpans) {
       span.end({ output: { status: 'session_ended', approved: false } });
-      console.log(`[OpikTracer] Approval span ended (session cleanup): ${command.slice(0, 20)}...`);
+      this.log(`[OpikTracer] Approval span ended (session cleanup): ${command.slice(0, 20)}...`);
     }
 
     // End the session trace
@@ -185,7 +199,7 @@ export class OpikTracer {
     });
 
     this.activeSessions.delete(sessionId);
-    console.log(`[OpikTracer] Session trace ended: ${sessionId} (${duration}ms)`);
+    this.log(`[OpikTracer] Session trace ended: ${sessionId} (${duration}ms)`);
   }
 
   // ============================================
@@ -220,7 +234,7 @@ export class OpikTracer {
     });
 
     session.agentSpans.set(agentId, span);
-    console.log(`[OpikTracer] Agent span started: ${agentId} (${attributes.agentType})`);
+    this.log(`[OpikTracer] Agent span started: ${agentId} (${attributes.agentType})`);
   }
 
   /**
@@ -246,7 +260,7 @@ export class OpikTracer {
     });
 
     session.agentSpans.delete(agentId);
-    console.log(`[OpikTracer] Agent span ended: ${agentId} (exit: ${data.exitCode})`);
+    this.log(`[OpikTracer] Agent span ended: ${agentId} (exit: ${data.exitCode})`);
   }
 
   // ============================================
@@ -289,7 +303,7 @@ export class OpikTracer {
       });
     }
 
-    console.log(
+    this.log(
       `[OpikTracer] Command tracked: ${attributes.command.slice(0, 30)}... (${attributes.blocked ? 'blocked' : attributes.requiresApproval ? 'pending' : 'executed'})`
     );
   }
@@ -323,7 +337,7 @@ export class OpikTracer {
 
     // Key by command for lookup
     session.approvalSpans.set(attributes.command, span);
-    console.log(`[OpikTracer] Approval request: ${attributes.command.slice(0, 30)}...`);
+    this.log(`[OpikTracer] Approval request: ${attributes.command.slice(0, 30)}...`);
   }
 
   /**
@@ -351,7 +365,7 @@ export class OpikTracer {
     });
 
     session.approvalSpans.delete(command);
-    console.log(
+    this.log(
       `[OpikTracer] Approval ${data.approved ? 'approved' : 'denied'}: ${command.slice(0, 30)}... (${data.responseTime}ms)`
     );
   }
@@ -387,7 +401,7 @@ export class OpikTracer {
       output: { status: 'connected' },
     });
 
-    console.log(`[OpikTracer] Client connected: ${attributes.clientType} (${attributes.clientId})`);
+    this.log(`[OpikTracer] Client connected: ${attributes.clientType} (${attributes.clientId})`);
   }
 
   /**
@@ -417,7 +431,7 @@ export class OpikTracer {
       },
     });
 
-    console.log(`[OpikTracer] Client disconnected: ${clientId} (${duration}ms)`);
+    this.log(`[OpikTracer] Client disconnected: ${clientId} (${duration}ms)`);
   }
 
   // ============================================
@@ -433,7 +447,7 @@ export class OpikTracer {
 
     try {
       await this.client.flush();
-      console.log('[OpikTracer] Traces flushed successfully');
+      this.log('[OpikTracer] Traces flushed successfully');
     } catch (error) {
       console.warn('[OpikTracer] Failed to flush traces:', error);
     }
