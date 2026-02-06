@@ -53,7 +53,8 @@ Create a detailed implementation plan based on `{@artifacts_path}/spec.md`.
 
 ## Implementation Steps
 
-### [ ] Step 1: Create Demo Session Data and Types
+### [x] Step 1: Create Demo Session Data and Types
+<!-- chat-id: a0423533-f923-4952-9ad5-997612c91136 -->
 
 Create the demo session data structure and pre-recorded terminal output.
 
@@ -74,6 +75,14 @@ Create the demo session data structure and pre-recorded terminal output.
 **Verification:**
 - TypeScript compiles without errors
 - Data follows exact interface contracts from spec.md
+
+**Completed:** Created `apps/web/src/data/demo-session.ts` with:
+- `DemoFrame`, `DemoSession`, `DemoScenario` type definitions
+- ANSI color helpers for realistic terminal output
+- Claude Code session (55s) with full REST API creation demo and approval flow
+- Gemini CLI session (30s) with database setup demo
+- Shell session (20s) with system monitor demo
+- Helper functions: `getDemoSession()`, `getAllDemoSessions()`, `getDefaultDemoSession()`
 
 ---
 
