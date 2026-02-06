@@ -221,7 +221,8 @@ Integrate Opik tracing throughout agent lifecycle.
 
 # Phase 3: iOS App Core
 
-### [ ] Step: Create Xcode project structure
+### [x] Step: Create Xcode project structure
+<!-- chat-id: 996536be-4f3b-4bb5-b7f9-0800b60dc19d -->
 
 Initialize iOS app with SwiftUI.
 

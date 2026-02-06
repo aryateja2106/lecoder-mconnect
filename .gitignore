@@ -138,3 +138,12 @@ MCONNECT_VIDEO_CREATION_COMPLETE.md
 apps/video/
 # User uploads (development/testing)
 .mconnect-uploads/
+
+# Xcode / iOS
+packages/ios-app/MConnect.xcodeproj/xcuserdata/
+packages/ios-app/MConnect.xcodeproj/project.xcworkspace/xcuserdata/
+packages/ios-app/build/
+packages/ios-app/DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
