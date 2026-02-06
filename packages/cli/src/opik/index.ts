@@ -21,24 +21,12 @@ import type {
 // Re-export types for convenience
 export * from './types.js';
 
-/**
- * Opik client interface (minimal subset we use)
- * This allows us to work with the SDK without hard dependency
- */
-interface OpikClient {
-  trace(options: { name: string; input?: unknown; output?: unknown }): OpikTrace;
-  flush(): Promise<void>;
-}
-
-interface OpikTrace {
-  span(options: { name: string; type?: string; input?: unknown; output?: unknown }): OpikSpan;
-  end(options?: { output?: unknown }): void;
-}
-
-interface OpikSpan {
-  span(options: { name: string; type?: string; input?: unknown; output?: unknown }): OpikSpan;
-  end(options?: { output?: unknown }): void;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamically imported SDK types
+type OpikClient = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type OpikTrace = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type OpikSpan = any;
 
 /**
  * Active trace/span tracking
