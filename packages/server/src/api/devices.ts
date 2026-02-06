@@ -13,6 +13,34 @@ import { deviceTokenRepository } from '../db/repositories/device-token.js';
 import type { AccessTokenClaims } from '@lecoder/shared';
 
 // ============================================================================
+// Rate Limiting
+// ============================================================================
+
+/** Max device token registration attempts per user within the window */
+const RATE_LIMIT_MAX = 10;
+/** Rate limit window in milliseconds (5 minutes) */
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Check if a userId has exceeded the device token registration rate limit.
+ * Returns true if rate-limited.
+ */
+export function isDeviceTokenRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+// ============================================================================
 // Auth Helper
 // ============================================================================
 
@@ -53,6 +81,10 @@ function unauthorized(): Response {
 export async function handleRegisterToken(request: Request): Promise<Response> {
   const claims = await authenticateRequest(request);
   if (!claims) return unauthorized();
+
+  if (isDeviceTokenRateLimited(claims.sub)) {
+    return Response.json({ error: 'Too many requests' }, { status: 429 });
+  }
 
   try {
     const body = await request.json() as { token?: string; platform?: string };

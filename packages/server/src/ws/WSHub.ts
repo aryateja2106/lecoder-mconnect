@@ -45,6 +45,7 @@ import { InputArbiter, type InputResult } from './InputArbiter.js';
 import { getJWTService } from '../auth/jwt.js';
 import type { MCPMessage } from '@lecoder/shared';
 import { deviceTokenRepository } from '../db/repositories/device-token.js';
+import { isDeviceTokenRateLimited } from '../api/devices.js';
 import { LatencyTracker, type LatencyMetrics } from './LatencyTracker.js';
 
 // ============================================================================
@@ -857,6 +858,12 @@ export class WSHub {
   ): Promise<void> {
     const client = this.clients.get(clientId);
     if (!client) return;
+
+    // Rate limit per user
+    if (isDeviceTokenRateLimited(client.userId)) {
+      console.warn(`[WSHub] Device token registration rate-limited for client ${clientId}`);
+      return;
+    }
 
     // Validate token format (hex string, 64+ chars for APNs)
     if (!message.deviceToken || typeof message.deviceToken !== 'string' || !/^[a-f0-9]{64,}$/i.test(message.deviceToken)) {

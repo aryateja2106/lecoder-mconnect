@@ -99,13 +99,9 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         // Route the notification payload through PushService (navigate on tap)
         Task { @MainActor in
             PushService.shared.handleNotificationPayload(userInfo, navigate: true)
-            PushService.shared.clearBadge()
+            await PushService.shared.clearBadge()
         }
 
         completionHandler()
     }
-}
-
-extension Notification.Name {
-    static let openSession = Notification.Name("openSession")
 }

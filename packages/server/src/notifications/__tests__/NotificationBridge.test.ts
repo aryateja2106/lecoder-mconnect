@@ -5,9 +5,11 @@
  * and the PushService.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { NotificationBridge, resetNotificationBridge } from '../NotificationBridge.js';
 import { PushService, resetPushService } from '../PushService.js';
+import * as agentRepo from '../../db/repositories/agent.js';
+import * as sessionRepo from '../../db/repositories/session.js';
 import { EventEmitter } from 'events';
 
 // ============================================================================
@@ -64,6 +66,16 @@ describe('NotificationBridge', () => {
       expect(mockAgentManager.listenerCount('statusChange')).toBe(1);
       expect(mockAgentManager.listenerCount('error')).toBe(1);
     });
+
+    it('should remove listeners on stop', () => {
+      bridge.start();
+      expect(mockAgentManager.listenerCount('statusChange')).toBe(1);
+      expect(mockAgentManager.listenerCount('error')).toBe(1);
+
+      bridge.stop();
+      expect(mockAgentManager.listenerCount('statusChange')).toBe(0);
+      expect(mockAgentManager.listenerCount('error')).toBe(0);
+    });
   });
 
   describe('status change events', () => {
@@ -107,6 +119,77 @@ describe('NotificationBridge', () => {
         mockAgentManager.emit('statusChange', 'agent-2', 'error', 'running');
         mockAgentManager.emit('error', 'agent-3', new Error('crash'));
       }).not.toThrow();
+    });
+  });
+
+  describe('notification dispatch (enabled)', () => {
+    let notifyCompletedSpy: ReturnType<typeof spyOn>;
+    let notifyErrorSpy: ReturnType<typeof spyOn>;
+
+    beforeEach(() => {
+      // Mock push service as enabled and spy on notification methods
+      spyOn(pushService, 'isEnabled').mockReturnValue(true);
+      notifyCompletedSpy = spyOn(pushService, 'notifyAgentCompleted').mockResolvedValue(undefined as any);
+      notifyErrorSpy = spyOn(pushService, 'notifyAgentError').mockResolvedValue(undefined as any);
+
+      // Mock DB lookups for agent context resolution
+      spyOn(agentRepo.agentRepository, 'findById').mockResolvedValue({
+        id: 'agent-1',
+        sessionId: 'session-1',
+        name: 'Claude',
+        status: 'exited',
+        config: {} as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      spyOn(sessionRepo.sessionRepository, 'findById').mockResolvedValue({
+        id: 'session-1',
+        userId: 'user-1',
+        name: 'Test Session',
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+    });
+
+    it('should call notifyAgentCompleted on exited from running', async () => {
+      bridge.start();
+      mockAgentManager.emit('statusChange', 'agent-1', 'exited', 'running');
+
+      // Wait for async handler to complete
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(notifyCompletedSpy).toHaveBeenCalledWith('user-1', 'agent-1', 'Claude', 'session-1');
+    });
+
+    it('should call notifyAgentError on error from running', async () => {
+      bridge.start();
+      mockAgentManager.emit('statusChange', 'agent-1', 'error', 'running');
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(notifyErrorSpy).toHaveBeenCalledWith('user-1', 'agent-1', 'Claude', 'session-1');
+    });
+
+    it('should call notifyAgentError on error event', async () => {
+      bridge.start();
+      mockAgentManager.emit('error', 'agent-1', new Error('process crashed'));
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(notifyErrorSpy).toHaveBeenCalledWith('user-1', 'agent-1', 'Claude', 'session-1');
+    });
+
+    it('should not notify on non-terminal transitions', async () => {
+      bridge.start();
+      mockAgentManager.emit('statusChange', 'agent-1', 'running', 'starting');
+      mockAgentManager.emit('statusChange', 'agent-1', 'idle', 'running');
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(notifyCompletedSpy).not.toHaveBeenCalled();
+      expect(notifyErrorSpy).not.toHaveBeenCalled();
     });
   });
 });

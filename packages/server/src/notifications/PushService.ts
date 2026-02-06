@@ -257,23 +257,31 @@ export class PushService {
    * Build APNs payload from our notification payload
    */
   private buildAPNsPayload(payload: PushNotificationPayload): APNsPayload {
-    return {
+    const apnsPayload: APNsPayload = {
       aps: {
         alert: {
           title: payload.title,
           body: payload.body,
         },
-        badge: payload.badge ?? 1,
         sound: payload.sound ?? 'default',
         'mutable-content': 1,
       },
       // Custom data for the app to process
       type: payload.type,
-      sessionId: payload.sessionId,
-      agentId: payload.agentId,
-      agentName: payload.agentName,
-      command: payload.command,
     };
+
+    // Only include badge when explicitly set
+    if (payload.badge !== undefined) {
+      apnsPayload.aps.badge = payload.badge;
+    }
+
+    // Only include optional custom data fields when present
+    if (payload.sessionId) apnsPayload.sessionId = payload.sessionId;
+    if (payload.agentId) apnsPayload.agentId = payload.agentId;
+    if (payload.agentName) apnsPayload.agentName = payload.agentName;
+    if (payload.command) apnsPayload.command = payload.command;
+
+    return apnsPayload;
   }
 
   /**

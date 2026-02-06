@@ -133,8 +133,8 @@ class PushService: ObservableObject {
     // MARK: - Badge Management
 
     /// Clear the app badge count.
-    func clearBadge() {
-        UNUserNotificationCenter.current().setBadgeCount(0)
+    func clearBadge() async {
+        try? await UNUserNotificationCenter.current().setBadgeCount(0)
     }
 }
 
@@ -145,4 +145,5 @@ extension Notification.Name {
     static let agentError = Notification.Name("agentError")
     static let approvalRequired = Notification.Name("approvalRequired")
     static let sessionIdle = Notification.Name("sessionIdle")
+    static let openSession = Notification.Name("openSession")
 }

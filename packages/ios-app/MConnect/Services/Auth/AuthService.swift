@@ -122,7 +122,8 @@ class AuthService: ObservableObject {
 
             try tokenManager.storeTokens(
                 accessToken: tokenResponse.accessToken,
-                refreshToken: tokenResponse.refreshToken
+                refreshToken: tokenResponse.refreshToken,
+                serverURL: pending.serverURL
             )
 
             pendingOAuth = nil
@@ -156,7 +157,8 @@ class AuthService: ObservableObject {
 
         try tokenManager.storeTokens(
             accessToken: tokenResponse.accessToken,
-            refreshToken: tokenResponse.refreshToken
+            refreshToken: tokenResponse.refreshToken,
+            serverURL: serverURL
         )
 
         isAuthenticated = true
