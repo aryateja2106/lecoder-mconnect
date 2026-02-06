@@ -153,18 +153,19 @@ Create container management using Docker API.
 - [x] Write tests with Docker integration
 - [x] Verify: `bun test:integration src/agents` passes
 
-### [ ] Step: Implement Agent Manager
+### [x] Step: Implement Agent Manager
+<!-- chat-id: e6ab874f-37e6-4140-872d-4946404568a6 -->
 
 Create agent lifecycle management.
 
-- [ ] Create `packages/server/src/agents/AgentManager.ts` implementing interface from spec §2.2.3
-- [ ] Implement `createAgent()` with container provisioning
-- [ ] Implement `startAgent()`, `stopAgent()`
-- [ ] Implement I/O methods: `writeToAgent()`, `onAgentOutput()`
-- [ ] Implement status tracking and database persistence
-- [ ] Wire agent output to WebSocket hub
-- [ ] Write tests for agent lifecycle
-- [ ] Verify: `bun test src/agents` passes
+- [x] Create `packages/server/src/agents/AgentManager.ts` implementing interface from spec §2.2.3
+- [x] Implement `createAgent()` with container provisioning
+- [x] Implement `startAgent()`, `stopAgent()`
+- [x] Implement I/O methods: `writeToAgent()`, `onAgentOutput()`
+- [x] Implement status tracking and database persistence
+- [x] Wire agent output to WebSocket hub
+- [x] Write tests for agent lifecycle
+- [x] Verify: `bun test src/agents` passes
 
 ### [ ] Step: Implement MCP stdio transport
 
