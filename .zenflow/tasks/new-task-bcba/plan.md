@@ -259,18 +259,19 @@ Create iOS authentication flow.
 - [x] Write tests for auth flow
 - [x] Verify: XCTest passes
 
-### [ ] Step: Implement WebSocket client
+### [x] Step: Implement WebSocket client
+<!-- chat-id: 61db1f78-93bb-49ba-a898-0f27083cc4e1 -->
 
 Create protocol v3 WebSocket client.
 
-- [ ] Create `MConnect/Services/WebSocket/WSClient.swift` (from spec §7.3)
-- [ ] Implement `connect()` with auth message
-- [ ] Implement message type handling for all v3 messages
-- [ ] Implement `sendInput()` for terminal input
-- [ ] Implement heartbeat handling
-- [ ] Implement automatic reconnection on disconnect
-- [ ] Write tests for WebSocket client
-- [ ] Verify: XCTest passes
+- [x] Create `MConnect/Services/WebSocket/WSClient.swift` (from spec §7.3)
+- [x] Implement `connect()` with auth message
+- [x] Implement message type handling for all v3 messages
+- [x] Implement `sendInput()` for terminal input
+- [x] Implement heartbeat handling
+- [x] Implement automatic reconnection on disconnect
+- [x] Write tests for WebSocket client
+- [x] Verify: XCTest passes
 
 ### [ ] Step: Create Host management views
 
