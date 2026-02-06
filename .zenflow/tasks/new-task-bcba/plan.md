@@ -245,18 +245,19 @@ Create secure credential storage.
 - [x] Write unit tests for Keychain operations
 - [x] Verify: XCTest passes
 
-### [ ] Step: Implement OAuth and token management
+### [x] Step: Implement OAuth and token management
+<!-- chat-id: 6d4df947-a6d9-4c52-b9b8-8529dd712c3c -->
 
 Create iOS authentication flow.
 
-- [ ] Create `MConnect/Services/Auth/AuthService.swift`
-- [ ] Implement PKCE code_challenge generation
-- [ ] Implement `startOAuthFlow()` opening Safari
-- [ ] Handle `mconnect://callback` URL scheme
-- [ ] Create `TokenManager.swift` for token storage in Keychain
-- [ ] Implement automatic token refresh
-- [ ] Write tests for auth flow
-- [ ] Verify: XCTest passes
+- [x] Create `MConnect/Services/Auth/AuthService.swift`
+- [x] Implement PKCE code_challenge generation
+- [x] Implement `startOAuthFlow()` opening Safari
+- [x] Handle `mconnect://callback` URL scheme
+- [x] Create `TokenManager.swift` for token storage in Keychain
+- [x] Implement automatic token refresh
+- [x] Write tests for auth flow
+- [x] Verify: XCTest passes
 
 ### [ ] Step: Implement WebSocket client
 

@@ -36,6 +36,8 @@
 		/* Test target build files */
 		T1A2B3C4D5E6F7A8B9C0D1E0 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */; };
+		T1A2B3C4D5E6F7A8B9C0D2A0 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */; };
+		T1A2B3C4D5E6F7A8B9C0D2A2 /* TokenManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +83,8 @@
 		/* Test target file references */
 		T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthTests.swift; sourceTree = "<group>"; };
+		T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
+		T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenManagerTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E5 /* MConnectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MConnectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -264,6 +268,8 @@
 			children = (
 				T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */,
 				T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */,
+				T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */,
+				T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */,
 			);
 			path = MConnectTests;
 			sourceTree = "<group>";
@@ -401,6 +407,8 @@
 			files = (
 				T1A2B3C4D5E6F7A8B9C0D1E0 /* KeychainServiceTests.swift in Sources */,
 				T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */,
+				T1A2B3C4D5E6F7A8B9C0D2A0 /* AuthServiceTests.swift in Sources */,
+				T1A2B3C4D5E6F7A8B9C0D2A2 /* TokenManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
