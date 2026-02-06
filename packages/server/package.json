@@ -24,7 +24,7 @@
     "db:reset": "bun run src/db/migrate.ts reset"
   },
   "dependencies": {
-    "@lecoder/shared": "workspace:*",
+    "@lecoder/shared": "*",
     "zod": "^3.23.8",
     "jose": "^5.2.4",
     "postgres": "^3.4.4",

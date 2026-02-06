@@ -222,7 +222,6 @@ MConnect takes security seriously:
 | **Guardrails** | 4-tier configurable command blocking |
 | **Tunnel Encryption** | All traffic encrypted via Cloudflare |
 | **No Persistence** | Sessions are ephemeral |
-| **Container Isolation** | Docker sandboxing with private namespaces |
 
 ### Guardrail Levels
 
