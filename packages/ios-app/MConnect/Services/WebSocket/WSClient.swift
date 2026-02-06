@@ -8,6 +8,8 @@ enum ConnectionState: Equatable {
     case authenticating
     case connected
     case reconnecting(attempt: Int)
+    /// Network is unavailable — reconnection will resume automatically when the network returns.
+    case waitingForNetwork
 }
 
 /// Delegate protocol for receiving WebSocket events.
@@ -55,6 +57,8 @@ extension WSClientDelegate {
 /// 3. Send/receive typed protocol messages
 /// 4. Respond to server heartbeats
 /// 5. Automatically reconnect on disconnection with exponential backoff
+/// 6. Monitor network reachability and pause/resume reconnection accordingly
+/// 7. Restore session attachment after successful reconnection
 @MainActor
 class WSClient: ObservableObject {
 
@@ -75,6 +79,7 @@ class WSClient: ObservableObject {
 
     private let tokenManager: TokenManager
     private let authService: AuthService
+    private let networkMonitor: NetworkMonitor
     private let encoder = JSONEncoder()
     private let logger = Logger(subsystem: "com.lecoder.mconnect", category: "WSClient")
 
@@ -95,7 +100,7 @@ class WSClient: ObservableObject {
     var autoReconnect = true
 
     /// Maximum number of reconnection attempts before giving up.
-    let maxReconnectAttempts = 5
+    let maxReconnectAttempts = 10
 
     /// Base delay in seconds for exponential backoff.
     private let baseReconnectDelay: TimeInterval = 1.0
@@ -107,6 +112,11 @@ class WSClient: ObservableObject {
     private var reconnectTask: Task<Void, Never>?
     private var isIntentionalDisconnect = false
 
+    // MARK: - Session Restoration State
+
+    /// The session ID to re-attach to after a successful reconnection.
+    private var pendingSessionReattach: String?
+
     // MARK: - Heartbeat Configuration
 
     /// Interval to check that heartbeats are still arriving. The server sends heartbeats
@@ -117,22 +127,64 @@ class WSClient: ObservableObject {
 
     // MARK: - Init
 
-    init(tokenManager: TokenManager = .shared, authService: AuthService? = nil) {
+    init(
+        tokenManager: TokenManager = .shared,
+        authService: AuthService? = nil,
+        networkMonitor: NetworkMonitor = .shared
+    ) {
         self.tokenManager = tokenManager
         self.authService = authService ?? AuthService(tokenManager: tokenManager)
+        self.networkMonitor = networkMonitor
+        setupNetworkMonitor()
+    }
+
+    // MARK: - Network Monitor Integration
+
+    private func setupNetworkMonitor() {
+        networkMonitor.onNetworkRestored = { [weak self] in
+            Task { @MainActor in
+                self?.handleNetworkRestored()
+            }
+        }
+        networkMonitor.start()
+    }
+
+    /// Called when the network transitions from unreachable → reachable.
+    private func handleNetworkRestored() {
+        guard !isIntentionalDisconnect, let host = currentHost else { return }
+
+        switch connectionState {
+        case .waitingForNetwork:
+            logger.info("Network restored — resuming reconnection immediately")
+            reconnectAttempt = 0
+            scheduleReconnect(host: host)
+        case .reconnecting:
+            // Already trying to reconnect; the next attempt will succeed now that
+            // the network is back. Reset attempts so we get fresh backoff.
+            logger.info("Network restored during reconnection — resetting attempt counter")
+            reconnectAttempt = 0
+        case .disconnected where autoReconnect:
+            // Exhausted attempts earlier but network is back; give it another shot.
+            logger.info("Network restored after max attempts — retrying")
+            reconnectAttempt = 0
+            scheduleReconnect(host: host)
+        default:
+            break
+        }
     }
 
     // MARK: - Public API: Connection
 
     /// Connect to a host. If already connected, disconnects first.
     func connect(to host: Host) {
-        if connectionState != .disconnected {
+        if connectionState != .disconnected && connectionState != .waitingForNetwork {
             disconnect()
         }
 
         currentHost = host
         isIntentionalDisconnect = false
         reconnectAttempt = 0
+        pendingSessionReattach = nil
 
         performConnect(host: host)
     }
@@ -142,6 +194,7 @@ class WSClient: ObservableObject {
         isIntentionalDisconnect = true
         reconnectTask?.cancel()
         reconnectTask = nil
+        pendingSessionReattach = nil
         teardownConnection()
         setConnectionState(.disconnected)
     }
@@ -158,6 +211,7 @@ class WSClient: ObservableObject {
     func detachFromSession() {
         send(SessionDetachMessage())
         attachedSessionId = nil
+        pendingSessionReattach = nil
         agents = []
         controlState = nil
     }
@@ -223,6 +277,13 @@ class WSClient: ObservableObject {
             return
         }
 
+        // Check network before attempting connection
+        if !networkMonitor.isReachable {
+            logger.info("Network unavailable — waiting for connectivity")
+            setConnectionState(.waitingForNetwork)
+            return
+        }
+
         setConnectionState(.connecting)
         logger.info("Connecting to \(url.absoluteString)")
 
@@ -247,10 +308,15 @@ class WSClient: ObservableObject {
         urlSession?.invalidateAndCancel()
         urlSession = nil
         clientId = nil
+    }
+
+    /// Clear all session-related state. Called only on intentional disconnect or fresh connect.
+    private func clearSessionState() {
         attachedSessionId = nil
         sessions = []
         agents = []
         controlState = nil
+        pendingSessionReattach = nil
     }
 
     private func setConnectionState(_ state: ConnectionState) {
@@ -372,6 +438,7 @@ class WSClient: ObservableObject {
 
     private func handleAuthSuccess(_ response: AuthSuccessResponse) {
         clientId = response.clientId
+        let wasReconnecting = reconnectAttempt > 0
         reconnectAttempt = 0
         setConnectionState(.connected)
         startHeartbeatTimer()
@@ -384,6 +451,15 @@ class WSClient: ObservableObject {
 
         // Register with background session manager for keepalive
         BackgroundSessionManager.shared.configure(wsClient: self)
+
+        // Restore session if this was a reconnection
+        if wasReconnecting, let sessionId = pendingSessionReattach {
+            logger.info("Restoring session attachment to \(sessionId) after reconnection")
+            attachToSession(sessionId)
+            // Request scrollback to catch up on output missed during disconnection
+            requestScrollback(sessionId: sessionId, fromLine: 0, count: 500)
+            pendingSessionReattach = nil
+        }
     }
 
     private func handleAuthFailed(_ response: AuthFailedResponse) {
@@ -471,18 +547,39 @@ class WSClient: ObservableObject {
     // MARK: - Reconnection
 
     private func handleConnectionLost() {
+        // Save session state for restoration before tearing down
+        if let sessionId = attachedSessionId {
+            pendingSessionReattach = sessionId
+        }
+
         teardownConnection()
 
         guard autoReconnect, !isIntentionalDisconnect, let host = currentHost else {
+            clearSessionState()
             setConnectionState(.disconnected)
+            return
+        }
+
+        // If the network is down, wait for it to come back instead of burning attempts
+        if !networkMonitor.isReachable {
+            logger.info("Network unreachable — entering waitingForNetwork state")
+            setConnectionState(.waitingForNetwork)
             return
         }
 
         guard reconnectAttempt < maxReconnectAttempts else {
             logger.warning("Max reconnect attempts reached (\(self.maxReconnectAttempts))")
+            clearSessionState()
             setConnectionState(.disconnected)
             return
         }
+
+        scheduleReconnect(host: host)
+    }
+
+    /// Schedule a reconnection attempt with exponential backoff.
+    private func scheduleReconnect(host: Host) {
+        reconnectTask?.cancel()
 
         reconnectAttempt += 1
         setConnectionState(.reconnecting(attempt: reconnectAttempt))

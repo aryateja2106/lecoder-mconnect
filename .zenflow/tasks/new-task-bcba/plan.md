@@ -343,16 +343,17 @@ Enable background session monitoring.
 - [x] Test background behavior
 - [x] Verify: Connection survives app backgrounding
 
-### [ ] Step: Implement reconnection handling
+### [x] Step: Implement reconnection handling
+<!-- chat-id: c635d958-bf73-46ba-a283-4a475d69576e -->
 
 Add robust reconnection logic.
 
-- [ ] Implement exponential backoff in WebSocket client
-- [ ] Handle network status changes (Reachability)
-- [ ] Restore session state on reconnect
-- [ ] Show connection status indicator in UI
-- [ ] Test reconnection scenarios
-- [ ] Verify: Reconnects within 5s of network recovery
+- [x] Implement exponential backoff in WebSocket client
+- [x] Handle network status changes (Reachability)
+- [x] Restore session state on reconnect
+- [x] Show connection status indicator in UI
+- [x] Test reconnection scenarios
+- [x] Verify: Reconnects within 5s of network recovery
 
 ### [ ] Step: Performance optimization
 

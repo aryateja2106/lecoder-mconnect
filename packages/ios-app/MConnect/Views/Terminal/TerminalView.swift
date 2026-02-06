@@ -108,6 +108,7 @@ struct TerminalView: View {
         case .connected: return .green
         case .connecting, .authenticating: return .yellow
         case .reconnecting: return .orange
+        case .waitingForNetwork: return .orange
         case .disconnected: return .red
         }
     }
@@ -160,11 +161,24 @@ struct ConnectionStatusOverlay: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            ProgressView()
-                .tint(.white)
+            if state == .waitingForNetwork {
+                Image(systemName: "wifi.slash")
+                    .font(.title2)
+                    .foregroundColor(.white)
+            } else {
+                ProgressView()
+                    .tint(.white)
+            }
+
             Text(statusText)
                 .font(.subheadline)
                 .foregroundColor(.white)
+
+            if let subtitle = statusSubtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+            }
         }
         .padding(24)
         .background(.ultraThinMaterial.opacity(0.9))
@@ -179,6 +193,18 @@ struct ConnectionStatusOverlay: View {
         case .authenticating: return "Authenticating..."
         case .connected: return "Connected"
         case .reconnecting(let attempt): return "Reconnecting (\(attempt))..."
+        case .waitingForNetwork: return "No Network"
+        }
+    }
+
+    private var statusSubtitle: String? {
+        switch state {
+        case .waitingForNetwork:
+            return "Will reconnect when network is available"
+        case .reconnecting:
+            return "Session will be restored automatically"
+        default:
+            return nil
         }
     }
 }

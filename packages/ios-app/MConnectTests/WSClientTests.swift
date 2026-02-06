@@ -666,9 +666,9 @@ final class WSClientStateTests: XCTestCase {
         XCTAssertTrue(client.autoReconnect)
     }
 
-    func testMaxReconnectAttemptsIsFive() {
+    func testMaxReconnectAttemptsIsTen() {
         let client = WSClient(tokenManager: TokenManager())
-        XCTAssertEqual(client.maxReconnectAttempts, 5)
+        XCTAssertEqual(client.maxReconnectAttempts, 10)
     }
 }
 
