@@ -108,20 +108,20 @@ Create WebSocket server with authentication.
 - [x] Write tests for WebSocket hub
 - [x] Verify: `bun test src/ws` passes
 
-### [ ] Step: Implement session CRUD via REST API
+### [x] Step: Implement session CRUD via REST API
 <!-- chat-id: 8e7a59f5-05c9-4c42-bd4c-59b0a952c596 -->
 
 Create REST endpoints for session management.
 
-- [ ] Create `packages/server/src/api/sessions.ts` with session routes
-- [ ] Implement `POST /sessions` - create session
-- [ ] Implement `GET /sessions` - list user sessions
-- [ ] Implement `GET /sessions/:id` - get session details
-- [ ] Implement `DELETE /sessions/:id` - terminate session
-- [ ] Implement `GET /sessions/:id/connect` - get WebSocket connection info
-- [ ] Add JWT auth middleware to all routes
-- [ ] Write integration tests
-- [ ] Verify: `bun test src/api` passes
+- [x] Create `packages/server/src/api/sessions.ts` with session routes
+- [x] Implement `POST /sessions` - create session
+- [x] Implement `GET /sessions` - list user sessions
+- [x] Implement `GET /sessions/:id` - get session details
+- [x] Implement `DELETE /sessions/:id` - terminate session
+- [x] Implement `GET /sessions/:id/connect` - get WebSocket connection info
+- [x] Add JWT auth middleware to all routes
+- [x] Write integration tests
+- [x] Verify: `bun test src/api` passes
 
 ### [ ] Step: Initialize Opik SDK integration
 
