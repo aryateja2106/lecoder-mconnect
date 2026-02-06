@@ -130,6 +130,10 @@ class BackgroundSessionManager: ObservableObject {
 
     /// Called when the app transitions to foreground.
     /// Restores the WebSocket connection if it was lost while backgrounded.
+    ///
+    /// Session re-attachment is handled by `WSClient.handleAuthSuccess()` via
+    /// `pendingSessionReattach`, so this method only triggers the connection —
+    /// it does **not** separately call `attachToSession`.
     func appWillEnterForeground() {
         isInBackground = false
 
@@ -141,8 +145,12 @@ class BackgroundSessionManager: ObservableObject {
 
         guard let client = wsClient else { return }
 
-        // If we had a connection before and it's now gone, restore it
-        if wasConnectedBeforeBackground && client.connectionState == .disconnected {
+        let needsRestore = wasConnectedBeforeBackground && (
+            client.connectionState == .disconnected ||
+            client.connectionState == .waitingForNetwork
+        )
+
+        if needsRestore {
             logger.info("Restoring WebSocket connection after foregrounding")
             restoreConnection(client: client)
         } else if client.connectionState == .connected {
@@ -241,11 +249,11 @@ class BackgroundSessionManager: ObservableObject {
             scheduleKeepAliveTask()
             completeTask(true)
         } else if let host = lastConnectedHost {
-            // Try to reconnect, then complete once done (or after timeout)
+            // Try to reconnect, then complete once done (or after timeout).
+            // Session re-attachment is handled by WSClient.handleAuthSuccess().
             logger.info("Attempting reconnect during background processing")
             client.connect(to: host)
 
-            // Use Combine to wait for connected state, then complete
             client.$connectionState
                 .first(where: { $0 == .connected })
                 .timeout(.seconds(8), scheduler: DispatchQueue.main)
@@ -257,10 +265,8 @@ class BackgroundSessionManager: ObservableObject {
                         self?.scheduleKeepAliveTask()
                         completeTask(true)
                     },
-                    receiveValue: { [weak self, weak client] _ in
-                        guard let client, let sessionId = self?.lastAttachedSessionId else { return }
-                        client.attachToSession(sessionId)
-                        self?.logger.info("Re-attached to session during background processing")
+                    receiveValue: { [weak self] _ in
+                        self?.logger.info("Reconnected during background processing")
                     }
                 )
                 .store(in: &cancellables)
@@ -271,7 +277,11 @@ class BackgroundSessionManager: ObservableObject {
 
     // MARK: - Connection Restoration
 
-    /// Restore the WebSocket connection to the last known host and session.
+    /// Restore the WebSocket connection to the last known host.
+    ///
+    /// Only triggers the connection. Session re-attachment is handled by
+    /// `WSClient.handleAuthSuccess()` via `pendingSessionReattach`, which
+    /// is set when the connection is lost.
     private func restoreConnection(client: WSClient) {
         guard let host = lastConnectedHost else {
             logger.info("No host to restore connection to")
@@ -279,29 +289,5 @@ class BackgroundSessionManager: ObservableObject {
         }
 
         client.connect(to: host)
-
-        // Re-attach to session reactively once the connection reaches `.connected`.
-        guard let sessionId = lastAttachedSessionId else { return }
-
-        // Cancel any previous restoration subscription
-        cancellables.removeAll()
-
-        client.$connectionState
-            .first(where: { $0 == .connected })
-            .timeout(.seconds(connectionRestorationTimeout), scheduler: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    if case .failure = completion {
-                        self?.logger.warning("Timed out waiting for connection to restore session attachment")
-                    }
-                    self?.cancellables.removeAll()
-                },
-                receiveValue: { [weak self, weak client] _ in
-                    guard let client else { return }
-                    client.attachToSession(sessionId)
-                    self?.logger.info("Re-attached to session \(sessionId) after foregrounding")
-                }
-            )
-            .store(in: &cancellables)
     }
 }

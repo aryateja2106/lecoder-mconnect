@@ -367,19 +367,20 @@ Optimize for latency targets.
 - [x] Benchmark against spec §9.4 targets
 - [x] Verify: Input latency <100ms, app launch <2s
 
-### [ ] Step: Create documentation
+### [x] Step: Create documentation
 <!-- chat-id: 84f1c50c-a576-4de4-a156-42e3949fd43a -->
 
 Write user and developer documentation.
 
-- [ ] Create `docs/api/openapi.yaml` from spec
-- [ ] Create `docs/protocol/v3.md` with message format
-- [ ] Update `packages/server/README.md` with setup instructions
-- [ ] Update `packages/ios-app/README.md` with build instructions
-- [ ] Update root `README.md` with V2 overview
-- [ ] Create `.env.example` with all environment variables
+- [x] Create `docs/api/openapi.yaml` from spec
+- [x] Create `docs/protocol/v3.md` with message format
+- [x] Update `packages/server/README.md` with setup instructions
+- [x] Create `packages/ios-app/README.md` with build instructions
+- [x] Update root `README.md` with V2 overview
+- [x] Create `.env.example` with all environment variables (documented in server README; .env file writes blocked by security hook)
 
 ### [ ] Step: CI/CD pipeline
+<!-- chat-id: 2288b216-9a17-44d7-a66c-e4af15be6a48 -->
 
 Set up automated testing.
 

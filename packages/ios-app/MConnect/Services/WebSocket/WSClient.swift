@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import os
 
@@ -79,7 +80,7 @@ class WSClient: ObservableObject {
 
     private let tokenManager: TokenManager
     private let authService: AuthService
-    private let networkMonitor: NetworkMonitor
+    private let networkMonitor: NetworkMonitoring
     private let encoder = JSONEncoder()
     private let logger = Logger(subsystem: "com.lecoder.mconnect", category: "WSClient")
 
@@ -108,9 +109,13 @@ class WSClient: ObservableObject {
     /// Maximum delay in seconds for exponential backoff.
     private let maxReconnectDelay: TimeInterval = 30.0
 
+    /// Number of scrollback lines to request after a successful reconnection.
+    var reconnectScrollbackLines: Int = 500
+
     private var reconnectAttempt = 0
     private var reconnectTask: Task<Void, Never>?
     private var isIntentionalDisconnect = false
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Session Restoration State
 
@@ -130,7 +135,7 @@ class WSClient: ObservableObject {
     init(
         tokenManager: TokenManager = .shared,
         authService: AuthService? = nil,
-        networkMonitor: NetworkMonitor = .shared
+        networkMonitor: NetworkMonitoring = NetworkMonitor.shared
     ) {
         self.tokenManager = tokenManager
         self.authService = authService ?? AuthService(tokenManager: tokenManager)
@@ -141,11 +146,12 @@ class WSClient: ObservableObject {
     // MARK: - Network Monitor Integration
 
     private func setupNetworkMonitor() {
-        networkMonitor.onNetworkRestored = { [weak self] in
-            Task { @MainActor in
+        networkMonitor.networkRestoredPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
                 self?.handleNetworkRestored()
             }
-        }
+            .store(in: &cancellables)
         networkMonitor.start()
     }
 
@@ -176,7 +182,14 @@ class WSClient: ObservableObject {
     // MARK: - Public API: Connection
 
     /// Connect to a host. If already connected, disconnects first.
+    ///
+    /// When reconnecting to the same host (e.g., after background restoration),
+    /// preserves `pendingSessionReattach` so the session is automatically restored
+    /// after authentication succeeds.
     func connect(to host: Host) {
+        let isSameHost = currentHost?.id == host.id
+        let savedReattach = isSameHost ? pendingSessionReattach : nil
+
         if connectionState != .disconnected && connectionState != .waitingForNetwork {
             disconnect()
         }
@@ -184,7 +197,7 @@ class WSClient: ObservableObject {
         currentHost = host
         isIntentionalDisconnect = false
         reconnectAttempt = 0
-        pendingSessionReattach = nil
+        pendingSessionReattach = savedReattach
 
         performConnect(host: host)
     }
@@ -438,7 +451,6 @@ class WSClient: ObservableObject {
 
     private func handleAuthSuccess(_ response: AuthSuccessResponse) {
         clientId = response.clientId
-        let wasReconnecting = reconnectAttempt > 0
         reconnectAttempt = 0
         setConnectionState(.connected)
         startHeartbeatTimer()
@@ -452,13 +464,14 @@ class WSClient: ObservableObject {
         // Register with background session manager for keepalive
         BackgroundSessionManager.shared.configure(wsClient: self)
 
-        // Restore session if this was a reconnection
-        if wasReconnecting, let sessionId = pendingSessionReattach {
+        // Restore session if we have a pending reattach (set during connection loss
+        // or preserved across same-host reconnection via BackgroundSessionManager)
+        if let sessionId = pendingSessionReattach {
             logger.info("Restoring session attachment to \(sessionId) after reconnection")
+            pendingSessionReattach = nil
             attachToSession(sessionId)
             // Request scrollback to catch up on output missed during disconnection
-            requestScrollback(sessionId: sessionId, fromLine: 0, count: 500)
-            pendingSessionReattach = nil
+            requestScrollback(sessionId: sessionId, fromLine: 0, count: reconnectScrollbackLines)
         }
     }
 

@@ -36,12 +36,14 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 
 ### Core Features
 - **🤖 Multi-Agent Support** - Run Claude Code, Gemini CLI, Cursor Agent, Codex, Aider in parallel
-- **📱 Mobile-First UI** - Touch-optimized terminal with smooth scrolling
-- **🔒 Read-Only by Default** - Safely monitor without accidental interruption
-- **🌐 Secure Remote Access** - Cloudflare Tunnel (no port forwarding needed)
-- **🛡️ Guardrails** - Block dangerous commands, require approval for risky ones
+- **📱 Native iOS App** - SwiftUI app with Keychain security and push notifications (V2)
+- **🔒 OAuth 2.0 + PKCE** - Secure authentication with GitHub, token rotation (V2)
+- **🐳 Container Isolation** - Docker-based agent runtime with resource limits (V2)
+- **📡 WebSocket Protocol v3** - Real-time bidirectional communication with input arbitration (V2)
+- **🔍 Opik Observability** - LLM tracing, token counting, and performance metrics (V2)
+- **🛡️ Guardrails** - 4-tier command filtering (none, permissive, default, strict)
 - **📷 QR Code Connect** - Scan to connect instantly
-- **⚡ Shell-First Architecture** - Reliable PTY handling that actually works
+- **🌐 Secure Remote Access** - Cloudflare Tunnel (no port forwarding needed)
 
 ### New in v0.1.7
 - **🐳 Container Isolation** - Run agents in Docker containers for safety and reproducibility
@@ -212,13 +214,15 @@ MConnect takes security seriously:
 
 | Feature | Description |
 |---------|-------------|
-| **Token Auth** | Cryptographically secure session tokens |
-| **Rate Limiting** | Protection against connection flooding |
-| **Input Sanitization** | Blocks injection attacks |
-| **Guardrails** | Configurable command blocking |
+| **OAuth 2.0 + PKCE** | Industry-standard authentication (V2) |
+| **JWT with Rotation** | 15-min access tokens, 30-day refresh with rotation (V2) |
+| **Container Isolation** | Private PID/IPC namespaces, capability dropping (V2) |
+| **iOS Keychain** | Biometric-protected credential storage (V2) |
+| **Rate Limiting** | Per-client input rate limiting (100 chars/sec) |
+| **Guardrails** | 4-tier configurable command blocking |
 | **Tunnel Encryption** | All traffic encrypted via Cloudflare |
 | **No Persistence** | Sessions are ephemeral |
-| **Container Isolation** | Optional Docker sandboxing |
+| **Container Isolation** | Docker sandboxing with private namespaces |
 
 ### Guardrail Levels
 
@@ -231,45 +235,63 @@ MConnect takes security seriously:
 
 ## 🏗️ Architecture
 
+### V2 Architecture (Current)
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  YOUR LAPTOP                                                     │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  MConnect CLI                                              │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
-│  │  │ PTY Manager │  │ Agent       │  │ Container       │   │  │
-│  │  │ (node-pty)  │  │ Manager     │  │ Manager (Docker)│   │  │
-│  │  └──────┬──────┘  └──────┬──────┘  └────────┬────────┘   │  │
-│  │         └────────────────┴──────────────────┘             │  │
-│  │                          │                                 │  │
-│  │              ┌───────────┴───────────┐                    │  │
-│  │              │   WebSocket Hub       │                    │  │
-│  │              │   (multiplexed)       │                    │  │
-│  │              └───────────────────────┘                    │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└──────────────────────────────┬───────────────────────────────────┘
-                               │ Cloudflare Tunnel (encrypted)
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  YOUR PHONE                                                      │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  Mobile Web UI (PWA)                                       │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                      │  │
-│  │  │Research │ │  Spec   │ │  Tests  │  ← Agent Tabs        │  │
-│  │  └─────────┘ └─────────┘ └─────────┘                      │  │
-│  │  ┌───────────────────────────────────────────────────┐    │  │
-│  │  │  xterm.js Terminal (Direct Mode)                  │    │  │
-│  │  │  - Tap to type directly                          │    │  │
-│  │  │  - 10K line scrollback                           │    │  │
-│  │  │  - IME support for international input           │    │  │
-│  │  └───────────────────────────────────────────────────┘    │  │
-│  │  [Enter] [Del] [Ctrl] [Tab] [Esc] [↑] [↓] [^C]           │  │
-│  │  ┌─────────────────────────────────────┐ ┌─────┐          │  │
-│  │  │ $ type command...                   │ │ Run │          │  │
-│  │  └─────────────────────────────────────┘ └─────┘          │  │
-│  │  [DIRECT MODE]                           [KILL ^C]        │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          iOS App (Swift)                              │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │   Vault    │  │   Hosts    │  │  Terminal  │  │   Agents   │    │
+│  │ (Keychain) │  │ (Profiles) │  │  (SwiftUI) │  │ (Dashboard)│    │
+│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘    │
+│        └───────────────┴───────────────┴───────────────┘            │
+│                                │                                     │
+│                    ┌───────────┴───────────┐                        │
+│                    │   WebSocket Client    │                        │
+│                    │   (Protocol v3.0)     │                        │
+│                    └───────────┬───────────┘                        │
+└────────────────────────────────┼────────────────────────────────────┘
+                                 │ wss:// (TLS 1.3)
+┌────────────────────────────────┼────────────────────────────────────┐
+│                         MConnect Server (Bun)                        │
+│  ┌─────────────────────────────┴─────────────────────────────────┐  │
+│  │                      WebSocket Hub (v3)                        │  │
+│  │  • Input arbitration (PC priority)  • MCP message routing      │  │
+│  │  • Heartbeat & reconnection         • Guardrails               │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│           │                    │                    │                │
+│  ┌────────┴────────┐  ┌───────┴───────┐  ┌────────┴────────┐      │
+│  │   Auth Service  │  │Session Manager│  │  Agent Manager  │      │
+│  │  • OAuth 2.0    │  │  • PostgreSQL │  │  • Containers   │      │
+│  │  • JWT + PKCE   │  │  • Scrollback │  │  • MCP Gateway  │      │
+│  └─────────────────┘  └───────────────┘  └────────┬────────┘      │
+│                                                    │                │
+│  ┌─────────────────────────────────────────────────┴──────────┐    │
+│  │                 Docker Container Runtime                    │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐                 │    │
+│  │  │  Claude  │  │  Gemini  │  │  Custom  │                 │    │
+│  │  │  Code    │  │   CLI    │  │  Agents  │                 │    │
+│  │  └──────────┘  └──────────┘  └──────────┘                 │    │
+│  └────────────────────────────────────────────────────────────┘    │
+│                                                                     │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │                    Observability (Opik)                     │    │
+│  │  • Trace all operations  • Token counting  • User metrics  │    │
+│  └────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### V1 Architecture (CLI)
+
+```
+┌──────────────────────────────────┐     ┌──────────────────────────┐
+│  MConnect CLI (Node.js)          │     │  Mobile Web UI (Phone)   │
+│  ┌──────────┐  ┌──────────────┐  │     │  ┌──────────────────┐   │
+│  │PTY Mgr   │  │  WebSocket   │──┼─────┼──│  xterm.js Term   │   │
+│  │(node-pty)│  │  Hub         │  │     │  └──────────────────┘   │
+│  └──────────┘  └──────────────┘  │     └──────────────────────────┘
+└──────────────────────────────────┘
+         via Cloudflare Tunnel
 ```
 
 ## 🤖 Supported AI Agents
@@ -283,6 +305,29 @@ MConnect takes security seriously:
 | Aider | ✅ Supported | Shell mode |
 | Custom | ✅ Supported | Any CLI tool |
 
+## 📦 Project Structure
+
+```
+lecoder-mconnect/
+├── packages/
+│   ├── server/          # Bun server (V2) - OAuth, WebSocket v3, containers
+│   ├── shared/          # Shared types, protocol definitions, guardrails
+│   ├── cli/             # CLI tool (V1) - node-pty, Cloudflare tunnel
+│   └── ios-app/         # Native iOS app (V2) - SwiftUI, Keychain
+├── apps/
+│   └── website/         # Next.js marketing site
+├── docs/
+│   ├── api/             # OpenAPI 3.1 specification
+│   └── protocol/        # WebSocket protocol v3 spec
+└── docker-compose.yml   # PostgreSQL for local development
+```
+
+See individual package READMEs for detailed documentation:
+- [Server](packages/server/README.md) - API endpoints, environment variables, setup
+- [iOS App](packages/ios-app/README.md) - Xcode setup, build instructions
+- [API Spec](docs/api/openapi.yaml) - OpenAPI 3.1 specification
+- [Protocol v3](docs/protocol/v3.md) - WebSocket message format
+
 ## 🔧 Development
 
 ```bash
@@ -293,20 +338,29 @@ cd lecoder-mconnect
 # Install dependencies
 npm install
 
+# --- V2 Server (Bun) ---
+# Start PostgreSQL
+docker compose up -d
+
+# Start server with hot reload
+cd packages/server && bun run dev
+
+# Run server tests
+cd packages/server && bun test
+
+# --- V1 CLI (Node.js) ---
 # Build CLI
 npm run build --workspace=lecoder-mconnect
 
-# Build Web UI
-npm run build --workspace=@lecoder/web
+# Start CLI development
+cd packages/cli && npm run dev
 
-# Run tests
+# --- All packages ---
+# Run all tests
 npm run test
 
-# Run with coverage
-cd packages/cli && npm run test:coverage
-
-# Start development (watches for changes)
-cd packages/cli && npm run dev
+# Build everything
+npm run build
 ```
 
 ### Project Structure

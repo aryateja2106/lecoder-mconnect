@@ -1,14 +1,25 @@
+import Combine
 import Foundation
 import Network
 import os
 
+/// Protocol for network monitoring — extracted for testability.
+@MainActor
+protocol NetworkMonitoring: AnyObject {
+    var isReachable: Bool { get }
+    var networkRestoredPublisher: PassthroughSubject<Void, Never> { get }
+    func start()
+    func stop()
+}
+
 /// Monitors network path changes using `NWPathMonitor` and publishes reachability state.
 ///
 /// - Detects transitions between satisfied / unsatisfied / requiresConnection.
-/// - Fires a callback when the network becomes reachable after a period of being unreachable,
-///   which the WebSocket client uses to trigger immediate reconnection.
+/// - Publishes a `networkRestored` event when the network transitions from
+///   unreachable to reachable, which subscribers (e.g., `WSClient`) use to
+///   trigger immediate reconnection.
 @MainActor
-class NetworkMonitor: ObservableObject {
+class NetworkMonitor: ObservableObject, NetworkMonitoring {
 
     static let shared = NetworkMonitor()
 
@@ -26,14 +37,17 @@ class NetworkMonitor: ObservableObject {
     /// Whether the connection is constrained (Low Data Mode).
     @Published private(set) var isConstrained: Bool = false
 
-    // MARK: - Callback
+    // MARK: - Network Restored Event
 
-    /// Called on the main actor when the network transitions from unreachable to reachable.
-    var onNetworkRestored: (() -> Void)?
+    /// Fires when the network transitions from unreachable to reachable.
+    /// Multiple subscribers can listen without clobbering each other.
+    let networkRestoredPublisher = PassthroughSubject<Void, Never>()
 
     // MARK: - Private
 
-    private let monitor: NWPathMonitor
+    /// The active path monitor. Replaced on each `start()` because
+    /// `NWPathMonitor.cancel()` is terminal — a cancelled monitor cannot be restarted.
+    private var monitor: NWPathMonitor
     private let queue = DispatchQueue(label: "com.lecoder.mconnect.network-monitor")
     private let logger = Logger(subsystem: "com.lecoder.mconnect", category: "NetworkMonitor")
     private var isMonitoring = false
@@ -49,6 +63,9 @@ class NetworkMonitor: ObservableObject {
         guard !isMonitoring else { return }
         isMonitoring = true
 
+        // Create a fresh monitor — NWPathMonitor.cancel() is terminal, so a
+        // previously stopped monitor cannot be reused.
+        monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor in
                 self?.handlePathUpdate(path)
@@ -77,21 +94,21 @@ class NetworkMonitor: ObservableObject {
         isConstrained = path.isConstrained
         interfaceType = path.availableInterfaces.first?.type
 
-        let interfaceName = path.availableInterfaces.first?.type.debugDescription ?? "none"
+        let interfaceName = path.availableInterfaces.first?.type.displayName ?? "none"
         logger.info("Network path: \(path.status == .satisfied ? "satisfied" : "unsatisfied"), interface: \(interfaceName), expensive: \(path.isExpensive)")
 
-        // Fire restoration callback when transitioning from unreachable → reachable
+        // Fire restoration event when transitioning from unreachable → reachable
         if !wasReachable && nowReachable {
-            logger.info("Network restored — triggering reconnection callback")
-            onNetworkRestored?()
+            logger.info("Network restored — notifying subscribers")
+            networkRestoredPublisher.send()
         }
     }
 }
 
-// MARK: - NWInterface.InterfaceType Debug
+// MARK: - NWInterface.InterfaceType Display Name
 
 extension NWInterface.InterfaceType {
-    var debugDescription: String {
+    var displayName: String {
         switch self {
         case .wifi: return "wifi"
         case .cellular: return "cellular"

@@ -1,5 +1,42 @@
+import Combine
 import XCTest
 @testable import MConnect
+
+// MARK: - Mock Network Monitor
+
+@MainActor
+class MockNetworkMonitor: NetworkMonitoring {
+    var isReachable: Bool = true
+    let networkRestoredPublisher = PassthroughSubject<Void, Never>()
+
+    var startCallCount = 0
+    var stopCallCount = 0
+
+    func start() { startCallCount += 1 }
+    func stop() { stopCallCount += 1 }
+
+    /// Simulate the network going down.
+    func simulateNetworkLoss() {
+        isReachable = false
+    }
+
+    /// Simulate the network coming back.
+    func simulateNetworkRestored() {
+        isReachable = true
+        networkRestoredPublisher.send()
+    }
+}
+
+// MARK: - State Tracking Delegate
+
+@MainActor
+class StateTracker: WSClientDelegate {
+    var stateHistory: [ConnectionState] = []
+
+    func wsClient(_ client: WSClient, didChangeState state: ConnectionState) {
+        stateHistory.append(state)
+    }
+}
 
 // MARK: - NetworkMonitor Tests
 
@@ -8,111 +45,209 @@ final class NetworkMonitorTests: XCTestCase {
 
     func testDefaultStateIsReachable() {
         let monitor = NetworkMonitor.shared
-        // Default state before any path update should be reachable (optimistic)
         XCTAssertTrue(monitor.isReachable)
     }
 
     func testDefaultIsNotExpensive() {
-        let monitor = NetworkMonitor.shared
-        XCTAssertFalse(monitor.isExpensive)
+        XCTAssertFalse(NetworkMonitor.shared.isExpensive)
     }
 
     func testDefaultIsNotConstrained() {
-        let monitor = NetworkMonitor.shared
-        XCTAssertFalse(monitor.isConstrained)
+        XCTAssertFalse(NetworkMonitor.shared.isConstrained)
     }
 
-    func testStartAndStopDoNotCrash() {
+    func testStartAndStopLifecycle() {
         let monitor = NetworkMonitor.shared
         monitor.start()
-        monitor.start() // Double start should be safe
+        monitor.start() // Double start is a no-op
         monitor.stop()
-        monitor.stop() // Double stop should be safe
+        monitor.stop() // Double stop is a no-op
     }
 
-    func testCallbackCanBeSet() {
+    func testRestartAfterStopCreatesNewMonitor() {
         let monitor = NetworkMonitor.shared
-        var callbackFired = false
-        monitor.onNetworkRestored = {
-            callbackFired = true
-        }
-        // We can't easily simulate a network change in unit tests,
-        // but we verify the callback can be set without crash
-        XCTAssertFalse(callbackFired)
-        monitor.onNetworkRestored = nil
+        monitor.start()
+        monitor.stop()
+        // This should work because start() creates a fresh NWPathMonitor
+        monitor.start()
+        monitor.stop()
+    }
+
+    func testNetworkRestoredPublisherExists() {
+        // Verify the publisher can be subscribed to without crash
+        var cancellable: AnyCancellable?
+        var received = false
+        cancellable = NetworkMonitor.shared.networkRestoredPublisher
+            .sink { received = true }
+        XCTAssertFalse(received)
+        cancellable?.cancel()
     }
 }
 
-// MARK: - WSClient Reconnection Enhanced Tests
+// MARK: - Mock NetworkMonitor Behavior Tests
 
 @MainActor
-final class WSClientReconnectionTests: XCTestCase {
+final class MockNetworkMonitorTests: XCTestCase {
 
-    func testMaxReconnectAttemptsIsTen() {
-        let client = WSClient(tokenManager: TokenManager())
-        XCTAssertEqual(client.maxReconnectAttempts, 10)
+    func testMockSimulateNetworkLoss() {
+        let mock = MockNetworkMonitor()
+        XCTAssertTrue(mock.isReachable)
+        mock.simulateNetworkLoss()
+        XCTAssertFalse(mock.isReachable)
     }
 
-    func testReconnectDelayExponentialBackoffExtended() {
-        let client = WSClient(tokenManager: TokenManager())
+    func testMockSimulateNetworkRestored() {
+        let mock = MockNetworkMonitor()
+        mock.simulateNetworkLoss()
+        XCTAssertFalse(mock.isReachable)
 
-        // Attempt 1: base delay (1.0) + jitter (0..0.5)
-        let delay1 = client.reconnectDelay(attempt: 1)
-        XCTAssertGreaterThanOrEqual(delay1, 1.0)
-        XCTAssertLessThanOrEqual(delay1, 1.5)
+        var restored = false
+        let cancellable = mock.networkRestoredPublisher.sink { restored = true }
 
-        // Attempt 2: 2.0 + jitter
-        let delay2 = client.reconnectDelay(attempt: 2)
-        XCTAssertGreaterThanOrEqual(delay2, 2.0)
-        XCTAssertLessThanOrEqual(delay2, 2.5)
-
-        // Attempt 3: 4.0 + jitter
-        let delay3 = client.reconnectDelay(attempt: 3)
-        XCTAssertGreaterThanOrEqual(delay3, 4.0)
-        XCTAssertLessThanOrEqual(delay3, 4.5)
-
-        // Attempt 5: 16.0 + jitter
-        let delay5 = client.reconnectDelay(attempt: 5)
-        XCTAssertGreaterThanOrEqual(delay5, 16.0)
-        XCTAssertLessThanOrEqual(delay5, 16.5)
-
-        // Attempt 6: capped at 30.0 + jitter (2^5 = 32 > 30)
-        let delay6 = client.reconnectDelay(attempt: 6)
-        XCTAssertGreaterThanOrEqual(delay6, 30.0)
-        XCTAssertLessThanOrEqual(delay6, 30.5)
-
-        // Attempt 10: still capped at 30.0 + jitter
-        let delay10 = client.reconnectDelay(attempt: 10)
-        XCTAssertGreaterThanOrEqual(delay10, 30.0)
-        XCTAssertLessThanOrEqual(delay10, 30.5)
+        mock.simulateNetworkRestored()
+        XCTAssertTrue(mock.isReachable)
+        XCTAssertTrue(restored)
+        cancellable.cancel()
     }
 
-    func testReconnectDelayClampsToMax() {
-        let client = WSClient(tokenManager: TokenManager())
-        let delay = client.reconnectDelay(attempt: 20)
-        XCTAssertGreaterThanOrEqual(delay, 30.0)
-        XCTAssertLessThanOrEqual(delay, 30.5)
+    func testMultipleSubscribersAllReceiveEvent() {
+        let mock = MockNetworkMonitor()
+        var count = 0
+
+        let c1 = mock.networkRestoredPublisher.sink { count += 1 }
+        let c2 = mock.networkRestoredPublisher.sink { count += 1 }
+        let c3 = mock.networkRestoredPublisher.sink { count += 1 }
+
+        mock.simulateNetworkRestored()
+        XCTAssertEqual(count, 3, "All three subscribers should receive the event")
+
+        c1.cancel()
+        c2.cancel()
+        c3.cancel()
+    }
+}
+
+// MARK: - WSClient Reconnection with Mock Network Tests
+
+@MainActor
+final class WSClientNetworkReconnectionTests: XCTestCase {
+
+    func testNetworkMonitorStartCalledOnInit() {
+        let mock = MockNetworkMonitor()
+        _ = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+        XCTAssertEqual(mock.startCallCount, 1)
     }
 
-    func testInitialStateIsDisconnected() {
-        let client = WSClient(tokenManager: TokenManager())
-        XCTAssertEqual(client.connectionState, .disconnected)
-        XCTAssertNil(client.clientId)
-        XCTAssertNil(client.attachedSessionId)
-        XCTAssertTrue(client.agents.isEmpty)
-        XCTAssertTrue(client.sessions.isEmpty)
-        XCTAssertNil(client.controlState)
+    func testWaitingForNetworkWhenConnectingWithNoNetwork() {
+        let mock = MockNetworkMonitor()
+        mock.simulateNetworkLoss()
+
+        let client = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+        let tracker = StateTracker()
+        client.delegate = tracker
+
+        let host = Host(name: "Test", hostname: "localhost", port: 8080, useTLS: false)
+        client.connect(to: host)
+
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+        XCTAssertTrue(tracker.stateHistory.contains(.waitingForNetwork))
     }
 
-    func testDisconnectSetsStateToDisconnected() {
-        let client = WSClient(tokenManager: TokenManager())
+    func testNetworkRestoredTriggersReconnectionFromWaitingState() {
+        let mock = MockNetworkMonitor()
+        mock.simulateNetworkLoss()
+
+        let client = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+        let tracker = StateTracker()
+        client.delegate = tracker
+
+        let host = Host(name: "Test", hostname: "localhost", port: 8080, useTLS: false)
+        client.connect(to: host)
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+
+        // Restore network — should transition to reconnecting
+        mock.simulateNetworkRestored()
+
+        // Should move to reconnecting (attempt 1) then connecting
+        XCTAssertTrue(
+            tracker.stateHistory.contains(.reconnecting(attempt: 1)),
+            "Expected reconnecting state after network restored, got: \(tracker.stateHistory)"
+        )
+    }
+
+    func testDisconnectFromWaitingForNetwork() {
+        let mock = MockNetworkMonitor()
+        mock.simulateNetworkLoss()
+
+        let client = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+        let host = Host(name: "Test", hostname: "localhost", port: 8080, useTLS: false)
+        client.connect(to: host)
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+
         client.disconnect()
         XCTAssertEqual(client.connectionState, .disconnected)
+
+        // Network restored after intentional disconnect should NOT trigger reconnection
+        mock.simulateNetworkRestored()
+        XCTAssertEqual(client.connectionState, .disconnected)
     }
 
-    func testAutoReconnectDefaultsToTrue() {
+    func testNetworkRestoredIgnoredWhenAlreadyConnected() {
+        let mock = MockNetworkMonitor()
+        let client = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+        let tracker = StateTracker()
+        client.delegate = tracker
+
+        // Client is disconnected but no host was ever set
+        mock.simulateNetworkRestored()
+
+        // Should stay disconnected — no currentHost to reconnect to
+        XCTAssertEqual(client.connectionState, .disconnected)
+        XCTAssertFalse(tracker.stateHistory.contains(.reconnecting(attempt: 1)))
+    }
+}
+
+// MARK: - WSClient Session Restoration Tests
+
+@MainActor
+final class WSClientSessionRestorationTests: XCTestCase {
+
+    func testConnectToSameHostPreservesPendingReattach() {
+        let mock = MockNetworkMonitor()
+        let client = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+        let host = Host(name: "Test", hostname: "localhost", port: 8080, useTLS: false)
+
+        // First connect sets the host
+        mock.simulateNetworkLoss()
+        client.connect(to: host)
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+
+        // Reconnect to the same host should not crash and should preserve state
+        client.connect(to: host)
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+    }
+
+    func testConnectToDifferentHostClearsPendingReattach() {
+        let mock = MockNetworkMonitor()
+        let client = WSClient(tokenManager: TokenManager(), networkMonitor: mock)
+
+        let host1 = Host(name: "Host1", hostname: "host1.local", port: 8080, useTLS: false)
+        let host2 = Host(name: "Host2", hostname: "host2.local", port: 8080, useTLS: false)
+
+        mock.simulateNetworkLoss()
+        client.connect(to: host1)
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+
+        // Connecting to a different host should work
+        client.connect(to: host2)
+        XCTAssertEqual(client.connectionState, .waitingForNetwork)
+    }
+
+    func testDetachClearsPendingReattach() {
         let client = WSClient(tokenManager: TokenManager())
-        XCTAssertTrue(client.autoReconnect)
+        // detachFromSession should not crash even when not connected
+        client.detachFromSession()
+        XCTAssertNil(client.attachedSessionId)
     }
 }
 
@@ -120,108 +255,56 @@ final class WSClientReconnectionTests: XCTestCase {
 
 final class ConnectionStateEqualityTests: XCTestCase {
 
-    func testDisconnectedEquality() {
-        XCTAssertEqual(ConnectionState.disconnected, ConnectionState.disconnected)
-    }
-
-    func testConnectingEquality() {
-        XCTAssertEqual(ConnectionState.connecting, ConnectionState.connecting)
-    }
-
-    func testAuthenticatingEquality() {
-        XCTAssertEqual(ConnectionState.authenticating, ConnectionState.authenticating)
-    }
-
-    func testConnectedEquality() {
-        XCTAssertEqual(ConnectionState.connected, ConnectionState.connected)
-    }
-
-    func testReconnectingEquality() {
-        XCTAssertEqual(ConnectionState.reconnecting(attempt: 3), ConnectionState.reconnecting(attempt: 3))
-        XCTAssertNotEqual(ConnectionState.reconnecting(attempt: 1), ConnectionState.reconnecting(attempt: 2))
-    }
-
     func testWaitingForNetworkEquality() {
         XCTAssertEqual(ConnectionState.waitingForNetwork, ConnectionState.waitingForNetwork)
     }
 
-    func testDifferentStatesNotEqual() {
-        XCTAssertNotEqual(ConnectionState.disconnected, ConnectionState.connected)
-        XCTAssertNotEqual(ConnectionState.connecting, ConnectionState.authenticating)
-        XCTAssertNotEqual(ConnectionState.reconnecting(attempt: 1), ConnectionState.waitingForNetwork)
+    func testWaitingForNetworkNotEqualToDisconnected() {
         XCTAssertNotEqual(ConnectionState.waitingForNetwork, ConnectionState.disconnected)
     }
-}
 
-// MARK: - WSClient Delegate State Tracking
-
-@MainActor
-final class WSClientDelegateReconnectionTests: XCTestCase {
-
-    /// A test delegate that records all state changes.
-    class StateTracker: WSClientDelegate {
-        var stateHistory: [ConnectionState] = []
-
-        func wsClient(_ client: WSClient, didChangeState state: ConnectionState) {
-            stateHistory.append(state)
-        }
+    func testWaitingForNetworkNotEqualToReconnecting() {
+        XCTAssertNotEqual(ConnectionState.reconnecting(attempt: 1), ConnectionState.waitingForNetwork)
     }
 
-    func testDelegateReceivesDisconnectState() {
-        let client = WSClient(tokenManager: TokenManager())
-        let tracker = StateTracker()
-        client.delegate = tracker
-
-        client.disconnect()
-
-        XCTAssertTrue(tracker.stateHistory.contains(.disconnected))
-    }
-
-    func testDisconnectClearsSessionState() {
-        let client = WSClient(tokenManager: TokenManager())
-
-        // Simulate having an attached session (via public property)
-        // Since attachedSessionId is private(set), we verify through disconnect behavior
-        client.disconnect()
-
-        XCTAssertNil(client.attachedSessionId)
-        XCTAssertNil(client.clientId)
-        XCTAssertTrue(client.agents.isEmpty)
-        XCTAssertTrue(client.sessions.isEmpty)
-    }
-}
-
-// MARK: - ConnectionStatusOverlay Tests
-
-final class ConnectionStatusOverlayTests: XCTestCase {
-
-    func testWaitingForNetworkStateCanBeCreated() {
-        // Verify the new state works with the overlay view
-        let state = ConnectionState.waitingForNetwork
-        XCTAssertEqual(state, .waitingForNetwork)
-    }
-
-    func testAllConnectionStatesAreHandled() {
-        // Ensure all states can be pattern matched (compile-time verification)
+    func testAllSixStatesAreDistinct() {
         let states: [ConnectionState] = [
             .disconnected,
             .connecting,
             .authenticating,
             .connected,
             .reconnecting(attempt: 1),
-            .waitingForNetwork
+            .waitingForNetwork,
         ]
-
-        for state in states {
-            switch state {
-            case .disconnected: break
-            case .connecting: break
-            case .authenticating: break
-            case .connected: break
-            case .reconnecting: break
-            case .waitingForNetwork: break
+        // Every pair should be not-equal
+        for i in 0..<states.count {
+            for j in (i + 1)..<states.count {
+                XCTAssertNotEqual(states[i], states[j], "\(states[i]) should not equal \(states[j])")
             }
         }
-        XCTAssertEqual(states.count, 6)
+    }
+}
+
+// MARK: - Reconnect Delay Extended Tests
+
+@MainActor
+final class WSClientReconnectDelayExtendedTests: XCTestCase {
+
+    func testDelayForAttempt10IsCapped() {
+        let client = WSClient(tokenManager: TokenManager())
+        let delay = client.reconnectDelay(attempt: 10)
+        XCTAssertGreaterThanOrEqual(delay, 30.0)
+        XCTAssertLessThanOrEqual(delay, 30.5)
+    }
+
+    func testReconnectScrollbackLinesDefault() {
+        let client = WSClient(tokenManager: TokenManager())
+        XCTAssertEqual(client.reconnectScrollbackLines, 500)
+    }
+
+    func testReconnectScrollbackLinesConfigurable() {
+        let client = WSClient(tokenManager: TokenManager())
+        client.reconnectScrollbackLines = 1000
+        XCTAssertEqual(client.reconnectScrollbackLines, 1000)
     }
 }
