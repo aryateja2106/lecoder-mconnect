@@ -49,6 +49,7 @@ describe('Database Client', () => {
     });
 
     test('parses individual connection params', () => {
+      delete process.env.DATABASE_URL;
       process.env.DB_HOST = 'testhost';
       process.env.DB_PORT = '5433';
       process.env.DB_NAME = 'testdb';
