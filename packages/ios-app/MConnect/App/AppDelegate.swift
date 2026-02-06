@@ -8,12 +8,45 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
+        // Register background tasks before app finishes launching
+        Task { @MainActor in
+            BackgroundSessionManager.shared.registerBackgroundTasks()
+        }
+
         // Request push notification permission on launch
         Task { @MainActor in
             _ = await PushService.shared.requestPermission()
         }
 
+        // Observe scene lifecycle notifications for background/foreground transitions
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sceneDidEnterBackground),
+            name: UIScene.didEnterBackgroundNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sceneWillEnterForeground),
+            name: UIScene.willEnterForegroundNotification,
+            object: nil
+        )
+
         return true
+    }
+
+    // MARK: - Scene Lifecycle
+
+    @objc private func sceneDidEnterBackground(_ notification: Notification) {
+        Task { @MainActor in
+            BackgroundSessionManager.shared.appDidEnterBackground()
+        }
+    }
+
+    @objc private func sceneWillEnterForeground(_ notification: Notification) {
+        Task { @MainActor in
+            BackgroundSessionManager.shared.appWillEnterForeground()
+        }
     }
 
     func application(

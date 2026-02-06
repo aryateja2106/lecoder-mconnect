@@ -331,16 +331,17 @@ Add APNs for agent events.
 - [x] Test push notifications on device
 - [x] Verify: Notifications arrive for agent completion
 
-### [ ] Step: Implement background WebSocket keepalive
+### [x] Step: Implement background WebSocket keepalive
+<!-- chat-id: 873844c6-9e9d-4b96-87a6-da35dbee6999 -->
 
 Enable background session monitoring.
 
-- [ ] Configure Background Modes capability
-- [ ] Implement `beginBackgroundTask` for WebSocket maintenance
-- [ ] Handle app backgrounding/foregrounding transitions
-- [ ] Implement connection restoration on foreground
-- [ ] Test background behavior
-- [ ] Verify: Connection survives app backgrounding
+- [x] Configure Background Modes capability
+- [x] Implement `beginBackgroundTask` for WebSocket maintenance
+- [x] Handle app backgrounding/foregrounding transitions
+- [x] Implement connection restoration on foreground
+- [x] Test background behavior
+- [x] Verify: Connection survives app backgrounding
 
 ### [ ] Step: Implement reconnection handling
 

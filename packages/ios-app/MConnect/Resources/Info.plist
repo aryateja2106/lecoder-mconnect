@@ -58,6 +58,11 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.lecoder.mconnect.ws-keepalive</string>
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>MConnect uses Face ID to protect your credentials and host connections.</string>

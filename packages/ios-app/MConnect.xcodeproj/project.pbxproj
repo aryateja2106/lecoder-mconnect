@@ -33,11 +33,13 @@
 		A1B2C3D4E5F6A7B8C9D0E2F9 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1B9 /* Agent.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E2FA /* VaultItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BA /* VaultItem.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BB /* Assets.xcassets */; };
+		A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */; };
 		/* Test target build files */
 		T1A2B3C4D5E6F7A8B9C0D1E0 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D2A0 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D2A2 /* TokenManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */; };
+		T1A2B3C4D5E6F7A8B9C0D2A4 /* BackgroundSessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A5 /* BackgroundSessionManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,11 +82,13 @@
 		B1C2D3E4F5A6B7C8D9E0F1BB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1BD /* MConnect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MConnect.entitlements; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionManager.swift; sourceTree = "<group>"; };
 		/* Test target file references */
 		T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenManagerTests.swift; sourceTree = "<group>"; };
+		T1A2B3C4D5E6F7A8B9C0D2A5 /* BackgroundSessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionManagerTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E5 /* MConnectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MConnectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -165,8 +169,17 @@
 				D1E2F3A4B5C6D7E8F9A0B1CF /* Keychain */,
 				D1E2F3A4B5C6D7E8F9A0B1D0 /* Auth */,
 				D1E2F3A4B5C6D7E8F9A0B1D1 /* Notifications */,
+				D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */ = {
+			isa = PBXGroup;
+			children = (
+				B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */,
+			);
+			path = Background;
 			sourceTree = "<group>";
 		};
 		D1E2F3A4B5C6D7E8F9A0B1C8 /* Models */ = {
@@ -270,6 +283,7 @@
 				T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */,
 				T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */,
 				T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */,
+				T1A2B3C4D5E6F7A8B9C0D2A5 /* BackgroundSessionManagerTests.swift */,
 			);
 			path = MConnectTests;
 			sourceTree = "<group>";
@@ -398,6 +412,7 @@
 				A1B2C3D4E5F6A7B8C9D0E2F8 /* Session.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E2F9 /* Agent.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E2FA /* VaultItem.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,6 +424,7 @@
 				T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */,
 				T1A2B3C4D5E6F7A8B9C0D2A0 /* AuthServiceTests.swift in Sources */,
 				T1A2B3C4D5E6F7A8B9C0D2A2 /* TokenManagerTests.swift in Sources */,
+				T1A2B3C4D5E6F7A8B9C0D2A4 /* BackgroundSessionManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

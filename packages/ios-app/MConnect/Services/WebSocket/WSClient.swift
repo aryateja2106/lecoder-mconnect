@@ -86,6 +86,9 @@ class WSClient: ObservableObject {
     private var heartbeatTimer: Timer?
     private var lastHeartbeatReceived: Date?
 
+    /// Exposes the current host for background session restoration.
+    var currentHostForBackground: Host? { currentHost }
+
     // MARK: - Reconnection State
 
     /// Whether automatic reconnection is enabled.
@@ -378,6 +381,9 @@ class WSClient: ObservableObject {
         if let deviceToken = PushService.shared.deviceToken {
             registerDeviceToken(deviceToken)
         }
+
+        // Register with background session manager for keepalive
+        BackgroundSessionManager.shared.configure(wsClient: self)
     }
 
     private func handleAuthFailed(_ response: AuthFailedResponse) {
