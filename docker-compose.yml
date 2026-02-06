@@ -1,0 +1,34 @@
+# MConnect V2 - Development Docker Compose
+#
+# Services:
+# - postgres: PostgreSQL 16 database
+#
+# Usage:
+#   docker-compose up -d       # Start services
+#   docker-compose down        # Stop services
+#   docker-compose logs -f     # View logs
+#   docker-compose down -v     # Stop and remove volumes
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mconnect-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mconnect
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:
+    driver: local

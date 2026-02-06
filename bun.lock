@@ -84,6 +84,7 @@
       "name": "@lecoder/server",
       "version": "0.1.0",
       "dependencies": {
+        "@lecoder/shared": "workspace:*",
         "dockerode": "^4.0.2",
         "jose": "^5.2.4",
         "opik": "^1.0.0",

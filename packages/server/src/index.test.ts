@@ -7,7 +7,7 @@ describe('MConnect V2 Server', () => {
 
     try {
       const response = await fetch(`http://localhost:${server.port}/health`);
-      const data = await response.json();
+      const data = (await response.json()) as { status: string; version: string; timestamp: string };
 
       expect(response.status).toBe(200);
       expect(data.status).toBe('ok');
@@ -23,7 +23,7 @@ describe('MConnect V2 Server', () => {
 
     try {
       const response = await fetch(`http://localhost:${server.port}/`);
-      const data = await response.json();
+      const data = (await response.json()) as { name: string; endpoints: string[] };
 
       expect(response.status).toBe(200);
       expect(data.name).toBe('MConnect V2 Server');
@@ -38,7 +38,7 @@ describe('MConnect V2 Server', () => {
 
     try {
       const response = await fetch(`http://localhost:${server.port}/unknown`);
-      const data = await response.json();
+      const data = (await response.json()) as { error: string };
 
       expect(response.status).toBe(404);
       expect(data.error).toBe('Not Found');

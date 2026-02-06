@@ -53,17 +53,18 @@ Create shared package for types and utilities used by both server and CLI.
 - [x] Port guardrails from `packages/cli/src/guardrails.ts` to `packages/shared/src/guardrails/`
 - [x] Verify: `bun run typecheck` passes
 
-### [ ] Step: Implement PostgreSQL database layer
+### [x] Step: Implement PostgreSQL database layer
+<!-- chat-id: 4f62b7ef-5a36-4e56-af24-88738c9b9d21 -->
 
 Set up PostgreSQL connection and schema.
 
-- [ ] Create `packages/server/src/db/client.ts` with postgres connection (using `postgres` package)
-- [ ] Create `packages/server/src/db/migrations/001_initial.sql` with schema from spec §3.1
-- [ ] Create `packages/server/src/db/migrate.ts` migration runner
-- [ ] Create `packages/server/src/db/repositories/{user,session,agent,client}.ts` with CRUD operations
-- [ ] Add `docker-compose.yml` with PostgreSQL for local dev
-- [ ] Write tests for repositories
-- [ ] Verify: `bun test src/db` passes
+- [x] Create `packages/server/src/db/client.ts` with postgres connection (using `postgres` package)
+- [x] Create `packages/server/src/db/migrations/001_initial.sql` with schema from spec §3.1
+- [x] Create `packages/server/src/db/migrate.ts` migration runner
+- [x] Create `packages/server/src/db/repositories/{user,session,agent,client}.ts` with CRUD operations
+- [x] Add `docker-compose.yml` with PostgreSQL for local dev
+- [x] Write tests for repositories
+- [x] Verify: `bun test src/db` passes
 
 ### [ ] Step: Implement OAuth 2.0 with GitHub provider
 

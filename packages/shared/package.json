@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "build": "tsc",
     "dev": "tsc --watch",
     "test": "bun test",
     "test:watch": "bun test --watch",
