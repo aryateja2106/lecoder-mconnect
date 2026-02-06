@@ -41,16 +41,17 @@ Create the new `packages/server` package with Bun runtime.
 - [x] Add `bun test` and `bun run dev` scripts
 - [x] Verify: `bun install && bun run dev` starts server
 
-### [ ] Step: Create packages/shared for common types
+### [x] Step: Create packages/shared for common types
+<!-- chat-id: 38ccb2a9-ebc5-4970-9497-738a2e8c0104 -->
 
 Create shared package for types and utilities used by both server and CLI.
 
-- [ ] Create `packages/shared/package.json`
-- [ ] Port types from `packages/cli/src/agents/types.ts` to `packages/shared/src/types/agents.ts`
-- [ ] Create `packages/shared/src/types/models.ts` with User, Session, Agent, Client interfaces (from spec §3.2)
-- [ ] Create `packages/shared/src/protocol/messages.ts` with WebSocket v3 message types (from spec §5.3-5.4)
-- [ ] Port guardrails from `packages/cli/src/guardrails.ts` to `packages/shared/src/guardrails/`
-- [ ] Verify: `bun run typecheck` passes
+- [x] Create `packages/shared/package.json`
+- [x] Port types from `packages/cli/src/agents/types.ts` to `packages/shared/src/types/agents.ts`
+- [x] Create `packages/shared/src/types/models.ts` with User, Session, Agent, Client interfaces (from spec §3.2)
+- [x] Create `packages/shared/src/protocol/messages.ts` with WebSocket v3 message types (from spec §5.3-5.4)
+- [x] Port guardrails from `packages/cli/src/guardrails.ts` to `packages/shared/src/guardrails/`
+- [x] Verify: `bun run typecheck` passes
 
 ### [ ] Step: Implement PostgreSQL database layer
 

@@ -97,6 +97,18 @@
         "typescript": "^5.3.0",
       },
     },
+    "packages/shared": {
+      "name": "@lecoder/shared",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "^3.23.8",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "^2.3.11",
+        "bun-types": "^1.1.0",
+        "typescript": "^5.3.0",
+      },
+    },
   },
   "packages": {
     "@ai-sdk/anthropic": ["@ai-sdk/anthropic@3.0.37", "", { "dependencies": { "@ai-sdk/provider": "3.0.7", "@ai-sdk/provider-utils": "4.0.13" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-tEgcJPw+a6obbF+SHrEiZsx3DNxOHqeY8bK4IpiNsZ8YPZD141R34g3lEAaQnmNN5mGsEJ8SXoEDabuzi8wFJQ=="],
@@ -278,6 +290,8 @@
     "@js-sdsl/ordered-map": ["@js-sdsl/ordered-map@4.4.2", "", {}, "sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw=="],
 
     "@lecoder/server": ["@lecoder/server@workspace:packages/server"],
+
+    "@lecoder/shared": ["@lecoder/shared@workspace:packages/shared"],
 
     "@lecoder/web": ["@lecoder/web@workspace:apps/web"],
 
