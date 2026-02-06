@@ -313,10 +313,7 @@ export class OpikTracer {
   /**
    * Track approval request
    */
-  approvalRequest(
-    sessionId: string,
-    attributes: Omit<ApprovalSpanAttributes, 'sessionId'>
-  ): void {
+  approvalRequest(sessionId: string, attributes: Omit<ApprovalSpanAttributes, 'sessionId'>): void {
     if (!this.isEnabled()) return;
 
     const session = this.activeSessions.get(sessionId);
@@ -352,7 +349,9 @@ export class OpikTracer {
 
     const span = session.approvalSpans.get(command);
     if (!span) {
-      console.warn(`[OpikTracer] Cannot resolve approval - span not found: ${command.slice(0, 20)}...`);
+      console.warn(
+        `[OpikTracer] Cannot resolve approval - span not found: ${command.slice(0, 20)}...`
+      );
       return;
     }
 
@@ -376,7 +375,10 @@ export class OpikTracer {
   /**
    * Track client connection
    */
-  clientConnected(sessionId: string, attributes: Omit<ClientConnectionAttributes, 'sessionId'>): void {
+  clientConnected(
+    sessionId: string,
+    attributes: Omit<ClientConnectionAttributes, 'sessionId'>
+  ): void {
     if (!this.isEnabled()) return;
 
     const session = this.activeSessions.get(sessionId);
