@@ -7,4 +7,15 @@
  * - Message correlation
  */
 
-export {};
+export {
+  MCPBridge,
+  MCPRequestError,
+  createMCPBridge,
+  getMCPBridge,
+  removeMCPBridge,
+  getAllMCPBridges,
+  cleanupMCPBridges,
+  type MCPBridgeConfig,
+  type MCPBridgeEvents,
+  type MCPConnectionState,
+} from './MCPBridge.js';

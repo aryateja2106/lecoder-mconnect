@@ -15,6 +15,7 @@ import type {
   AgentStatus,
   MCPMessage,
   MCPTool,
+  MCPResponse as MCPResponseType,
 } from '@lecoder/shared';
 import {
   ContainerRuntime,
@@ -23,6 +24,7 @@ import {
 } from './ContainerRuntime.js';
 import { agentRepository, type CreateAgentInput } from '../db/repositories/agent.js';
 import { getOpikService, type TraceContext } from '../observability/OpikService.js';
+import { MCPBridge, createMCPBridge, removeMCPBridge } from '../mcp/MCPBridge.js';
 
 // ============================================================================
 // Types
@@ -55,16 +57,9 @@ export interface AgentManagerEvents {
 }
 
 /**
- * MCP response placeholder - will be implemented in MCP step
+ * MCP response type from shared
  */
-export interface MCPResponse {
-  id: string | number;
-  result?: unknown;
-  error?: {
-    code: number;
-    message: string;
-  };
-}
+export type MCPResponse = MCPResponseType;
 
 /**
  * Runtime agent state (in-memory)
@@ -78,6 +73,8 @@ interface AgentRuntime {
   containerId?: string;
   /** Container streams (if attached) */
   streams?: ContainerStreams;
+  /** MCP bridge (if MCP enabled) */
+  mcpBridge?: MCPBridge;
   /** Output callbacks */
   outputCallbacks: Set<AgentOutputCallback>;
   /** Status callbacks */
@@ -321,6 +318,9 @@ export class AgentManager extends EventEmitter {
       }
     }
 
+    // Cleanup MCP bridge if exists
+    this.cleanupMCPBridge(agentId);
+
     // Remove container if exists
     if (runtime.containerId) {
       try {
@@ -394,21 +394,146 @@ export class AgentManager extends EventEmitter {
   }
 
   // ==========================================================================
-  // MCP Methods (Placeholder - Full implementation in MCP step)
+  // MCP Methods
   // ==========================================================================
 
   /**
-   * Send an MCP message to an agent
+   * Initialize MCP for an agent
    *
-   * Note: Full MCP implementation will be in a separate step
+   * Creates an MCP bridge and connects it to the agent's container streams.
+   * Should be called after the agent is started and streams are available.
    */
-  async sendMCPMessage(_agentId: string, _message: MCPMessage): Promise<MCPResponse> {
-    // Placeholder - will be implemented in MCP step
-    throw new Error('MCP not yet implemented');
+  async initializeMCP(agentId: string): Promise<void> {
+    const runtime = this.getRuntime(agentId);
+
+    if (!runtime.streams) {
+      throw new Error(`Agent ${agentId} has no streams - cannot initialize MCP`);
+    }
+
+    if (runtime.mcpBridge) {
+      throw new Error(`Agent ${agentId} already has an MCP bridge`);
+    }
+
+    const opik = getOpikService();
+    const traceCtx = opik.startTrace('mcp:initialize', {
+      agentId,
+      sessionId: runtime.sessionId,
+    });
+
+    try {
+      // Create and connect MCP bridge
+      const bridge = createMCPBridge(agentId);
+
+      // Setup event handlers
+      bridge.on('toolRegistered', (tool: MCPTool) => {
+        runtime.mcpTools.set(tool.name, tool);
+      });
+
+      bridge.on('toolUnregistered', (toolName: string) => {
+        runtime.mcpTools.delete(toolName);
+      });
+
+      bridge.on('error', (error: Error) => {
+        this.emit('error', agentId, error);
+      });
+
+      // Connect to container streams
+      await bridge.connect(runtime.streams);
+
+      runtime.mcpBridge = bridge;
+
+      opik.endTrace(traceCtx, {
+        toolCount: bridge.getTools().length,
+        capabilities: bridge.getCapabilities(),
+      });
+    } catch (error) {
+      opik.endTrace(traceCtx, undefined, error as Error);
+      throw error;
+    }
   }
 
   /**
-   * Register an MCP tool for an agent
+   * Check if an agent has MCP enabled
+   */
+  hasMCP(agentId: string): boolean {
+    const runtime = this.agents.get(agentId);
+    return !!runtime?.mcpBridge;
+  }
+
+  /**
+   * Get the MCP bridge for an agent
+   */
+  getMCPBridge(agentId: string): MCPBridge | undefined {
+    const runtime = this.agents.get(agentId);
+    return runtime?.mcpBridge;
+  }
+
+  /**
+   * Send an MCP request to an agent and wait for response
+   */
+  async sendMCPMessage(agentId: string, message: MCPMessage): Promise<MCPResponse> {
+    const runtime = this.getRuntime(agentId);
+
+    if (!runtime.mcpBridge) {
+      throw new Error(`Agent ${agentId} does not have MCP enabled`);
+    }
+
+    // MCP message should have a method - this is a request
+    if (!message.method) {
+      throw new Error('MCP message must have a method');
+    }
+
+    try {
+      const result = await runtime.mcpBridge.sendRequest(message.method, message.params);
+      return {
+        jsonrpc: '2.0',
+        id: message.id ?? 0,
+        result,
+      };
+    } catch (error) {
+      return {
+        jsonrpc: '2.0',
+        id: message.id ?? 0,
+        error: {
+          code: -32000,
+          message: (error as Error).message,
+        },
+      };
+    }
+  }
+
+  /**
+   * Call an MCP tool on an agent
+   */
+  async callMCPTool(
+    agentId: string,
+    toolName: string,
+    args?: Record<string, unknown>
+  ): Promise<unknown> {
+    const runtime = this.getRuntime(agentId);
+
+    if (!runtime.mcpBridge) {
+      throw new Error(`Agent ${agentId} does not have MCP enabled`);
+    }
+
+    return runtime.mcpBridge.callTool(toolName, args);
+  }
+
+  /**
+   * List MCP tools available on an agent
+   */
+  async listMCPTools(agentId: string): Promise<MCPTool[]> {
+    const runtime = this.getRuntime(agentId);
+
+    if (!runtime.mcpBridge) {
+      throw new Error(`Agent ${agentId} does not have MCP enabled`);
+    }
+
+    return runtime.mcpBridge.listTools();
+  }
+
+  /**
+   * Register an MCP tool for an agent (manual registration)
    */
   registerTool(agentId: string, tool: MCPTool): void {
     const runtime = this.getRuntime(agentId);
@@ -421,6 +546,18 @@ export class AgentManager extends EventEmitter {
   getTools(agentId: string): MCPTool[] {
     const runtime = this.getRuntime(agentId);
     return Array.from(runtime.mcpTools.values());
+  }
+
+  /**
+   * Cleanup MCP bridge for an agent
+   */
+  private cleanupMCPBridge(agentId: string): void {
+    const runtime = this.agents.get(agentId);
+    if (runtime?.mcpBridge) {
+      runtime.mcpBridge.disconnect();
+      removeMCPBridge(agentId);
+      runtime.mcpBridge = undefined;
+    }
   }
 
   // ==========================================================================

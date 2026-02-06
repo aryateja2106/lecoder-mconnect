@@ -167,17 +167,18 @@ Create agent lifecycle management.
 - [x] Write tests for agent lifecycle
 - [x] Verify: `bun test src/agents` passes
 
-### [ ] Step: Implement MCP stdio transport
+### [x] Step: Implement MCP stdio transport
+<!-- chat-id: 91449367-080d-4d55-a39e-603c6585b0b7 -->
 
 Add MCP protocol support.
 
-- [ ] Create `packages/server/src/mcp/MCPBridge.ts` for MCP message handling
-- [ ] Implement stdio transport using container attach
-- [ ] Implement `sendMCPMessage()` and response correlation
-- [ ] Implement tool registration from container
-- [ ] Add MCP message routing through WebSocket
-- [ ] Write tests for MCP communication
-- [ ] Verify: `bun test src/mcp` passes
+- [x] Create `packages/server/src/mcp/MCPBridge.ts` for MCP message handling
+- [x] Implement stdio transport using container attach
+- [x] Implement `sendMCPMessage()` and response correlation
+- [x] Implement tool registration from container
+- [x] Add MCP message routing through WebSocket
+- [x] Write tests for MCP communication
+- [x] Verify: `bun test src/mcp` passes
 
 ### [ ] Step: Create agent presets (Claude, Shell)
 

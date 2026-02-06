@@ -31,9 +31,12 @@ import type {
   ClientLeftMessage,
   TerminalInputMessage,
   ControlRequestMessage,
+  MCPForwardMessage,
+  MCPResponseMessage,
 } from '@lecoder/shared/protocol';
 import { InputArbiter, type InputResult } from './InputArbiter.js';
 import { getJWTService } from '../auth/jwt.js';
+import type { MCPMessage } from '@lecoder/shared';
 
 // ============================================================================
 // Types
@@ -101,6 +104,11 @@ const DEFAULT_CONFIG: WSHubConfig = {
  */
 export type InputHandler = (agentId: string, data: string) => void;
 
+/**
+ * MCP handler callback
+ */
+export type MCPHandler = (agentId: string, message: MCPMessage) => Promise<MCPMessage>;
+
 // ============================================================================
 // WSHub Class
 // ============================================================================
@@ -117,6 +125,7 @@ export class WSHub {
 
   /** Event handlers */
   private inputHandlers: Map<string, InputHandler> = new Map(); // sessionId -> handler
+  private mcpHandlers: Map<string, MCPHandler> = new Map(); // sessionId -> handler
 
   constructor(config: Partial<WSHubConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -417,6 +426,20 @@ export class WSHub {
   }
 
   /**
+   * Register MCP handler for a session
+   */
+  registerMCPHandler(sessionId: string, handler: MCPHandler): void {
+    this.mcpHandlers.set(sessionId, handler);
+  }
+
+  /**
+   * Unregister MCP handler for a session
+   */
+  unregisterMCPHandler(sessionId: string): void {
+    this.mcpHandlers.delete(sessionId);
+  }
+
+  /**
    * Attach a client to a session
    */
   attachToSession(clientId: string, sessionId: string): boolean {
@@ -624,7 +647,7 @@ export class WSHub {
         break;
 
       case 'mcp_forward':
-        // Forward to MCP bridge (not implemented in this step)
+        await this.handleMCPForward(clientId, message as MCPForwardMessage);
         break;
 
       default:
@@ -686,6 +709,54 @@ export class WSHub {
         granted: true,
         timestamp: Date.now(),
       });
+    }
+  }
+
+  /**
+   * Handle MCP forward message
+   */
+  private async handleMCPForward(clientId: string, message: MCPForwardMessage): Promise<void> {
+    const client = this.clients.get(clientId);
+    if (!client || !client.sessionId) {
+      this.sendError(clientId, 'Not attached to session', 'NOT_ATTACHED', false);
+      return;
+    }
+
+    const handler = this.mcpHandlers.get(client.sessionId);
+    if (!handler) {
+      this.sendError(clientId, 'No MCP handler registered', 'INTERNAL_ERROR', false);
+      return;
+    }
+
+    try {
+      const response = await handler(message.agentId, message.message);
+
+      // Send MCP response back to client
+      const responseMessage: MCPResponseMessage = {
+        type: 'mcp_response',
+        agentId: message.agentId,
+        message: response,
+        timestamp: Date.now(),
+      };
+
+      this.sendToClient(clientId, responseMessage);
+    } catch (error) {
+      // Send error response
+      const errorResponse: MCPResponseMessage = {
+        type: 'mcp_response',
+        agentId: message.agentId,
+        message: {
+          jsonrpc: '2.0',
+          id: message.message.id,
+          error: {
+            code: -32000,
+            message: (error as Error).message,
+          },
+        },
+        timestamp: Date.now(),
+      };
+
+      this.sendToClient(clientId, errorResponse);
     }
   }
 

@@ -604,11 +604,11 @@ describe('AgentManager', () => {
   });
 
   // ==========================================================================
-  // MCP Tests (Placeholder)
+  // MCP Tests
   // ==========================================================================
 
   describe('MCP Methods', () => {
-    it('sendMCPMessage should throw not implemented', async () => {
+    it('sendMCPMessage should throw when MCP not enabled', async () => {
       const config = createMockConfig();
       const agent = await manager.createAgent('session-1', config);
 
@@ -618,7 +618,21 @@ describe('AgentManager', () => {
           id: 1,
           method: 'test',
         })
-      ).rejects.toThrow('MCP not yet implemented');
+      ).rejects.toThrow('does not have MCP enabled');
+    });
+
+    it('hasMCP should return false for agent without MCP', async () => {
+      const config = createMockConfig();
+      const agent = await manager.createAgent('session-1', config);
+
+      expect(manager.hasMCP(agent.id)).toBe(false);
+    });
+
+    it('getMCPBridge should return undefined for agent without MCP', async () => {
+      const config = createMockConfig();
+      const agent = await manager.createAgent('session-1', config);
+
+      expect(manager.getMCPBridge(agent.id)).toBeUndefined();
     });
 
     it('registerTool should register a tool', async () => {

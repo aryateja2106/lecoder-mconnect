@@ -9,7 +9,7 @@ import { EventEmitter } from 'node:events';
 import type { AgentStatus } from '@lecoder/shared';
 import type { TerminalOutputMessage, AgentStatusMessage, ServerMessage } from '@lecoder/shared/protocol';
 import { AgentWSBridge, resetAgentWSBridge } from '../AgentWSBridge.js';
-import type { WSHub, InputHandler } from '../../ws/WSHub.js';
+import type { WSHub, InputHandler, MCPHandler } from '../../ws/WSHub.js';
 
 // ============================================================================
 // Mocks
@@ -84,6 +84,7 @@ function createMockAgentManager(): MockAgentManager {
  */
 function createMockWSHub(): WSHub {
   const inputHandlers = new Map<string, InputHandler>();
+  const mcpHandlers = new Map<string, MCPHandler>();
   const sentMessages = new Map<string, ServerMessage[]>(); // sessionId -> messages
 
   return {
@@ -92,6 +93,12 @@ function createMockWSHub(): WSHub {
     }),
     unregisterInputHandler: mock((sessionId: string) => {
       inputHandlers.delete(sessionId);
+    }),
+    registerMCPHandler: mock((sessionId: string, handler: MCPHandler) => {
+      mcpHandlers.set(sessionId, handler);
+    }),
+    unregisterMCPHandler: mock((sessionId: string) => {
+      mcpHandlers.delete(sessionId);
     }),
     broadcastToSession: mock((sessionId: string, message: ServerMessage, _excludeClientId?: string) => {
       let messages = sentMessages.get(sessionId);
@@ -104,6 +111,7 @@ function createMockWSHub(): WSHub {
     getSessionClients: mock((_sessionId: string) => []),
     // Test helpers
     _getInputHandler: (sessionId: string) => inputHandlers.get(sessionId),
+    _getMCPHandler: (sessionId: string) => mcpHandlers.get(sessionId),
     _getSentMessages: (sessionId: string) => sentMessages.get(sessionId) ?? [],
     _clearMessages: () => sentMessages.clear(),
   } as unknown as WSHub;

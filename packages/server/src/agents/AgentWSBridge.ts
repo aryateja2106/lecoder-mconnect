@@ -5,9 +5,10 @@
  * - Routes agent output to WebSocket clients
  * - Routes WebSocket input to agents
  * - Broadcasts agent status changes
+ * - Routes MCP messages between WebSocket clients and agents
  */
 
-import type { AgentStatus } from '@lecoder/shared';
+import type { AgentStatus, MCPMessage } from '@lecoder/shared';
 import type {
   TerminalOutputMessage,
   AgentStatusMessage,
@@ -26,6 +27,7 @@ import { type WSHub, getWSHub } from '../ws/WSHub.js';
  * - Register session input handlers with WSHub
  * - Forward agent output to WebSocket clients
  * - Broadcast agent status changes to session
+ * - Route MCP messages to agent and back
  */
 export class AgentWSBridge {
   private agentManager: AgentManager;
@@ -99,7 +101,7 @@ export class AgentWSBridge {
         agents.delete(agentId);
         if (agents.size === 0) {
           this.sessionMappings.delete(sessionId);
-          this.wsHub.unregisterInputHandler(sessionId);
+          this.unregisterSessionHandlers(sessionId);
         }
       }
       this.agentSessions.delete(agentId);
@@ -122,6 +124,40 @@ export class AgentWSBridge {
    */
   unregisterSessionInputHandler(sessionId: string): void {
     this.wsHub.unregisterInputHandler(sessionId);
+  }
+
+  /**
+   * Register MCP handler for a session
+   *
+   * Call this when a session becomes active to route MCP messages to agents
+   */
+  registerSessionMCPHandler(sessionId: string): void {
+    this.wsHub.registerMCPHandler(sessionId, async (agentId: string, message: MCPMessage) => {
+      return this.handleSessionMCP(sessionId, agentId, message);
+    });
+  }
+
+  /**
+   * Unregister MCP handler for a session
+   */
+  unregisterSessionMCPHandler(sessionId: string): void {
+    this.wsHub.unregisterMCPHandler(sessionId);
+  }
+
+  /**
+   * Register all handlers for a session (convenience method)
+   */
+  registerSessionHandlers(sessionId: string): void {
+    this.registerSessionInputHandler(sessionId);
+    this.registerSessionMCPHandler(sessionId);
+  }
+
+  /**
+   * Unregister all handlers for a session
+   */
+  unregisterSessionHandlers(sessionId: string): void {
+    this.unregisterSessionInputHandler(sessionId);
+    this.unregisterSessionMCPHandler(sessionId);
   }
 
   /**
@@ -150,7 +186,7 @@ export class AgentWSBridge {
       }
     }
     this.sessionMappings.delete(sessionId);
-    this.wsHub.unregisterInputHandler(sessionId);
+    this.unregisterSessionHandlers(sessionId);
   }
 
   /**
@@ -239,6 +275,25 @@ export class AgentWSBridge {
     } catch (error) {
       console.error(`[AgentWSBridge] Failed to write to agent ${agentId}:`, error);
     }
+  }
+
+  /**
+   * Handle MCP message from WebSocket - forward to agent and return response
+   */
+  private async handleSessionMCP(sessionId: string, agentId: string, message: MCPMessage): Promise<MCPMessage> {
+    // Verify agent belongs to session
+    const agents = this.sessionMappings.get(sessionId);
+    if (!agents || !agents.has(agentId)) {
+      throw new Error(`Agent ${agentId} not registered for session ${sessionId}`);
+    }
+
+    // Check if agent has MCP enabled
+    if (!this.agentManager.hasMCP(agentId)) {
+      throw new Error(`Agent ${agentId} does not have MCP enabled`);
+    }
+
+    // Forward to agent and wait for response
+    return this.agentManager.sendMCPMessage(agentId, message);
   }
 }
 
