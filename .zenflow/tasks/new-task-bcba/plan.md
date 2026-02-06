@@ -79,20 +79,20 @@ Implement OAuth flow with PKCE for mobile.
 - [x] Write tests for OAuth flow (mock GitHub responses)
 - [x] Verify: `bun test src/auth` passes
 
-### [ ] Step: Implement JWT token management
+### [x] Step: Implement JWT token management
 <!-- chat-id: 6856b949-de04-4e0c-a130-f7531219e915 -->
 
 Implement JWT issuance, validation, and refresh.
 
-- [ ] Create `packages/server/src/auth/jwt.ts` with token functions (using `jose`)
-- [ ] Implement `createTokenPair()` returning access + refresh tokens
-- [ ] Implement `validateToken()` with expiry checking
-- [ ] Implement `refreshToken()` with rotation
-- [ ] Store refresh tokens in PostgreSQL (hashed)
-- [ ] Create `/auth/refresh` endpoint
-- [ ] Create dev bypass mode (`DEV_AUTH_BYPASS=true`)
-- [ ] Write tests for JWT operations
-- [ ] Verify: `bun test src/auth` passes
+- [x] Create `packages/server/src/auth/jwt.ts` with token functions (using `jose`)
+- [x] Implement `createTokenPair()` returning access + refresh tokens
+- [x] Implement `validateToken()` with expiry checking
+- [x] Implement `refreshToken()` with rotation
+- [x] Store refresh tokens in PostgreSQL (hashed)
+- [x] Create `/auth/refresh` endpoint
+- [x] Create dev bypass mode (`DEV_AUTH_BYPASS=true`)
+- [x] Write tests for JWT operations
+- [x] Verify: `bun test src/auth` passes
 
 ### [ ] Step: Implement basic WebSocket hub with protocol v3
 
