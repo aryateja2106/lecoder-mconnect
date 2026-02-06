@@ -249,7 +249,8 @@ For `layout.tsx`:
 
 ---
 
-### [ ] Step 5: Create Health Check API Endpoint
+### [x] Step 5: Create Health Check API Endpoint
+<!-- chat-id: 938ead56-79a7-4dca-9a9d-acae0623c00d -->
 
 Add health check endpoint for deployment verification.
 
@@ -273,6 +274,15 @@ Add health check endpoint for deployment verification.
 **Verification:**
 - `curl http://localhost:3000/api/health` returns valid JSON
 - Response includes correct mode value
+
+**Completed:** Created `apps/web/src/app/api/health/route.ts` with:
+- Next.js API route handler with GET and OPTIONS methods
+- Returns JSON response with status, version (0.1.7), mode (demo/live), and ISO-8601 timestamp
+- Detects demo mode from `NEXT_PUBLIC_DEMO_MODE` environment variable
+- CORS headers: `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, OPTIONS`, `Access-Control-Allow-Headers: Content-Type`
+- Build succeeds, endpoint tested successfully:
+  - Live mode returns: `{"status":"ok","version":"0.1.7","mode":"live","timestamp":"..."}`
+  - Demo mode returns: `{"status":"ok","version":"0.1.7","mode":"demo","timestamp":"..."}`
 
 ---
 
