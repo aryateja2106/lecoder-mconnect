@@ -8,7 +8,7 @@
 import type { ServerWebSocket } from 'bun';
 import { initializeAuth, handleAuthRoutes } from './auth/index.js';
 import { getWSHub, type WebSocketData } from './ws/WSHub.js';
-import { handleSessionRoutes } from './api/index.js';
+import { handleSessionRoutes, handlePresetRoutes } from './api/index.js';
 
 // Initialize modules
 initializeAuth();
@@ -65,6 +65,7 @@ const server = Bun.serve<WebSocketData>({
           ws: '/ws',
           auth: '/auth/*',
           sessions: '/sessions/*',
+          presets: '/presets/*',
           agents: '/agents/*',
         },
       });
@@ -83,6 +84,14 @@ const server = Bun.serve<WebSocketData>({
       const sessionResponse = await handleSessionRoutes(request, url.pathname);
       if (sessionResponse) {
         return sessionResponse;
+      }
+    }
+
+    // Preset routes
+    if (url.pathname.startsWith('/presets')) {
+      const presetResponse = await handlePresetRoutes(request, url.pathname);
+      if (presetResponse) {
+        return presetResponse;
       }
     }
 

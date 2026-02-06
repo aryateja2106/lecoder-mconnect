@@ -12,3 +12,11 @@ export {
   handleGetConnectionInfo,
   handleSessionRoutes,
 } from './sessions.js';
+
+export {
+  handleListPresets,
+  handleGetPreset,
+  handleCreatePreset,
+  handleDeletePreset,
+  handlePresetRoutes,
+} from './presets.js';

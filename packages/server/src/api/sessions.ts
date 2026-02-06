@@ -18,6 +18,7 @@ import type {
 import { z } from 'zod';
 import { getAuthService, AuthError } from '../auth/index.js';
 import { sessionRepository } from '../db/repositories/index.js';
+import { resolvePreset } from '../agents/presets/index.js';
 
 // ============================================================================
 // Request Validation Schemas
@@ -91,52 +92,17 @@ async function requireAuth(request: Request): Promise<AccessTokenClaims | Respon
 // ============================================================================
 
 /**
- * Resolve a preset name to agent configurations
+ * Resolve a preset name to agent configurations.
  *
- * For now, we support simple presets. This will be expanded
- * when the Agent Manager is implemented.
+ * Uses the preset registry from agents/presets. Unknown presets
+ * return a 400 error response instead of silently defaulting.
  */
-function resolvePreset(presetName: string): AgentConfig[] {
-  switch (presetName) {
-    case 'single':
-      return [
-        {
-          type: 'claude',
-          name: 'Claude Code',
-          command: 'claude',
-        },
-      ];
-    case 'shell':
-      return [
-        {
-          type: 'shell',
-          name: 'Shell',
-          command: 'bash',
-        },
-      ];
-    case 'dev-review':
-      return [
-        {
-          type: 'claude',
-          name: 'Developer',
-          command: 'claude',
-        },
-        {
-          type: 'claude',
-          name: 'Reviewer',
-          command: 'claude',
-        },
-      ];
-    default:
-      // Unknown presets default to single shell
-      return [
-        {
-          type: 'shell',
-          name: presetName,
-          command: 'bash',
-        },
-      ];
-  }
+function resolvePresetForSession(
+  presetName: string,
+  workingDirectory: string,
+): AgentConfig[] | null {
+  const agents = resolvePreset(presetName, { cwd: workingDirectory });
+  return agents ?? null;
 }
 
 // ============================================================================
@@ -192,7 +158,16 @@ export async function handleCreateSession(request: Request): Promise<Response> {
 
   try {
     // Resolve preset to agent configurations
-    const agents = resolvePreset(preset);
+    const agents = resolvePresetForSession(preset, workingDirectory);
+    if (!agents) {
+      return Response.json(
+        {
+          error: 'invalid_request',
+          error_description: `Unknown preset '${preset}'. Use GET /presets to list available presets.`,
+        },
+        { status: 400 }
+      );
+    }
 
     // Create session
     const session = await sessionRepository.create({

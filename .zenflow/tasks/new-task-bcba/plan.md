@@ -180,16 +180,17 @@ Add MCP protocol support.
 - [x] Write tests for MCP communication
 - [x] Verify: `bun test src/mcp` passes
 
-### [ ] Step: Create agent presets (Claude, Shell)
+### [x] Step: Create agent presets (Claude, Shell)
+<!-- chat-id: 7afaf3a3-f29d-4387-a325-ddd502714f8f -->
 
 Define agent preset configurations.
 
-- [ ] Create `packages/server/src/agents/presets/claude.ts` with Claude Code container config
-- [ ] Create `packages/server/src/agents/presets/shell.ts` for shell-only agent
-- [ ] Create `packages/server/src/agents/presets/index.ts` preset registry
-- [ ] Support custom agent configuration via API
-- [ ] Write tests for preset loading
-- [ ] Verify: Can create Claude Code agent in container
+- [x] Create `packages/server/src/agents/presets/claude.ts` with Claude Code container config
+- [x] Create `packages/server/src/agents/presets/shell.ts` for shell-only agent
+- [x] Create `packages/server/src/agents/presets/index.ts` preset registry
+- [x] Support custom agent configuration via API
+- [x] Write tests for preset loading
+- [x] Verify: Can create Claude Code agent in container
 
 ### [ ] Step: Migrate guardrails from V1
 

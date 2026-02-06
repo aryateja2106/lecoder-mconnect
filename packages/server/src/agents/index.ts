@@ -42,3 +42,19 @@ export {
   type ContainerRunOptions,
   type ContainerRuntimeEvents,
 } from './ContainerRuntime.js';
+
+// Agent Presets
+export {
+  getPreset,
+  resolvePreset,
+  registerPreset,
+  unregisterPreset,
+  listPresets,
+  hasPreset,
+  createCustomAgentConfig,
+  resetPresets,
+  claudePreset,
+  devReviewPreset,
+  shellPreset,
+  ubuntuShellPreset,
+} from './presets/index.js';
