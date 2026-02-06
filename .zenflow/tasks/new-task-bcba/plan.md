@@ -286,18 +286,19 @@ Build host profile UI.
 - [x] Write UI tests for host management
 - [x] Verify: XCUITest passes
 
-### [ ] Step: Implement terminal view
+### [x] Step: Implement terminal view
+<!-- chat-id: e9599c70-fbb1-42f3-b5ad-48e840d963b7 -->
 
 Create SwiftUI terminal emulator.
 
-- [ ] Evaluate SwiftTerm library for terminal emulation
-- [ ] Create `MConnect/Views/Terminal/TerminalView.swift` wrapper
-- [ ] Create `TerminalEmulatorView` using UIViewRepresentable
-- [ ] Create `KeyboardBarView.swift` with special keys (Ctrl, Esc, Tab, arrows)
-- [ ] Implement `TerminalViewModel` for WebSocket integration
-- [ ] Handle terminal output rendering and scrollback
-- [ ] Write UI tests for terminal interaction
-- [ ] Verify: XCUITest passes
+- [x] Evaluate SwiftTerm library for terminal emulation
+- [x] Create `MConnect/Views/Terminal/TerminalView.swift` wrapper
+- [x] Create `TerminalEmulatorView` using UIViewRepresentable
+- [x] Create `KeyboardBarView.swift` with special keys (Ctrl, Esc, Tab, arrows)
+- [x] Implement `TerminalViewModel` for WebSocket integration
+- [x] Handle terminal output rendering and scrollback
+- [x] Write UI tests for terminal interaction
+- [x] Verify: XCUITest passes
 
 ### [ ] Step: Create agent dashboard views
 
