@@ -6,10 +6,14 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel in-progress runs for the same branch/PR
+# Cancel in-progress runs for the same branch/PR.
+# Only uses github.event.pull_request.number and github.ref (safe, non-user-controlled).
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+env:
+  BUN_VERSION: '1.1.38'
 
 jobs:
   # ─────────────────────────────────────────────
@@ -32,7 +36,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         run: npm ci
@@ -82,17 +86,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm run test --workspace=lecoder-mconnect
-        env:
-          SKIP_NATIVE_TESTS: 'true'
-
       - name: Run tests with coverage
-        run: npx vitest run --coverage --reporter=json --outputFile=coverage-report.json
-        working-directory: packages/cli
+        run: npm run test:coverage --workspace=lecoder-mconnect
         env:
           SKIP_NATIVE_TESTS: 'true'
-        continue-on-error: true
 
       - name: Upload CLI coverage
         uses: actions/upload-artifact@v4
@@ -133,18 +130,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: bun install
-        working-directory: packages/server
+        run: npm ci
 
       - name: Build shared package
-        run: bun run build
-        working-directory: packages/shared
+        run: npm run build --workspace=@lecoder/shared
 
       - name: Run unit tests
         run: bun test
@@ -160,7 +161,6 @@ jobs:
         working-directory: packages/server
         env:
           DATABASE_URL: postgres://postgres:test@localhost:5432/mconnect_test
-        continue-on-error: true
 
       - name: Run integration tests
         run: bun test --bail src/**/*.integration.test.ts
@@ -170,7 +170,6 @@ jobs:
           JWT_SECRET: ci-test-secret-key-do-not-use-in-production
           DEV_AUTH_BYPASS: 'true'
           SKIP_DOCKER_TESTS: 'true'
-        continue-on-error: true
 
       - name: Build server
         run: bun run build
@@ -188,14 +187,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: bun install
-        working-directory: packages/shared
+        run: npm ci
 
       - name: Run tests
         run: bun test
@@ -222,6 +226,9 @@ jobs:
         with:
           xcode-version: '15.4'
 
+      - name: Install xcpretty
+        run: gem install xcpretty
+
       - name: Build and test
         run: |
           xcodebuild test \
@@ -232,7 +239,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty --color || true
+            | xcpretty --color
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -248,7 +255,7 @@ jobs:
   build:
     name: Build All
     runs-on: ubuntu-latest
-    needs: [test-cli, test-server, test-shared]
+    needs: [test-cli, test-server, test-shared, test-ios]
 
     steps:
       - name: Checkout code
@@ -263,7 +270,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         run: npm ci
