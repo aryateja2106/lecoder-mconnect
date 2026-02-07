@@ -1,0 +1,50 @@
+{
+  "name": "@lecoder/server",
+  "version": "0.1.0",
+  "description": "MConnect V2 server - Bun-based backend for AI agent orchestration",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir ./dist --target bun",
+    "start": "bun run src/index.ts",
+    "test": "SKIP_INTEGRATION=true bun test",
+    "test:watch": "SKIP_INTEGRATION=true bun test --watch",
+    "test:integration": "bun test --bail src/**/*.integration.test.ts",
+    "test:db": "bun test src/db/",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "format": "biome format --write src/",
+    "check": "biome check src/",
+    "check:fix": "biome check --write src/",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "bun run src/db/migrate.ts up",
+    "db:migrate:status": "bun run src/db/migrate.ts status",
+    "db:reset": "bun run src/db/migrate.ts reset"
+  },
+  "dependencies": {
+    "@lecoder/shared": "*",
+    "zod": "^3.23.8",
+    "jose": "^5.2.4",
+    "postgres": "^3.4.4",
+    "dockerode": "^4.0.2",
+    "opik": "^1.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
+    "@types/dockerode": "^3.3.28",
+    "bun-types": "^1.1.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "author": "Arya Teja Rudraraju <aryateja2106@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryateja2106/lecoder-mconnect.git",
+    "directory": "packages/server"
+  }
+}
