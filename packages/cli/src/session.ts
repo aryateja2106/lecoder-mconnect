@@ -14,6 +14,7 @@ import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
 import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
+import { getObservability, initObservabilityFromEnv } from './observability/index.js';
 import {
   generateSecureToken,
   generateSessionId,
@@ -23,7 +24,7 @@ import {
 import type { SessionManager } from './session/SessionManager.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
-import { PRODUCT_NAME } from './version.js';
+import { PRODUCT_NAME, VERSION } from './version.js';
 import { getWebClientHTML } from './web/web-client.js';
 import { WSHub } from './ws/ws-hub.js';
 
@@ -106,8 +107,26 @@ export async function startSession(config: SessionConfig): Promise<void> {
     environment: process.env.NODE_ENV || 'development',
   });
 
+  // Initialize enhanced observability (if configured)
+  const obsEnabled = await initObservabilityFromEnv();
+  if (obsEnabled) {
+    spinner.message('Opik enhanced observability enabled...');
+  }
+
   // Load guardrails
   const guardrailConfig = loadGuardrails(config.guardrails);
+
+  // Start Opik session trace
+  const observability = getObservability();
+  if (observability.isEnabled()) {
+    observability.startSessionTrace(sessionId, {
+      workDir: config.workDir,
+      guardrailsLevel: config.guardrails,
+      agents: config.agents.map(a => ({ ...a, cwd: config.workDir })),
+      enableTmux: config.enableTmux !== false,
+      version: VERSION,
+    });
+  }
 
   // Create pairing code
   const pairingManager = getPairingCodeManager();
@@ -259,11 +278,19 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const tunnelUrl = tunnelResult?.url || null;
   if (tunnelUrl) {
     initStatus.tunnel = { success: true, url: tunnelUrl };
+    // Trace tunnel success
+    if (observability.isEnabled()) {
+      observability.traceTunnelCreation(true, tunnelUrl);
+    }
   } else {
     initStatus.tunnel = {
       success: false,
       error: 'Cloudflared not available or tunnel creation failed',
     };
+    // Trace tunnel failure
+    if (observability.isEnabled()) {
+      observability.traceTunnelCreation(false, undefined, initStatus.tunnel.error);
+    }
   }
 
   // Start Opik session trace
@@ -404,12 +431,14 @@ export async function startSession(config: SessionConfig): Promise<void> {
 
   // Keep running
   await new Promise<void>((resolve) => {
-    process.on('SIGINT', () => {
-      cleanup().then(resolve);
+    process.on('SIGINT', async () => {
+      await cleanup();
+      resolve();
     });
 
-    process.on('SIGTERM', () => {
-      cleanup().then(resolve);
+    process.on('SIGTERM', async () => {
+      await cleanup();
+      resolve();
     });
   });
 }
@@ -422,12 +451,17 @@ async function cleanup(): Promise<void> {
 
   p.log.info('Cleaning up session...');
 
-  // End Opik session trace
+  // End Opik session traces (both tracers)
   const opikTracer = getOpikTracer();
   opikTracer.endSession(currentSession.id);
 
+  const observability = getObservability();
+  if (observability.isEnabled()) {
+    await observability.endSessionTrace('user_exit');
+  }
+
   // Kill all agents
-  currentSession.agentManager.killAllAgents();
+  await currentSession.agentManager.killAllAgents();
 
   // Close WebSocket hub
   currentSession.wsHub.close();

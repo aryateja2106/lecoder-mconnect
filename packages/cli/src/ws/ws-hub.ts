@@ -13,6 +13,7 @@ import type { AgentConfig } from '../agents/types.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
 import { InputArbiter } from '../input/InputArbiter.js';
 import { getOpikTracer } from '../opik/index.js';
+import { getObservability } from '../observability/index.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { ClientType, ControlState, Priority } from '../session/types.js';
@@ -250,6 +251,11 @@ export class WSHub {
     // Authenticate
     if (providedToken !== this.config.token) {
       console.log(`[WSHub] Unauthorized connection from ${ip}`);
+      // Trace auth failure
+      const observability = getObservability();
+      if (observability.isEnabled()) {
+        observability.traceAuthFailure(ip, 'invalid_token');
+      }
       ws.close(4001, 'Unauthorized');
       return;
     }
@@ -272,7 +278,7 @@ export class WSHub {
     this.clients.set(ws, clientInfo);
     console.log(`[WSHub] Client ${clientId} connected from ${ip} (${this.clients.size} total)`);
 
-    // Track connection in Opik
+    // Track connection in Opik (both tracers)
     const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 12);
     getOpikTracer().clientConnected(this.config.sessionId, {
       clientId,
@@ -280,6 +286,12 @@ export class WSHub {
       ipHash,
       connectedAt: now,
     });
+
+    // Trace client connection (enhanced observability)
+    const observability = getObservability();
+    if (observability.isEnabled()) {
+      observability.traceClientConnection(clientType, 'connect');
+    }
 
     // For v2 protocol, send auth_success and session_list
     if (protocolVersion === '2.0') {
@@ -378,6 +390,14 @@ export class WSHub {
       this.clients.delete(ws);
       this.controlRequestRateLimiter.delete(client?.clientId || '');
       console.log(`[WSHub] Client disconnected (${this.clients.size} remaining)`);
+
+      // Trace client disconnect
+      if (client) {
+        const obs = getObservability();
+        if (obs.isEnabled()) {
+          obs.traceClientConnection(client.clientType, 'disconnect');
+        }
+      }
     });
 
     ws.on('error', (error) => {
@@ -684,6 +704,11 @@ export class WSHub {
     }
 
     if (rateInfo.count >= maxRequests) {
+      // Trace rate limiting
+      const obs = getObservability();
+      if (obs.isEnabled()) {
+        obs.traceRateLimited(client.clientId, maxRequests);
+      }
       this.sendToClient(ws, {
         type: 'error',
         message: 'Scrollback rate limit exceeded (10 requests/second)',
@@ -930,6 +955,14 @@ export class WSHub {
           timestamp: Date.now(),
         });
 
+        // Trace security event (enhanced observability)
+        const obs = getObservability();
+        if (obs.isEnabled()) {
+          obs.traceSecurityEvent('injection', {
+            input: sanitized,
+            clientId: this.clients.get(ws)?.clientId,
+          });
+        }
         this.broadcast({
           type: 'command_blocked',
           agentId,
