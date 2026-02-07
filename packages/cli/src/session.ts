@@ -13,6 +13,7 @@ import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
+import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
 import {
   generateSecureToken,
   generateSessionId,
@@ -65,6 +66,7 @@ export interface InitializationStatus {
   tunnel: { success: boolean; error?: string; url?: string };
   tmux: { success: boolean; error?: string };
   httpServer: { success: boolean; error?: string };
+  opik: { success: boolean; error?: string };
 }
 
 export interface MConnectSession {
@@ -96,6 +98,13 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Show startup spinner
   const spinner = p.spinner();
   spinner.start('Initializing MConnect v2...');
+
+  // Initialize Opik tracer (graceful fallback if not configured)
+  spinner.message('Initializing observability...');
+  const opikEnabled = await initializeOpikTracer({
+    projectName: 'mconnect',
+    environment: process.env.NODE_ENV || 'development',
+  });
 
   // Load guardrails
   const guardrailConfig = loadGuardrails(config.guardrails);
@@ -183,6 +192,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     tunnel: { success: false },
     tmux: { success: false },
     httpServer: { success: true }, // Already started at this point
+    opik: { success: opikEnabled, error: opikEnabled ? undefined : 'OPIK_API_KEY not set' },
   };
 
   // Create WebSocket hub
@@ -198,6 +208,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Create agent manager (T009 - graceful fallback)
   spinner.message('Initializing PTY manager...');
   const agentManager = new AgentManager(config.workDir);
+  agentManager.setSessionId(sessionId); // Enable Opik tracing for agents
 
   try {
     await agentManager.initialize();
@@ -255,6 +266,17 @@ export async function startSession(config: SessionConfig): Promise<void> {
     };
   }
 
+  // Start Opik session trace
+  const opikTracer = getOpikTracer();
+  opikTracer.startSession(sessionId, {
+    guardrailsPreset: config.guardrails,
+    workDir: config.workDir,
+    startTime: Date.now(),
+    tunnelEnabled: initStatus.tunnel.success,
+    tmuxEnabled: initStatus.tmux.success,
+    ptyInitialized: initStatus.pty.success,
+  });
+
   // Store session
   currentSession = {
     id: sessionId,
@@ -303,6 +325,9 @@ export async function startSession(config: SessionConfig): Promise<void> {
   );
   console.log(
     `  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`
+  );
+  console.log(
+    `  ${statusIcon(initStatus.opik.success)} Opik${initStatus.opik.error ? chalk.dim(` (${initStatus.opik.error})`) : ''}`
   );
 
   // Display session info
@@ -380,13 +405,11 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Keep running
   await new Promise<void>((resolve) => {
     process.on('SIGINT', () => {
-      cleanup();
-      resolve();
+      cleanup().then(resolve);
     });
 
     process.on('SIGTERM', () => {
-      cleanup();
-      resolve();
+      cleanup().then(resolve);
     });
   });
 }
@@ -394,10 +417,14 @@ export async function startSession(config: SessionConfig): Promise<void> {
 /**
  * Cleanup session resources
  */
-function cleanup(): void {
+async function cleanup(): Promise<void> {
   if (!currentSession) return;
 
   p.log.info('Cleaning up session...');
+
+  // End Opik session trace
+  const opikTracer = getOpikTracer();
+  opikTracer.endSession(currentSession.id);
 
   // Kill all agents
   currentSession.agentManager.killAllAgents();
@@ -412,6 +439,9 @@ function cleanup(): void {
 
   // Close HTTP server
   currentSession.httpServer.close();
+
+  // Flush Opik traces before exit
+  await opikTracer.flush();
 
   currentSession = null;
   p.outro(chalk.green('Session ended. Goodbye!'));

@@ -20,6 +20,22 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Demo mode banner component - rendered on server
+function DemoModeBanner() {
+  // Check environment variable at build/render time
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+
+  if (!isDemoMode) return null;
+
+  return (
+    <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center">
+      <span className="text-amber-400 text-xs font-medium">
+        🎮 Demo Mode — This is a simulated session showcasing MConnect&apos;s features
+      </span>
+    </div>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="font-sans antialiased bg-zinc-950 text-white">
+        <DemoModeBanner />
         {children}
       </body>
     </html>

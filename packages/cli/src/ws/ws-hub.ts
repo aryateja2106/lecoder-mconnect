@@ -5,16 +5,19 @@
  * Handles authentication, message routing, broadcast, and protocol v2 session management.
  */
 
+import { createHash } from 'node:crypto';
 import type { Server as HTTPServer, IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
 import { InputArbiter } from '../input/InputArbiter.js';
+import { getOpikTracer } from '../opik/index.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { ClientType, ControlState, Priority } from '../session/types.js';
 import type {
+  ApprovalResponseMessage,
   AuthSuccessMessage,
   ClientJoinedMessage,
   ClientLeftMessage,
@@ -111,6 +114,7 @@ export class WSHub {
   private sessionArbiters: Map<string, InputArbiter> = new Map();
   private controlRequestRateLimiter: Map<string, number> = new Map(); // clientId -> last request time
   private scrollbackRateLimiter: Map<string, { count: number; windowStart: number }> = new Map();
+  private pendingApprovals: Map<string, { agentId: string; requestTime: number }> = new Map();
 
   constructor(httpServer: HTTPServer, config: WSHubConfig) {
     this.config = config;
@@ -268,6 +272,15 @@ export class WSHub {
     this.clients.set(ws, clientInfo);
     console.log(`[WSHub] Client ${clientId} connected from ${ip} (${this.clients.size} total)`);
 
+    // Track connection in Opik
+    const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 12);
+    getOpikTracer().clientConnected(this.config.sessionId, {
+      clientId,
+      clientType,
+      ipHash,
+      connectedAt: now,
+    });
+
     // For v2 protocol, send auth_success and session_list
     if (protocolVersion === '2.0') {
       const authSuccess: AuthSuccessMessage = {
@@ -351,6 +364,17 @@ export class WSHub {
         // Detach from session
         this.sessionManager?.detachClient(client.clientId);
       }
+
+      // Track disconnection in Opik
+      if (client) {
+        const connectionDuration = Date.now() - client.connectedAt;
+        getOpikTracer().clientDisconnected(
+          this.config.sessionId,
+          client.clientId,
+          connectionDuration
+        );
+      }
+
       this.clients.delete(ws);
       this.controlRequestRateLimiter.delete(client?.clientId || '');
       console.log(`[WSHub] Client disconnected (${this.clients.size} remaining)`);
@@ -472,6 +496,10 @@ export class WSHub {
         this.handleInput(ws, agentId, inputData);
         break;
       }
+
+      case 'approval_response':
+        this.handleApprovalResponse(ws, message as ApprovalResponseMessage);
+        break;
 
       default:
         console.warn('[WSHub] Unknown message type:', (message as Record<string, unknown>).type);
@@ -859,6 +887,10 @@ export class WSHub {
    * Handle input to an agent
    */
   private handleInput(ws: WebSocket, agentId: string, data: string): void {
+    const clientInfo = this.clients.get(ws);
+    const clientType = clientInfo?.clientType || 'pc';
+    const sessionId = this.config.sessionId;
+
     if (!this.agentManager) {
       this.sendToClient(ws, {
         type: 'error',
@@ -887,6 +919,17 @@ export class WSHub {
     if (isCommand && this.guardrailConfig) {
       // Check for injection
       if (detectInjection(sanitized)) {
+        // Track blocked command with Opik
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: '[hidden for security]',
+          source: clientType,
+          blocked: true,
+          blockReason: 'Potential injection detected',
+          requiresApproval: false,
+          timestamp: Date.now(),
+        });
+
         this.broadcast({
           type: 'command_blocked',
           agentId,
@@ -900,6 +943,17 @@ export class WSHub {
       // Check guardrails
       const check = checkCommand(sanitized, this.guardrailConfig);
       if (check.blocked) {
+        // Track blocked command with Opik
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: sanitized,
+          source: clientType,
+          blocked: true,
+          blockReason: check.reason || 'Command blocked by guardrails',
+          requiresApproval: false,
+          timestamp: Date.now(),
+        });
+
         this.broadcast({
           type: 'command_blocked',
           agentId,
@@ -911,15 +965,50 @@ export class WSHub {
       }
 
       if (check.requiresApproval) {
+        const now = Date.now();
+
+        // Track approval request with Opik
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: sanitized,
+          source: clientType,
+          blocked: false,
+          requiresApproval: true,
+          timestamp: now,
+        });
+
+        // Also start an approval span
+        getOpikTracer().approvalRequest(sessionId, {
+          agentId,
+          command: sanitized,
+          reason: check.reason || 'Command requires approval',
+          requestTime: now,
+        });
+
+        // Track pending approval for response matching
+        this.pendingApprovals.set(sanitized, { agentId, requestTime: now });
+
         this.broadcast({
           type: 'approval_request',
           agentId,
           command: sanitized,
           reason: check.reason || 'Command requires approval',
-          timestamp: Date.now(),
+          timestamp: now,
         });
         return;
       }
+    }
+
+    // Track executed command with Opik (only for actual commands, not just keystrokes)
+    if (isCommand) {
+      getOpikTracer().commandExecute(sessionId, {
+        agentId,
+        command: sanitized,
+        source: clientType,
+        blocked: false,
+        requiresApproval: false,
+        timestamp: Date.now(),
+      });
     }
 
     // Send to agent
@@ -983,6 +1072,59 @@ export class WSHub {
   }
 
   /**
+   * Handle approval response from client
+   */
+  private handleApprovalResponse(ws: WebSocket, message: ApprovalResponseMessage): void {
+    const clientInfo = this.clients.get(ws);
+    const clientType = clientInfo?.clientType || 'pc';
+    const sessionId = this.config.sessionId;
+
+    const pending = this.pendingApprovals.get(message.command);
+    if (!pending) {
+      this.sendToClient(ws, {
+        type: 'error',
+        message: 'No pending approval for this command',
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    const responseTime = Date.now() - pending.requestTime;
+    this.pendingApprovals.delete(message.command);
+
+    // Close the approval span in Opik
+    getOpikTracer().approvalResponse(sessionId, message.command, {
+      approved: message.approved,
+      responder: clientType as 'mobile' | 'pc',
+      responseTime,
+    });
+
+    if (message.approved && this.agentManager) {
+      // Execute the approved command
+      this.agentManager.writeToAgent(pending.agentId, message.command);
+
+      // Track as executed
+      getOpikTracer().commandExecute(sessionId, {
+        agentId: pending.agentId,
+        command: message.command,
+        source: clientType,
+        blocked: false,
+        requiresApproval: false,
+        timestamp: Date.now(),
+      });
+    }
+
+    // Notify all clients of approval resolution
+    this.broadcast({
+      type: 'approval_resolved' as ServerMessage['type'],
+      command: message.command,
+      approved: message.approved,
+      agentId: pending.agentId,
+      timestamp: Date.now(),
+    } as ServerMessage);
+  }
+
+  /**
    * Send message to specific client
    */
   private sendToClient(ws: WebSocket, message: ServerMessage): void {
@@ -1027,6 +1169,7 @@ export class WSHub {
     }
     this.clients.clear();
     this.controlRequestRateLimiter.clear();
+    this.pendingApprovals.clear();
 
     // Stop and cleanup all arbiters
     for (const arbiter of this.sessionArbiters.values()) {
