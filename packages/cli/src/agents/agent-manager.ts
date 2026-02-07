@@ -10,6 +10,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { type ContainerInstance, getContainerManager } from '../container/index.js';
+import { getOpikTracer } from '../opik/index.js';
 import { getPTYManager, type PTYManager } from '../pty/pty-manager.js';
 import type { PTYInstance } from '../pty/types.js';
 import type { AgentConfig, AgentInfo, AgentStatus } from './types.js';
@@ -298,8 +299,10 @@ export class AgentInstance {
  */
 export class AgentManager {
   private agents: Map<string, AgentInstance> = new Map();
+  private agentStartTimes: Map<string, number> = new Map();
   private ptyManager: PTYManager;
   private workDir: string;
+  private sessionId: string | null = null;
   private eventHandlers: {
     data: ((agentId: string, data: string) => void)[];
     status: ((agentId: string, status: AgentStatus) => void)[];
@@ -318,6 +321,13 @@ export class AgentManager {
   }
 
   /**
+   * Set the session ID for Opik tracing
+   */
+  setSessionId(sessionId: string): void {
+    this.sessionId = sessionId;
+  }
+
+  /**
    * Initialize the agent manager
    */
   async initialize(): Promise<void> {
@@ -329,6 +339,7 @@ export class AgentManager {
    */
   async createAgent(config: Omit<AgentConfig, 'cwd'>): Promise<AgentInstance> {
     const id = generateAgentId();
+    const startTime = Date.now();
 
     // Ensure we have a valid command (default to shell)
     const command = config.command || getDefaultShell();
@@ -352,14 +363,40 @@ export class AgentManager {
 
     agent.onExit((code, signal) => {
       this.eventHandlers.exit.forEach((handler) => handler(id, code, signal));
+
+      // Track agent exit with Opik
+      if (this.sessionId) {
+        const agentStartTime = this.agentStartTimes.get(id) || startTime;
+        const duration = Date.now() - agentStartTime;
+        getOpikTracer().agentExit(this.sessionId, id, {
+          exitCode: code,
+          signal,
+          duration,
+        });
+        this.agentStartTimes.delete(id);
+      }
     });
 
     this.agents.set(id, agent);
+    this.agentStartTimes.set(id, startTime);
 
     try {
       await agent.start(this.ptyManager);
+
+      // Track agent spawn with Opik
+      if (this.sessionId) {
+        getOpikTracer().agentSpawn(this.sessionId, id, {
+          agentType: config.type,
+          agentName: config.name,
+          workDir: this.workDir,
+          isContainerized: agent.isContainerized,
+          containerId: agent.container?.id,
+          startTime,
+        });
+      }
     } catch (error) {
       this.agents.delete(id);
+      this.agentStartTimes.delete(id);
       this.eventHandlers.error.forEach((handler) =>
         handler(id, error instanceof Error ? error : new Error(String(error)))
       );
@@ -440,6 +477,7 @@ export class AgentManager {
     if (agent) {
       await agent.kill(signal);
       this.agents.delete(agentId);
+      this.agentStartTimes.delete(agentId); // Clean up start time tracking
       return true;
     }
     return false;
@@ -452,6 +490,7 @@ export class AgentManager {
     const killPromises = Array.from(this.agents.values()).map((agent) => agent.kill());
     await Promise.all(killPromises);
     this.agents.clear();
+    this.agentStartTimes.clear(); // Clean up all start time tracking
   }
 
   /**

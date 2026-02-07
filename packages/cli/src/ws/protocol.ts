@@ -61,6 +61,14 @@ export interface PingMessage {
   type: 'ping';
 }
 
+/** Respond to an approval request */
+export interface ApprovalResponseMessage {
+  type: 'approval_response';
+  command: string;
+  approved: boolean;
+  agentId?: string;
+}
+
 export type ClientMessageV2 =
   | SessionAttachMessage
   | SessionDetachMessage
@@ -69,7 +77,8 @@ export type ClientMessageV2 =
   | HeartbeatAckMessage
   | TerminalInputMessage
   | ResizeMessage
-  | PingMessage;
+  | PingMessage
+  | ApprovalResponseMessage;
 
 // ============================================
 // Server -> Client Messages (v2)
