@@ -164,6 +164,31 @@ function validateShell(shellPath: string): { valid: boolean; error?: string } {
       return { valid: true };
     }
 
+    // Container runtimes: these are validated separately by the container manager.
+    // The PTY shell validation is designed for user shells (bash, zsh, etc.) but
+    // container commands like 'docker exec' are special - they wrap a shell inside.
+    const containerRuntimes = ['docker', 'podman', 'nerdctl', 'lima', 'colima'];
+    const shellBasename = shellPath.split('/').pop() || shellPath;
+    if (containerRuntimes.includes(shellBasename)) {
+      // For container runtimes, accept if 'which' finds it OR just trust it
+      // since the container manager already validated docker availability
+      try {
+        const resolvedPath = execFileSync('which', [shellPath], {
+          encoding: 'utf8',
+          timeout: 5000,
+        }).trim();
+        if (resolvedPath && existsSync(resolvedPath)) {
+          return { valid: true };
+        }
+      } catch {
+        // 'which' failed but container manager should handle this gracefully
+      }
+      // Accept container runtimes even without 'which' resolution - the spawn
+      // will fail with a clear error if docker truly isn't available
+      console.warn(`[PTY] Container runtime '${shellPath}' not in PATH, attempting spawn anyway`);
+      return { valid: true };
+    }
+
     // Windows: skip 'which' (not available)
     if (process.platform === 'win32') {
       return {

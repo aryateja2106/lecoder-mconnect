@@ -45,6 +45,9 @@ function findDockerPath(): string {
     '/opt/homebrew/bin/docker', // macOS Homebrew ARM
     '/usr/bin/docker',
     '/usr/local/docker/bin/docker',
+    '/Applications/Docker.app/Contents/Resources/bin/docker', // Docker Desktop macOS
+    '/snap/bin/docker', // Snap-installed Docker on Linux
+    `${process.env.HOME}/.docker/bin/docker`, // Docker Desktop user-level
   ];
 
   // Check common paths first
@@ -80,7 +83,8 @@ function findDockerPath(): string {
   }
 
   // Last resort: just return 'docker' and hope it's in PATH
-  // This will likely fail in the PTY validation but provides a clear error
+  // Note: PTY validateShell() has special handling for container runtimes
+  console.warn('[Container] Docker binary not found in standard paths. Ensure docker is installed and in PATH.');
   return 'docker';
 }
 
