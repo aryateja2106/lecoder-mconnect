@@ -7,8 +7,44 @@
  * "Spin up multiple AI agents, go for a walk, and manage them from your phone"
  */
 
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+// Load .env file BEFORE any other imports that may read process.env
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+// Simple .env loader (no external dependency needed)
+function loadEnvFile(): void {
+  // Check multiple locations: CWD, then package root
+  const candidates = [
+    join(process.cwd(), '.env'),
+    join(process.cwd(), 'packages', 'cli', '.env'),
+  ];
+
+  for (const envPath of candidates) {
+    if (existsSync(envPath)) {
+      try {
+        const content = readFileSync(envPath, 'utf-8');
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          // Skip comments and empty lines
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx === -1) continue;
+          const key = trimmed.slice(0, eqIdx).trim();
+          const value = trimmed.slice(eqIdx + 1).trim();
+          // Only set if not already defined (system env takes priority)
+          if (key && !process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+        break; // Use first found .env
+      } catch {
+        // Ignore read errors
+      }
+    }
+  }
+}
+
+loadEnvFile();
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';

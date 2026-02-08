@@ -157,6 +157,20 @@ export async function startSession(config: SessionConfig): Promise<void> {
       return;
     }
 
+    // Health check endpoint (for tunnel/connectivity debugging)
+    if (url.pathname === '/health' || url.pathname === '/api/health') {
+      setCorsHeaders();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'ok',
+        version: VERSION,
+        sessionId,
+        agents: currentSession?.agentManager?.getAllAgents()?.length ?? 0,
+        timestamp: new Date().toISOString(),
+      }));
+      return;
+    }
+
     // Pairing code exchange endpoint
     if (url.pathname === '/api/pair') {
       setCorsHeaders();
@@ -198,9 +212,9 @@ export async function startSession(config: SessionConfig): Promise<void> {
     res.end(getWebClientHTML(sessionToken, sessionId, true));
   });
 
-  // Start HTTP server
+  // Start HTTP server (bind to 0.0.0.0 for tunnel/network accessibility)
   await new Promise<void>((resolve, reject) => {
-    httpServer.listen(port, () => resolve());
+    httpServer.listen(port, '0.0.0.0', () => resolve());
     httpServer.on('error', reject);
   });
 
