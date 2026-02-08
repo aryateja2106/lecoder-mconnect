@@ -2,6 +2,21 @@
 
 All notable changes to MConnect will be documented in this file.
 
+## [0.1.8] - 2026-02-08
+
+### Fixed
+
+- PTY spawn-helper permission recovery now resolves `node-pty` from `node-pty/package.json`,
+  covering hoisted workspace installs and npx cache installs more reliably.
+- Postinstall permission repair now targets the same monorepo and npx node-pty layouts as runtime.
+- PTY spawn retry flow now repairs helper permissions from deterministic candidate paths before retry.
+
+### Added
+
+- New pure helper-path tests for PTY node-pty candidate resolution.
+- Reproducible demo generation script: `npm run demo:gifs`.
+- Demo generation prerequisite checks for both `vhs` and `ttyd`.
+
 ## [0.1.7] - 2026-01-30
 
 ### Added
