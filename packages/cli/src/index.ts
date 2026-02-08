@@ -11,6 +11,42 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+interface ParsedEnvVar {
+  key: string;
+  value: string;
+}
+
+function parseEnvLine(line: string): ParsedEnvVar | null {
+  let trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) return null;
+
+  if (trimmed.startsWith('export ')) {
+    trimmed = trimmed.slice('export '.length).trim();
+  }
+
+  const eqIdx = trimmed.indexOf('=');
+  if (eqIdx === -1) return null;
+
+  const key = trimmed.slice(0, eqIdx).trim();
+  if (!key || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) return null;
+
+  let rawValue = trimmed.slice(eqIdx + 1).trim();
+
+  // Remove inline comments for unquoted values.
+  if (!(rawValue.startsWith('"') || rawValue.startsWith("'"))) {
+    rawValue = rawValue.replace(/\s+#.*$/, '').trim();
+  }
+
+  if (
+    (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+    (rawValue.startsWith("'") && rawValue.endsWith("'"))
+  ) {
+    rawValue = rawValue.slice(1, -1);
+  }
+
+  return { key, value: rawValue };
+}
+
 // Simple .env loader (no external dependency needed)
 function loadEnvFile(): void {
   // Check multiple locations: CWD, then package root
@@ -24,13 +60,10 @@ function loadEnvFile(): void {
       try {
         const content = readFileSync(envPath, 'utf-8');
         for (const line of content.split('\n')) {
-          const trimmed = line.trim();
-          // Skip comments and empty lines
-          if (!trimmed || trimmed.startsWith('#')) continue;
-          const eqIdx = trimmed.indexOf('=');
-          if (eqIdx === -1) continue;
-          const key = trimmed.slice(0, eqIdx).trim();
-          const value = trimmed.slice(eqIdx + 1).trim();
+          const parsed = parseEnvLine(line);
+          if (!parsed) continue;
+
+          const { key, value } = parsed;
           // Only set if not already defined (system env takes priority)
           if (key && !process.env[key]) {
             process.env[key] = value;
