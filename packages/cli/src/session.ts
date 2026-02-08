@@ -14,7 +14,7 @@ import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
 import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
-import { getObservability, initObservabilityFromEnv } from './observability/index.js';
+import { getObservability } from './observability/index.js';
 import {
   generateSecureToken,
   generateSessionId,
@@ -106,12 +106,6 @@ export async function startSession(config: SessionConfig): Promise<void> {
     projectName: process.env.OPIK_PROJECT_NAME || 'lecoder-mconnect',
     environment: process.env.NODE_ENV || 'development',
   });
-
-  // Initialize enhanced observability (if configured)
-  const obsEnabled = await initObservabilityFromEnv();
-  if (obsEnabled) {
-    spinner.message('Opik enhanced observability enabled...');
-  }
 
   // Load guardrails
   const guardrailConfig = loadGuardrails(config.guardrails);
@@ -465,14 +459,9 @@ async function cleanup(): Promise<void> {
 
   p.log.info('Cleaning up session...');
 
-  // End Opik session traces (both tracers)
+  // End Opik session trace
   const opikTracer = getOpikTracer();
   opikTracer.endSession(currentSession.id);
-
-  const observability = getObservability();
-  if (observability.isEnabled()) {
-    await observability.endSessionTrace('user_exit');
-  }
 
   // Kill all agents
   await currentSession.agentManager.killAllAgents();
@@ -488,15 +477,8 @@ async function cleanup(): Promise<void> {
   // Close HTTP server
   currentSession.httpServer.close();
 
-  // Flush ALL Opik traces before exit (both tracers)
+  // Flush Opik traces before exit
   await opikTracer.flush();
-  if (observability.isEnabled()) {
-    try {
-      await observability.flush();
-    } catch (_e) {
-      // Graceful fallback - don't block exit for flush failure
-    }
-  }
 
   currentSession = null;
   p.outro(chalk.green('Session ended. Goodbye!'));

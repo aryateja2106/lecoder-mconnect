@@ -34,6 +34,7 @@ export class MConnectObservability {
   private enabled = false;
   private sessionTrace: OpikTrace | null = null;
   private agentSpans: Map<string, OpikSpan> = new Map();
+  private approvalSpans: Map<string, OpikSpan> = new Map();
   private metrics: MConnectMetrics = {
     sessionId: '',
     startTime: 0,
@@ -149,6 +150,9 @@ export class MConnectObservability {
       },
     });
 
+    this.approvalSpans.clear();
+    this.agentSpans.clear();
+
     console.log(`[Opik] Session trace started: ${sessionId}`);
   }
 
@@ -159,6 +163,40 @@ export class MConnectObservability {
     if (!this.sessionTrace) return;
 
     const duration = Date.now() - this.metrics.startTime;
+
+    for (const [command, span] of this.approvalSpans) {
+      try {
+        span.end({
+          output: {
+            approved: false,
+            reason: 'session_ended',
+            command: command.substring(0, 200),
+          },
+          metadata: {
+            endTime: new Date().toISOString(),
+          },
+        });
+      } catch {
+        // Ignore missing/ended span errors
+      }
+    }
+    this.approvalSpans.clear();
+
+    for (const [_agentId, span] of this.agentSpans) {
+      try {
+        span.end({
+          output: {
+            finalStatus: 'session_ended',
+          },
+          metadata: {
+            endTime: new Date().toISOString(),
+          },
+        });
+      } catch {
+        // Ignore missing/ended span errors
+      }
+    }
+    this.agentSpans.clear();
 
     this.sessionTrace.end({
       output: {
@@ -175,8 +213,6 @@ export class MConnectObservability {
       },
     });
 
-    // Flush to ensure all traces are sent
-    await this.flush();
     this.sessionTrace = null;
     console.log(`[Opik] Session trace ended (${reason}, ${duration}ms)`);
   }
@@ -269,6 +305,79 @@ export class MConnectObservability {
       output: {
         allowed: !check.blocked,
         approved: check.requiresApproval,
+      },
+    });
+  }
+
+  /**
+   * Trace approval request lifecycle.
+   */
+  traceApprovalRequest(agentId: string, command: string, reason: string, requestTime: number): void {
+    if (!this.sessionTrace) return;
+
+    const agentSpan = this.agentSpans.get(agentId);
+    const parentSpan = agentSpan || this.sessionTrace;
+
+    const span = parentSpan.span({
+      name: 'approval_request',
+      type: 'tool',
+      input: {
+        agentId,
+        command: command.substring(0, 500),
+        reason,
+      },
+      metadata: {
+        requestTime,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    this.approvalSpans.set(command, span);
+  }
+
+  /**
+   * Trace approval response and close pending approval span.
+   */
+  traceApprovalResponse(
+    command: string,
+    approved: boolean,
+    responder: 'mobile' | 'pc' = 'pc',
+    responseTime: number = 0
+  ): void {
+    if (!this.sessionTrace) return;
+
+    const pendingSpan = this.approvalSpans.get(command);
+    if (pendingSpan) {
+      pendingSpan.end({
+        output: {
+          approved,
+          responder,
+          responseTime,
+        },
+        metadata: {
+          resolvedAt: new Date().toISOString(),
+        },
+      });
+      this.approvalSpans.delete(command);
+      return;
+    }
+
+    const span = this.sessionTrace.span({
+      name: 'approval_response',
+      type: 'tool',
+      input: {
+        command: command.substring(0, 500),
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    span.end({
+      output: {
+        approved,
+        responder,
+        responseTime,
       },
     });
   }

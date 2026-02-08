@@ -278,7 +278,7 @@ export class WSHub {
     this.clients.set(ws, clientInfo);
     console.log(`[WSHub] Client ${clientId} connected from ${ip} (${this.clients.size} total)`);
 
-    // Track connection in Opik (both tracers)
+    // Track connection in Opik via compatibility adapter (single backend).
     const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 12);
     getOpikTracer().clientConnected(this.config.sessionId, {
       clientId,
@@ -286,12 +286,6 @@ export class WSHub {
       ipHash,
       connectedAt: now,
     });
-
-    // Trace client connection (enhanced observability)
-    const observability = getObservability();
-    if (observability.isEnabled()) {
-      observability.traceClientConnection(clientType, 'connect');
-    }
 
     // For v2 protocol, send auth_success and session_list
     if (protocolVersion === '2.0') {
@@ -390,14 +384,6 @@ export class WSHub {
       this.clients.delete(ws);
       this.controlRequestRateLimiter.delete(client?.clientId || '');
       console.log(`[WSHub] Client disconnected (${this.clients.size} remaining)`);
-
-      // Trace client disconnect
-      if (client) {
-        const obs = getObservability();
-        if (obs.isEnabled()) {
-          obs.traceClientConnection(client.clientType, 'disconnect');
-        }
-      }
     });
 
     ws.on('error', (error) => {
