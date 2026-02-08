@@ -1,0 +1,1205 @@
+openapi: 3.1.0
+info:
+  title: MConnect V2 API
+  version: 2.0.0
+  description: |
+    REST API for MConnect V2 - mobile terminal control for AI coding agents.
+
+    MConnect enables developers to monitor and control AI coding agents (Claude Code,
+    Gemini CLI, etc.) from iOS devices via a Bun-based server with WebSocket real-time
+    communication, OAuth 2.0 authentication, and Docker container orchestration.
+
+    ## Authentication
+
+    All authenticated endpoints require a Bearer JWT token in the `Authorization` header.
+    Tokens are obtained via the OAuth 2.0 PKCE flow (see `/auth/*` endpoints).
+
+    Development mode: Set `DEV_AUTH_BYPASS=true` and use `POST /auth/dev-token` for testing.
+
+    ## WebSocket Protocol
+
+    Real-time communication uses WebSocket protocol v3.0 at `GET /ws`.
+    See [Protocol v3 Documentation](../protocol/v3.md) for message formats.
+  contact:
+    name: Arya Teja Rudraraju
+    url: https://github.com/aryateja2106/lecoder-mconnect
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+tags:
+  - name: Auth
+    description: OAuth 2.0 authentication with PKCE support
+  - name: Sessions
+    description: Session lifecycle management
+  - name: Presets
+    description: Agent preset configuration
+  - name: Devices
+    description: Push notification device token management
+  - name: Infrastructure
+    description: Health checks, metrics, and server info
+
+paths:
+  /:
+    get:
+      tags: [Infrastructure]
+      summary: Server info
+      description: Returns server version and available endpoint groups.
+      responses:
+        "200":
+          description: Server information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: MConnect V2 Server
+                  version:
+                    type: string
+                    example: "0.1.0"
+                  endpoints:
+                    type: object
+                    properties:
+                      health:
+                        type: string
+                        example: /health
+                      ws:
+                        type: string
+                        example: /ws
+                      auth:
+                        type: string
+                        example: /auth/*
+                      sessions:
+                        type: string
+                        example: /sessions/*
+                      presets:
+                        type: string
+                        example: /presets/*
+                      agents:
+                        type: string
+                        example: /agents/*
+                      devices:
+                        type: string
+                        example: /devices/*
+
+  /health:
+    get:
+      tags: [Infrastructure]
+      summary: Health check
+      description: Returns server health status, active connection counts, and timestamp.
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                    example: "0.1.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  connections:
+                    type: integer
+                    description: Total WebSocket connections
+                  authenticated:
+                    type: integer
+                    description: Authenticated WebSocket connections
+
+  /metrics/latency:
+    get:
+      tags: [Infrastructure]
+      summary: WebSocket latency metrics
+      description: Returns latency metrics for WebSocket message processing.
+      responses:
+        "200":
+          description: Latency metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  websocket:
+                    type: object
+                    description: Per-message-type latency statistics
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # ==========================================================================
+  # Auth Routes
+  # ==========================================================================
+
+  /auth/authorize:
+    get:
+      tags: [Auth]
+      summary: Start OAuth flow
+      description: |
+        Initiates the OAuth 2.0 authorization code flow with PKCE.
+        Redirects the client to the OAuth provider's authorization page.
+
+        The client must generate a `code_verifier` and derive a `code_challenge`
+        using S256 method before calling this endpoint.
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          description: OAuth provider to authenticate with
+          schema:
+            type: string
+            enum: [github, google]
+        - name: redirect_uri
+          in: query
+          required: true
+          description: URI to redirect to after authorization
+          schema:
+            type: string
+            format: uri
+        - name: code_challenge
+          in: query
+          required: true
+          description: PKCE code challenge (base64url-encoded SHA-256 of code_verifier)
+          schema:
+            type: string
+            minLength: 43
+            maxLength: 128
+        - name: code_challenge_method
+          in: query
+          required: true
+          description: PKCE challenge method (only S256 supported)
+          schema:
+            type: string
+            enum: [S256]
+        - name: state
+          in: query
+          required: false
+          description: Optional CSRF state parameter (auto-generated if omitted)
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to OAuth provider authorization page
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+
+  /auth/callback:
+    get:
+      tags: [Auth]
+      summary: OAuth callback
+      description: |
+        Handles the OAuth provider callback. Validates the state parameter
+        and redirects back to the client app with the authorization code.
+
+        For mobile PKCE flow, redirects to `mconnect://callback?code=...&state=...&provider=...`.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          description: Authorization code from OAuth provider
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          description: State parameter for CSRF verification
+          schema:
+            type: string
+        - name: error
+          in: query
+          required: false
+          description: Error code from OAuth provider (if authorization failed)
+          schema:
+            type: string
+        - name: error_description
+          in: query
+          required: false
+          description: Error description from OAuth provider
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to client app with authorization code
+        "400":
+          description: Invalid state or OAuth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+
+  /auth/token:
+    post:
+      tags: [Auth]
+      summary: Exchange code for tokens
+      description: |
+        Completes the OAuth PKCE flow by exchanging an authorization code for
+        access and refresh tokens. The client must provide the original `code_verifier`
+        that corresponds to the `code_challenge` used in `/auth/authorize`.
+
+        Supports both `application/json` and `application/x-www-form-urlencoded` content types.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grant_type, code, redirect_uri, code_verifier, provider]
+              properties:
+                grant_type:
+                  type: string
+                  enum: [authorization_code]
+                code:
+                  type: string
+                  description: Authorization code from callback
+                redirect_uri:
+                  type: string
+                  format: uri
+                  description: Must match the original redirect_uri
+                code_verifier:
+                  type: string
+                  description: PKCE code verifier (original random string)
+                provider:
+                  type: string
+                  enum: [github, google]
+                  description: OAuth provider name
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type, code, redirect_uri, code_verifier, provider]
+              properties:
+                grant_type:
+                  type: string
+                code:
+                  type: string
+                redirect_uri:
+                  type: string
+                code_verifier:
+                  type: string
+                provider:
+                  type: string
+      responses:
+        "200":
+          description: Tokens issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Invalid request or unsupported grant type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "500":
+          description: Server error during token exchange
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: |
+        Refresh an expired access token using a refresh token.
+        Implements token rotation: the old refresh token is revoked
+        and a new refresh token is issued.
+
+        Supports both `application/json` and `application/x-www-form-urlencoded` content types.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  description: The refresh token
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: New token pair issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+
+  /auth/revoke:
+    post:
+      tags: [Auth]
+      summary: Revoke refresh token
+      description: |
+        Revoke a refresh token (RFC 7009). Always returns 200, even if the
+        token was already revoked or invalid.
+
+        Supports both `application/json` and `application/x-www-form-urlencoded` content types.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: The refresh token to revoke
+                token_type_hint:
+                  type: string
+                  enum: [refresh_token]
+                  description: Optional hint (only refresh_token supported)
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                token_type_hint:
+                  type: string
+      responses:
+        "200":
+          description: Token revoked (always returns 200 per RFC 7009)
+
+  /auth/dev-token:
+    post:
+      tags: [Auth]
+      summary: Create development token
+      description: |
+        Create a JWT token for development/testing purposes.
+        Only available when `DEV_AUTH_BYPASS=true` is set.
+
+        Supports both `application/json` and `application/x-www-form-urlencoded` content types.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: User ID (defaults to random dev user ID)
+                email:
+                  type: string
+                  description: Email (defaults to dev@localhost)
+                name:
+                  type: string
+                  description: Display name (defaults to Dev User)
+      responses:
+        "200":
+          description: Dev token created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "403":
+          description: Dev mode not enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+
+  # ==========================================================================
+  # Session Routes
+  # ==========================================================================
+
+  /sessions:
+    get:
+      tags: [Sessions]
+      summary: List user sessions
+      description: Returns paginated list of sessions owned by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: state
+          in: query
+          required: false
+          description: Filter by session state
+          schema:
+            type: string
+            enum: [running, paused, completed]
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of sessions to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Paginated session list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Session"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags: [Sessions]
+      summary: Create new session
+      description: |
+        Create a new agent session with the specified preset and configuration.
+        The preset determines which agents are launched in the session.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid request or unknown preset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sessions/{sessionId}:
+    get:
+      tags: [Sessions]
+      summary: Get session details
+      description: Returns details for a specific session owned by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags: [Sessions]
+      summary: Terminate session
+      description: |
+        Terminate a running session. Sets session state to `completed`.
+        Idempotent - returns 204 even if already completed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Session terminated
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sessions/{sessionId}/connect:
+    get:
+      tags: [Sessions]
+      summary: Get WebSocket connection info
+      description: |
+        Returns WebSocket URL, connection token, and protocol version
+        for connecting to the session in real-time.
+        Cannot connect to completed sessions.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: WebSocket connection info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionInfo"
+        "400":
+          description: Session is completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==========================================================================
+  # Preset Routes
+  # ==========================================================================
+
+  /presets:
+    get:
+      tags: [Presets]
+      summary: List available presets
+      description: Returns all built-in and custom agent presets.
+      responses:
+        "200":
+          description: Preset list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  presets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PresetSummary"
+
+    post:
+      tags: [Presets]
+      summary: Register custom preset
+      description: Register a new custom agent preset configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePresetRequest"
+      responses:
+        "201":
+          description: Preset registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preset"
+        "400":
+          description: Invalid preset configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Preset name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /presets/{name}:
+    get:
+      tags: [Presets]
+      summary: Get preset details
+      description: Returns full configuration for a specific preset.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Preset name (lowercase alphanumeric with hyphens)
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        "200":
+          description: Preset details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preset"
+        "404":
+          description: Preset not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags: [Presets]
+      summary: Remove custom preset
+      description: Remove a custom preset. Built-in presets cannot be removed.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-z0-9-]+$"
+      responses:
+        "204":
+          description: Preset removed
+        "404":
+          description: Preset not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Cannot remove built-in preset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==========================================================================
+  # Device Routes
+  # ==========================================================================
+
+  /devices/token:
+    post:
+      tags: [Devices]
+      summary: Register device token
+      description: |
+        Register an APNs device token for push notifications.
+        The token must be a hex string of at least 64 characters.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  pattern: "^[a-f0-9]{64,}$"
+                  description: APNs device token (hex string)
+                platform:
+                  type: string
+                  enum: [ios, android, web]
+                  default: ios
+                  description: Device platform
+      responses:
+        "201":
+          description: Device token registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  token:
+                    type: string
+                  platform:
+                    type: string
+                  registered:
+                    type: boolean
+        "400":
+          description: Invalid token format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags: [Devices]
+      summary: Remove device token
+      description: Remove a previously registered device token.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: The device token to remove
+      responses:
+        "200":
+          description: Token removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  removed:
+                    type: boolean
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Token not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==========================================================================
+  # WebSocket
+  # ==========================================================================
+
+  /ws:
+    get:
+      tags: [Infrastructure]
+      summary: WebSocket endpoint
+      description: |
+        Upgrade to WebSocket connection for real-time communication.
+        See [Protocol v3 Documentation](../protocol/v3.md) for message formats.
+
+        **Connection flow:**
+        1. Client opens WebSocket connection to `/ws`
+        2. Client sends `auth` message with JWT token (must be within 10 seconds)
+        3. Server responds with `auth_success` or `auth_failed`
+        4. Client sends `session_attach` to join a session
+        5. Bidirectional message exchange begins
+
+        **Configuration:**
+        - Max payload: 1 MB
+        - Idle timeout: 120 seconds
+        - Heartbeat interval: 30 seconds
+        - Auth timeout: 10 seconds
+      responses:
+        "101":
+          description: WebSocket upgrade successful
+        "400":
+          description: WebSocket upgrade failed
+
+# ==============================================================================
+# Components
+# ==============================================================================
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token obtained via OAuth 2.0 PKCE flow.
+        Include as `Authorization: Bearer <token>`.
+
+  schemas:
+    # --------------------------------------------------------------------------
+    # Auth Schemas
+    # --------------------------------------------------------------------------
+
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, expires_in, token_type]
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (15 minute expiry)
+        refresh_token:
+          type: string
+          description: Refresh token (30 day expiry)
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+          example: 900
+        token_type:
+          type: string
+          enum: [Bearer]
+
+    OAuthError:
+      type: object
+      required: [error, error_description]
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: invalid_request
+        error_description:
+          type: string
+          description: Human-readable error description
+
+    # --------------------------------------------------------------------------
+    # Session Schemas
+    # --------------------------------------------------------------------------
+
+    Session:
+      type: object
+      required: [id, userId, state, agentConfig, workingDirectory, createdAt, lastActivityAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [running, paused, completed]
+        agentConfig:
+          $ref: "#/components/schemas/AgentSessionConfig"
+        workingDirectory:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastActivityAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AgentSessionConfig:
+      type: object
+      required: [preset, agents]
+      properties:
+        preset:
+          type: string
+          description: Preset name used to create the session
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentConfig"
+        guardrails:
+          type: string
+          enum: [none, permissive, default, strict]
+          default: default
+
+    AgentConfig:
+      type: object
+      required: [type, name, command]
+      properties:
+        type:
+          type: string
+          enum: [claude, gemini, codex, aider, shell, custom]
+        name:
+          type: string
+          maxLength: 100
+        command:
+          type: string
+          maxLength: 500
+        args:
+          type: array
+          items:
+            type: string
+        initialPrompt:
+          type: string
+        env:
+          type: object
+          additionalProperties:
+            type: string
+        autoRun:
+          type: boolean
+        container:
+          $ref: "#/components/schemas/ContainerConfig"
+        mcp:
+          $ref: "#/components/schemas/MCPConfig"
+
+    ContainerConfig:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          description: Docker image name
+        workDir:
+          type: string
+        volumes:
+          type: array
+          items:
+            type: string
+        ports:
+          type: array
+          items:
+            type: string
+        env:
+          type: object
+          additionalProperties:
+            type: string
+        network:
+          type: string
+        privileged:
+          type: boolean
+          default: false
+        user:
+          type: string
+        removeOnExit:
+          type: boolean
+          default: true
+        resourceLimits:
+          type: object
+          properties:
+            cpuShares:
+              type: number
+            memoryMB:
+              type: number
+            diskMB:
+              type: number
+
+    MCPConfig:
+      type: object
+      required: [transport]
+      properties:
+        transport:
+          type: string
+          enum: [stdio, sse]
+
+    CreateSessionRequest:
+      type: object
+      required: [preset, workingDirectory]
+      properties:
+        preset:
+          type: string
+          description: Agent preset name
+        workingDirectory:
+          type: string
+          description: Working directory path on the host
+        guardrails:
+          type: string
+          enum: [none, permissive, default, strict]
+          default: default
+
+    ConnectionInfo:
+      type: object
+      required: [wsUrl, token, protocolVersion]
+      properties:
+        wsUrl:
+          type: string
+          format: uri
+          description: WebSocket URL to connect to
+          example: wss://localhost:3001/ws
+        token:
+          type: string
+          description: Connection token
+        protocolVersion:
+          type: string
+          description: Protocol version
+          example: "3.0"
+
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+
+    # --------------------------------------------------------------------------
+    # Agent Schemas
+    # --------------------------------------------------------------------------
+
+    Agent:
+      type: object
+      required: [id, sessionId, type, name, status, config, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [claude, gemini, codex, aider, shell, custom]
+        name:
+          type: string
+        status:
+          type: string
+          enum: [starting, running, idle, waiting, exited, error]
+        containerId:
+          type: string
+          nullable: true
+        config:
+          $ref: "#/components/schemas/AgentConfig"
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        stoppedAt:
+          type: string
+          format: date-time
+          nullable: true
+        exitCode:
+          type: integer
+          nullable: true
+
+    # --------------------------------------------------------------------------
+    # Preset Schemas
+    # --------------------------------------------------------------------------
+
+    Preset:
+      type: object
+      required: [name, description, agents]
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+        description:
+          type: string
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentConfig"
+
+    PresetSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        agentCount:
+          type: integer
+        agents:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              name:
+                type: string
+              command:
+                type: string
+              hasContainer:
+                type: boolean
+              hasMCP:
+                type: boolean
+
+    CreatePresetRequest:
+      type: object
+      required: [name, description, agents]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: "^[a-z0-9-]+$"
+          description: Lowercase alphanumeric with hyphens
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+        agents:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/AgentConfig"
+
+    # --------------------------------------------------------------------------
+    # Common Schemas
+    # --------------------------------------------------------------------------
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Error message or code
+        error_description:
+          type: string
+          description: Human-readable error description
