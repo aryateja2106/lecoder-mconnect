@@ -2,82 +2,104 @@
 /**
  * Postinstall script for MConnect
  *
- * Fixes spawn-helper permissions on macOS/Linux.
- * This is needed because npm sometimes strips execute permissions
- * from prebuilt binaries when installing globally.
+ * Ensures node-pty helper binaries are executable on macOS/Linux.
+ * npm and npx can strip execute bits from native prebuilt helpers.
  */
 
-import { execSync } from 'node:child_process';
-import { existsSync, chmodSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { chmodSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 
-/**
- * Find and fix spawn-helper permissions
- */
-function fixSpawnHelperPermissions() {
-  // Only needed on Unix-like systems
-  if (process.platform === 'win32') {
-    return;
+function dedupePaths(paths) {
+  return Array.from(new Set(paths.map((path) => resolve(path))));
+}
+
+function buildNodePtyCandidatePaths({
+  runtimeDir = __dirname,
+  cwd = process.cwd(),
+  nodePtyPackageJsonPath,
+  maxParentDepth = 6,
+} = {}) {
+  const prebuildPaths = [];
+  const buildReleasePaths = [];
+
+  if (nodePtyPackageJsonPath) {
+    const nodePtyRoot = dirname(nodePtyPackageJsonPath);
+    prebuildPaths.push(join(nodePtyRoot, 'prebuilds'));
+    buildReleasePaths.push(join(nodePtyRoot, 'build', 'Release'));
   }
 
-  const possiblePaths = [
-    // When installed as dependency
-    join(__dirname, '..', 'node_modules', 'node-pty', 'prebuilds'),
-    // When installed globally
-    join(__dirname, '..', '..', 'node-pty', 'prebuilds'),
-    // Alternative global path
-    join(__dirname, '..', '..', '..', 'node-pty', 'prebuilds'),
-  ];
+  // Explicit workspace-root candidate for npm workspaces.
+  prebuildPaths.push(join(cwd, 'node_modules', 'node-pty', 'prebuilds'));
+  buildReleasePaths.push(join(cwd, 'node_modules', 'node-pty', 'build', 'Release'));
 
-  let fixed = false;
+  for (let depth = 0; depth <= maxParentDepth; depth++) {
+    const parentSegments = depth === 0 ? [] : Array(depth).fill('..');
+    const baseDir = resolve(runtimeDir, ...parentSegments);
 
-  for (const prebuildsPath of possiblePaths) {
-    if (existsSync(prebuildsPath)) {
-      fixed = fixPermissionsInDir(prebuildsPath) || fixed;
+    prebuildPaths.push(join(baseDir, 'node_modules', 'node-pty', 'prebuilds'));
+    buildReleasePaths.push(join(baseDir, 'node_modules', 'node-pty', 'build', 'Release'));
+
+    prebuildPaths.push(join(baseDir, 'node-pty', 'prebuilds'));
+    buildReleasePaths.push(join(baseDir, 'node-pty', 'build', 'Release'));
+  }
+
+  return {
+    prebuildPaths: dedupePaths(prebuildPaths),
+    buildReleasePaths: dedupePaths(buildReleasePaths),
+  };
+}
+
+function getNpxNodePtyCandidatePaths(homeDir) {
+  if (!homeDir) {
+    return { prebuildPaths: [], buildReleasePaths: [] };
+  }
+
+  const npxRoot = join(homeDir, '.npm', '_npx');
+  if (!existsSync(npxRoot)) {
+    return { prebuildPaths: [], buildReleasePaths: [] };
+  }
+
+  try {
+    const entries = readdirSync(npxRoot, { withFileTypes: true });
+    const prebuildPaths = [];
+    const buildReleasePaths = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+
+      const cacheDir = join(npxRoot, entry.name, 'node_modules', 'node-pty');
+      prebuildPaths.push(join(cacheDir, 'prebuilds'));
+      buildReleasePaths.push(join(cacheDir, 'build', 'Release'));
     }
-  }
 
-  // Also try using find command as fallback
-  if (!fixed) {
-    try {
-      // Find spawn-helper in any node_modules
-      const result = execSync(
-        'find . -path "*/node-pty/prebuilds/*/spawn-helper" -type f 2>/dev/null || true',
-        { encoding: 'utf8', cwd: join(__dirname, '..') }
-      ).trim();
-
-      if (result) {
-        for (const file of result.split('\n').filter(Boolean)) {
-          const fullPath = join(__dirname, '..', file);
-          if (existsSync(fullPath)) {
-            try {
-              chmodSync(fullPath, 0o755);
-              console.log(`[postinstall] Fixed permissions: ${file}`);
-              fixed = true;
-            } catch (e) {
-              // Ignore permission errors
-            }
-          }
-        }
-      }
-    } catch (e) {
-      // find command failed, ignore
-    }
-  }
-
-  if (fixed) {
-    console.log('[postinstall] spawn-helper permissions fixed successfully');
+    return {
+      prebuildPaths: dedupePaths(prebuildPaths),
+      buildReleasePaths: dedupePaths(buildReleasePaths),
+    };
+  } catch {
+    return { prebuildPaths: [], buildReleasePaths: [] };
   }
 }
 
-/**
- * Recursively fix permissions for spawn-helper files
- */
-function fixPermissionsInDir(dir) {
-  let fixed = false;
+function createEmptySummary() {
+  return {
+    checkedDirs: 0,
+    matchedFiles: 0,
+    changedFiles: 0,
+  };
+}
+
+function fixPermissionsInDir(dir, includeNodeFiles = false) {
+  const summary = {
+    checkedDirs: 1,
+    matchedFiles: 0,
+    changedFiles: 0,
+  };
 
   try {
     const entries = readdirSync(dir, { withFileTypes: true });
@@ -86,25 +108,92 @@ function fixPermissionsInDir(dir) {
       const fullPath = join(dir, entry.name);
 
       if (entry.isDirectory()) {
-        fixed = fixPermissionsInDir(fullPath) || fixed;
-      } else if (entry.name === 'spawn-helper' || entry.name.endsWith('.node')) {
+        const childSummary = fixPermissionsInDir(fullPath, includeNodeFiles);
+        summary.checkedDirs += childSummary.checkedDirs;
+        summary.matchedFiles += childSummary.matchedFiles;
+        summary.changedFiles += childSummary.changedFiles;
+      } else if (entry.name === 'spawn-helper' || (includeNodeFiles && entry.name.endsWith('.node'))) {
+        summary.matchedFiles += 1;
         try {
-          // Always set execute permission - don't check first
-          // npm frequently strips execute bits, and checking can be unreliable
+          const stats = statSync(fullPath);
+          const hasExec = (stats.mode & 0o111) !== 0;
+
           chmodSync(fullPath, 0o755);
-          console.log(`[postinstall] Ensured permissions: ${fullPath}`);
-          fixed = true;
-        } catch (e) {
+          if (!hasExec) {
+            summary.changedFiles += 1;
+            console.log(`[postinstall] Fixed permissions (0600→0755): ${fullPath}`);
+          }
+        } catch {
           // Ignore permission errors
         }
       }
     }
-  } catch (e) {
+  } catch {
     // Ignore read errors
   }
 
-  return fixed;
+  return summary;
 }
 
-// Run the fix
+/**
+ * Find and fix spawn-helper permissions
+ */
+function fixSpawnHelperPermissions() {
+  if (process.platform === 'win32') {
+    return;
+  }
+
+  let nodePtyPackageJsonPath;
+  try {
+    nodePtyPackageJsonPath = require.resolve('node-pty/package.json');
+  } catch {
+    // Ignore resolution errors and rely on fallback paths.
+  }
+
+  const directCandidates = buildNodePtyCandidatePaths({
+    runtimeDir: __dirname,
+    cwd: process.cwd(),
+    nodePtyPackageJsonPath,
+  });
+  const npxCandidates = getNpxNodePtyCandidatePaths(process.env.HOME);
+
+  const prebuildPaths = dedupePaths([
+    ...directCandidates.prebuildPaths,
+    ...npxCandidates.prebuildPaths,
+  ]);
+  const buildReleasePaths = dedupePaths([
+    ...directCandidates.buildReleasePaths,
+    ...npxCandidates.buildReleasePaths,
+  ]);
+
+  const summary = createEmptySummary();
+
+  for (const prebuildPath of prebuildPaths) {
+    if (!existsSync(prebuildPath)) continue;
+    summary.checkedDirs += 1;
+    const result = fixPermissionsInDir(prebuildPath);
+    summary.matchedFiles += result.matchedFiles;
+    summary.changedFiles += result.changedFiles;
+  }
+
+  for (const releasePath of buildReleasePaths) {
+    if (!existsSync(releasePath)) continue;
+    summary.checkedDirs += 1;
+    const result = fixPermissionsInDir(releasePath, true);
+    summary.matchedFiles += result.matchedFiles;
+    summary.changedFiles += result.changedFiles;
+  }
+
+  if (summary.matchedFiles === 0) {
+    console.warn(
+      `[postinstall] spawn-helper not found in ${summary.checkedDirs} checked node-pty directories`
+    );
+    return;
+  }
+
+  if (summary.changedFiles > 0) {
+    console.log(`[postinstall] Updated execute permissions for ${summary.changedFiles} file(s)`);
+  }
+}
+
 fixSpawnHelperPermissions();

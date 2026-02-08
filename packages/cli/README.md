@@ -35,6 +35,7 @@ Control your AI coding agents (Claude Code, Gemini CLI, Cursor Agent, etc.) from
 | **C++ Compiler** | - | Yes | See platform-specific below |
 | **cloudflared** | Latest | Yes | For secure remote access |
 | **tmux** | 3.x+ | No | Optional, for server visualization |
+| **vhs + ttyd** | Latest | No | Optional, for generating demo GIFs |
 
 ### Platform-Specific Requirements
 
@@ -339,6 +340,20 @@ Terminate a session:
 
 ```bash
 mconnect session kill abc12345
+```
+
+---
+
+## Demo GIF Generation
+
+From the monorepo root:
+
+```bash
+# macOS
+brew install vhs ttyd
+
+# Generate all project demo GIFs
+npm run demo:gifs
 ```
 
 ### `mconnect session export <sessionId>`

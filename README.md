@@ -64,6 +64,7 @@ MConnect lets you monitor and control long-running AI coding agents (Claude Code
 - **cloudflared** (for remote access)
 - **Docker** (optional, for container isolation)
 - **tmux** (optional, for server-side visualization)
+- **vhs + ttyd** (optional, for generating demo GIFs from `demos/*.tape`)
 
 ### Installation
 
@@ -134,6 +135,23 @@ mconnect presets
 | **Dev + Reviewer** | 2 agents | Code review |
 | **Container Dev** | 1 containerized shell | Isolated development |
 | **Custom** | You choose | Advanced setups |
+
+## 🎬 Demo GIFs
+
+Generate all demo GIFs with one deterministic command:
+
+```bash
+# macOS
+brew install vhs ttyd
+
+# then from repo root
+npm run demo:gifs
+```
+
+Outputs:
+- `demos/gifs/mconnect-start.gif`
+- `demos/gifs/mconnect-agents.gif`
+- `demos/gifs/mconnect-opik.gif`
 
 ## 🐳 Container Support
 
