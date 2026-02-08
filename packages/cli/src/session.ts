@@ -225,7 +225,10 @@ export async function startSession(config: SessionConfig): Promise<void> {
     tunnel: { success: false },
     tmux: { success: false },
     httpServer: { success: true }, // Already started at this point
-    opik: { success: opikEnabled, error: opikEnabled ? undefined : 'OPIK_API_KEY not set' },
+    opik: {
+      success: opikEnabled || obsEnabled,
+      error: (opikEnabled || obsEnabled) ? undefined : 'OPIK_API_KEY not set',
+    },
   };
 
   // Create WebSocket hub

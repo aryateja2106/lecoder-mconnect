@@ -7,6 +7,7 @@
  * Gracefully degrades to no-op when OPIK_API_KEY is not set.
  */
 
+import { createRequire } from 'node:module';
 import type {
   AgentExitData,
   AgentSpanAttributes,
@@ -17,6 +18,10 @@ import type {
   OpikConfig,
   SessionSpanAttributes,
 } from './types.js';
+
+// Create a require function for loading CommonJS modules (like opik)
+// The opik SDK has internal CommonJS dependencies (dotenv) that don't work with ESM import
+const requireCJS = createRequire(import.meta.url);
 
 // Re-export types for convenience
 export * from './types.js';
@@ -84,7 +89,7 @@ export class OpikTracer {
       apiKey: config.apiKey || process.env.OPIK_API_KEY,
       apiUrl: config.apiUrl || process.env.OPIK_URL_OVERRIDE || 'https://www.comet.com/opik/api',
       projectName: config.projectName || process.env.OPIK_PROJECT_NAME || 'mconnect',
-      workspaceName: config.workspaceName || process.env.OPIK_WORKSPACE_NAME,
+      workspaceName: config.workspaceName || process.env.OPIK_WORKSPACE || process.env.OPIK_WORKSPACE_NAME,
       environment: config.environment || process.env.NODE_ENV || 'development',
     };
     this.debug = process.env.OPIK_DEBUG === 'true' || process.env.DEBUG?.includes('opik') === true;
@@ -110,8 +115,9 @@ export class OpikTracer {
     }
 
     try {
-      // Dynamic import to avoid hard dependency
-      const { Opik } = await import('opik');
+      // Use CJS require to avoid ESM incompatibility with opik's dotenv dependency
+      const opikModule = requireCJS('opik');
+      const Opik = opikModule.Opik || opikModule.default?.Opik || opikModule;
 
       this.client = new Opik({
         apiKey: this.config.apiKey,

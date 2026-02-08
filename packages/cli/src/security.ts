@@ -239,17 +239,18 @@ export function sanitizeInput(input: string): string {
 
 /**
  * Check if a command looks like an injection attempt
+ *
+ * Only blocks clearly dangerous patterns. Normal shell usage like
+ * command substitution $(...) and backticks are allowed since they
+ * are essential for development workflows.
  */
 export function detectInjection(input: string): boolean {
   const suspiciousPatterns = [
-    /\$\(.*\)/, // Command substitution
-    /`.*`/, // Backtick command substitution
-    /;\s*rm\s/i, // Injection attempt
-    /\|\s*sh\b/i, // Piping to shell
-    /\|\s*bash\b/i, // Piping to bash
+    /;\s*rm\s+-rf\s+\//i, // Destructive rm -rf /
     />\s*\/etc\//i, // Writing to system files
-    /curl.*\|\s*sh/i, // Remote code execution
-    /wget.*\|\s*sh/i, // Remote code execution
+    /curl.*\|\s*(?:sudo\s+)?(?:sh|bash)\b/i, // Remote code execution: curl | sh
+    /wget.*\|\s*(?:sudo\s+)?(?:sh|bash)\b/i, // Remote code execution: wget | sh
+    /;\s*(?:mkfs|dd\s+if=|shutdown|reboot|init\s+0)/i, // Destructive system commands
   ];
 
   return suspiciousPatterns.some((pattern) => pattern.test(input));
