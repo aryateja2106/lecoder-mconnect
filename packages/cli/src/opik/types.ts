@@ -144,7 +144,7 @@ export interface ClientConnectionAttributes {
 /**
  * Span types used in MConnect tracing
  */
-export type MConnectSpanType = 'session' | 'agent' | 'command' | 'approval' | 'client_connection';
+export type MConnectSpanType = 'general' | 'tool' | 'llm' | 'guardrail';
 
 /**
  * Combined span attributes union type

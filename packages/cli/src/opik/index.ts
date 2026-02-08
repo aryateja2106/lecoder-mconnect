@@ -230,7 +230,7 @@ export class OpikTracer {
 
     const span = session.trace.span({
       name: `agent:${attributes.agentType}:${agentId}`,
-      type: 'agent',
+      type: 'tool',
       input: {
         type: 'agent_spawn',
         sessionId,
@@ -288,7 +288,7 @@ export class OpikTracer {
     // Create a quick span for the command (auto-ends)
     const commandSpan = parentSpan.span({
       name: `command:${attributes.blocked ? 'blocked' : attributes.requiresApproval ? 'approval' : 'executed'}`,
-      type: 'command',
+      type: 'tool',
       input: {
         type: 'command',
         sessionId,
@@ -332,7 +332,7 @@ export class OpikTracer {
 
     const span = parentSpan.span({
       name: `approval:${attributes.command.slice(0, 30)}`,
-      type: 'approval',
+      type: 'general',
       input: {
         type: 'approval_request',
         sessionId,
@@ -395,7 +395,7 @@ export class OpikTracer {
     // Create a quick span for client connection (auto-ends)
     const span = session.trace.span({
       name: `client:${attributes.clientType}:${attributes.clientId}`,
-      type: 'client_connection',
+      type: 'general',
       input: {
         type: 'client_connected',
         sessionId,
@@ -422,7 +422,7 @@ export class OpikTracer {
     // Create a quick span for client disconnection
     const span = session.trace.span({
       name: `client_disconnect:${clientId}`,
-      type: 'client_connection',
+      type: 'general',
       input: {
         type: 'client_disconnected',
         sessionId,
