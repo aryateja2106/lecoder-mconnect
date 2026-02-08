@@ -103,7 +103,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Initialize Opik tracer (graceful fallback if not configured)
   spinner.message('Initializing observability...');
   const opikEnabled = await initializeOpikTracer({
-    projectName: 'mconnect',
+    projectName: process.env.OPIK_PROJECT_NAME || 'lecoder-mconnect',
     environment: process.env.NODE_ENV || 'development',
   });
 
@@ -474,8 +474,15 @@ async function cleanup(): Promise<void> {
   // Close HTTP server
   currentSession.httpServer.close();
 
-  // Flush Opik traces before exit
+  // Flush ALL Opik traces before exit (both tracers)
   await opikTracer.flush();
+  if (observability.isEnabled()) {
+    try {
+      await observability.flush();
+    } catch (_e) {
+      // Graceful fallback - don't block exit for flush failure
+    }
+  }
 
   currentSession = null;
   p.outro(chalk.green('Session ended. Goodbye!'));

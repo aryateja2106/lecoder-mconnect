@@ -87,15 +87,13 @@ function fixPermissionsInDir(dir) {
 
       if (entry.isDirectory()) {
         fixed = fixPermissionsInDir(fullPath) || fixed;
-      } else if (entry.name === 'spawn-helper') {
+      } else if (entry.name === 'spawn-helper' || entry.name.endsWith('.node')) {
         try {
-          const stats = statSync(fullPath);
-          // Check if execute bit is missing
-          if ((stats.mode & 0o111) === 0) {
-            chmodSync(fullPath, 0o755);
-            console.log(`[postinstall] Fixed permissions: ${fullPath}`);
-            fixed = true;
-          }
+          // Always set execute permission - don't check first
+          // npm frequently strips execute bits, and checking can be unreliable
+          chmodSync(fullPath, 0o755);
+          console.log(`[postinstall] Ensured permissions: ${fullPath}`);
+          fixed = true;
         } catch (e) {
           // Ignore permission errors
         }
