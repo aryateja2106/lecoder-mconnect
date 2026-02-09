@@ -14,6 +14,7 @@
 import { createRequire } from 'node:module';
 import type { AgentConfig, AgentStatus } from '../agents/types.js';
 import type { CommandCheck, GuardrailConfig } from '../guardrails.js';
+import { createMetrics, type MetricSet } from './metrics.js';
 
 // Use 'any' for Opik types since the SDK is optional and types may vary
 // The actual types will be resolved at runtime when opik is available
@@ -34,6 +35,8 @@ export class MConnectObservability {
   private enabled = false;
   private sessionTrace: OpikTrace | null = null;
   private agentSpans: Map<string, OpikSpan> = new Map();
+  private agentTypes: Map<string, string> = new Map();
+  private metricsEvaluators: MetricSet = createMetrics();
   private metrics: MConnectMetrics = {
     sessionId: '',
     startTime: 0,
@@ -160,6 +163,44 @@ export class MConnectObservability {
 
     const duration = Date.now() - this.metrics.startTime;
 
+    // Score session health before ending trace
+    try {
+      const healthResult = this.metricsEvaluators.sessionHealth.score(this.metrics);
+      this.sessionTrace.score({
+        name: 'session_health',
+        value: healthResult.score,
+        reason: `Status: ${healthResult.status}`,
+      });
+
+      // Score individual health components
+      for (const component of healthResult.components) {
+        this.sessionTrace.score({
+          name: `health_${component.name}`,
+          value: component.score,
+          reason: component.explanation,
+        });
+      }
+    } catch (err) {
+      // Don't let scoring failures break session end
+      console.log('[Opik] Session health scoring error:', err instanceof Error ? err.message : 'Unknown');
+    }
+
+    // Score agent coordination
+    try {
+      const activeAgentCount = this.agentSpans.size;
+      const coordResult = this.metricsEvaluators.agentCoordination.score(
+        this.metrics,
+        activeAgentCount
+      );
+      this.sessionTrace.score({
+        name: 'agent_coordination',
+        value: coordResult.score,
+        reason: coordResult.explanation,
+      });
+    } catch (err) {
+      console.log('[Opik] Agent coordination scoring error:', err instanceof Error ? err.message : 'Unknown');
+    }
+
     this.sessionTrace.end({
       output: {
         reason,
@@ -208,6 +249,7 @@ export class MConnectObservability {
     });
 
     this.agentSpans.set(agentId, span);
+    this.agentTypes.set(agentId, config.type || 'shell');
   }
 
   /**
@@ -228,6 +270,7 @@ export class MConnectObservability {
         },
       });
       this.agentSpans.delete(agentId);
+      this.agentTypes.delete(agentId);
     }
   }
 
@@ -271,6 +314,19 @@ export class MConnectObservability {
         approved: check.requiresApproval,
       },
     });
+
+    // Score agent tool selection
+    try {
+      const agentType = this.agentTypes.get(agentId) || 'shell';
+      const toolResult = this.metricsEvaluators.agentToolSelection.score(agentType, command);
+      span.score({
+        name: 'agent_tool_selection',
+        value: toolResult.score,
+        reason: toolResult.explanation,
+      });
+    } catch (err) {
+      // Don't let scoring failures break command tracing
+    }
   }
 
   /**
@@ -302,6 +358,18 @@ export class MConnectObservability {
         approvalPatternsCount: config.approvalPatterns.length,
       },
     });
+
+    // Score command safety
+    try {
+      const safetyResult = this.metricsEvaluators.commandSafety.score(command, result, config);
+      span.score({
+        name: 'command_safety',
+        value: safetyResult.score,
+        reason: safetyResult.explanation,
+      });
+    } catch (err) {
+      // Don't let scoring failures break guardrail tracing
+    }
   }
 
   /**

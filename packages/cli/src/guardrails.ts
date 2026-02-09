@@ -127,9 +127,8 @@ export function checkCommand(command: string, config: GuardrailConfig): CommandC
     requiresApproval: false,
   };
 
-  // Only trace if blocked or requires approval (to avoid noise)
-  // Uncomment the line below if you want to trace all commands
-  // traceGuardrailCheck(command, config, result);
+  // Trace all commands (including safe ones) for feedback scoring
+  traceGuardrailCheck(command, config, result);
 
   return result;
 }
