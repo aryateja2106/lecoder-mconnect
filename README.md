@@ -26,9 +26,9 @@ npx lecoder-mconnect
 
 That's it. A QR code appears in your terminal. Scan it with your phone. You're now controlling your AI agent from anywhere, with every action traced through [Opik](https://www.comet.com/opik) for full observability.
 
-| Claude Code | Cursor Agent | Gemini CLI |
-|:---:|:---:|:---:|
-| <img src="apps/web/public/mobile-view-ss/claude-code-view.PNG" width="220" alt="Claude Code on mobile"> | <img src="apps/web/public/mobile-view-ss/cursor-agent-view.PNG" width="220" alt="Cursor Agent on mobile"> | <img src="apps/web/public/mobile-view-ss/gemini-cli-view.PNG" width="220" alt="Gemini CLI on mobile"> |
+| Claude Code | Gemini CLI | Cursor Agent | Amp | OpenCode |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="apps/web/public/mobile-view-ss/claude-code-view.PNG" width="160" alt="Claude Code on mobile"> | <img src="apps/web/public/mobile-view-ss/gemini-cli-view.PNG" width="160" alt="Gemini CLI on mobile"> | <img src="apps/web/public/mobile-view-ss/cursor-agent-view.PNG" width="160" alt="Cursor Agent on mobile"> | <img src="apps/web/public/mobile-view-ss/amp-view.PNG" width="160" alt="Amp on mobile"> | <img src="apps/web/public/mobile-view-ss/opencode-view.PNG" width="160" alt="OpenCode on mobile"> |
 
 ## Demo
 
