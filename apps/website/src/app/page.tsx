@@ -197,10 +197,11 @@ export default function Home() {
             </a>
           </div>
 
-          {/* Phone mockups — 5 agents */}
+          {/* Phone mockups — 5 agents, Claude Code hero center */}
           <div className="relative">
             <div className="flex justify-center items-end gap-2 md:gap-4">
-              <div className="w-[80px] md:w-[130px] lg:w-[160px] transform -rotate-8 hover:rotate-0 transition-transform duration-300 opacity-80 hover:opacity-100">
+              {/* Amp — far left, subtle */}
+              <div className="w-[70px] md:w-[110px] lg:w-[140px] transform -rotate-8 hover:rotate-0 transition-transform duration-300 opacity-60 hover:opacity-100">
                 <div className="border border-[#333] p-1">
                   <div className="bg-[#191919] overflow-hidden">
                     <div className="flex items-center gap-1 px-1.5 py-1 border-b border-[#333]">
@@ -209,40 +210,13 @@ export default function Home() {
                       <div className="w-1 h-1 rounded-full border border-[#555]" />
                       <span className="ml-0.5 text-[6px] text-[#888]">Amp</span>
                     </div>
-                    <Image src="/mobile-view-ss/amp-view.PNG" alt="Amp" width={160} height={280} className="w-full h-auto" />
+                    <Image src="/mobile-view-ss/amp-view.PNG" alt="Amp" width={140} height={240} className="w-full h-auto" />
                   </div>
                 </div>
               </div>
 
-              <div className="w-[100px] md:w-[160px] lg:w-[190px] transform -rotate-4 hover:rotate-0 transition-transform duration-300">
-                <div className="border border-[#333] p-1.5">
-                  <div className="bg-[#191919] overflow-hidden">
-                    <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[#333]">
-                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
-                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
-                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
-                      <span className="ml-1 text-[8px] text-[#888]">Claude Code</span>
-                    </div>
-                    <Image src="/mobile-view-ss/claude-code-view.PNG" alt="Claude Code" width={190} height={330} className="w-full h-auto" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-[120px] md:w-[180px] lg:w-[220px] z-10 hover:scale-105 transition-transform duration-300">
-                <div className="border-2 border-[#e9e9e7] p-1.5">
-                  <div className="bg-[#191919] overflow-hidden">
-                    <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[#333]">
-                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
-                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
-                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
-                      <span className="ml-1 text-[8px] text-[#888]">Gemini CLI</span>
-                    </div>
-                    <Image src="/mobile-view-ss/gemini-cli-view.PNG" alt="Gemini CLI" width={220} height={380} className="w-full h-auto" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-[100px] md:w-[160px] lg:w-[190px] transform rotate-4 hover:rotate-0 transition-transform duration-300">
+              {/* Cursor Agent — left of center */}
+              <div className="w-[100px] md:w-[160px] lg:w-[200px] transform -rotate-4 hover:rotate-0 transition-transform duration-300">
                 <div className="border border-[#333] p-1.5">
                   <div className="bg-[#191919] overflow-hidden">
                     <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[#333]">
@@ -251,21 +225,52 @@ export default function Home() {
                       <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
                       <span className="ml-1 text-[8px] text-[#888]">Cursor Agent</span>
                     </div>
-                    <Image src="/mobile-view-ss/cursor-agent-view.PNG" alt="Cursor Agent" width={190} height={330} className="w-full h-auto" />
+                    <Image src="/mobile-view-ss/cursor-agent-view.PNG" alt="Cursor Agent" width={200} height={350} className="w-full h-auto" />
                   </div>
                 </div>
               </div>
 
-              <div className="w-[80px] md:w-[130px] lg:w-[160px] transform rotate-8 hover:rotate-0 transition-transform duration-300 opacity-80 hover:opacity-100">
+              {/* Claude Code — CENTER HERO */}
+              <div className="w-[130px] md:w-[200px] lg:w-[260px] z-10 hover:scale-105 transition-transform duration-300">
+                <div className="border-2 border-[#e9e9e7] p-1.5">
+                  <div className="bg-[#191919] overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[#333]">
+                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
+                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
+                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
+                      <span className="ml-1 text-[8px] text-[#888]">Claude Code</span>
+                    </div>
+                    <Image src="/mobile-view-ss/claude-code-view.PNG" alt="Claude Code" width={260} height={450} className="w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+
+              {/* OpenCode — right of center */}
+              <div className="w-[100px] md:w-[160px] lg:w-[200px] transform rotate-4 hover:rotate-0 transition-transform duration-300">
+                <div className="border border-[#333] p-1.5">
+                  <div className="bg-[#191919] overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[#333]">
+                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
+                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
+                      <div className="w-1.5 h-1.5 rounded-full border border-[#555]" />
+                      <span className="ml-1 text-[8px] text-[#888]">OpenCode</span>
+                    </div>
+                    <Image src="/mobile-view-ss/opencode-view.PNG" alt="OpenCode" width={200} height={350} className="w-full h-auto" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Gemini CLI — far right, subtle */}
+              <div className="w-[70px] md:w-[110px] lg:w-[140px] transform rotate-8 hover:rotate-0 transition-transform duration-300 opacity-60 hover:opacity-100">
                 <div className="border border-[#333] p-1">
                   <div className="bg-[#191919] overflow-hidden">
                     <div className="flex items-center gap-1 px-1.5 py-1 border-b border-[#333]">
                       <div className="w-1 h-1 rounded-full border border-[#555]" />
                       <div className="w-1 h-1 rounded-full border border-[#555]" />
                       <div className="w-1 h-1 rounded-full border border-[#555]" />
-                      <span className="ml-0.5 text-[6px] text-[#888]">OpenCode</span>
+                      <span className="ml-0.5 text-[6px] text-[#888]">Gemini CLI</span>
                     </div>
-                    <Image src="/mobile-view-ss/opencode-view.PNG" alt="OpenCode" width={160} height={280} className="w-full h-auto" />
+                    <Image src="/mobile-view-ss/gemini-cli-view.PNG" alt="Gemini CLI" width={140} height={240} className="w-full h-auto" />
                   </div>
                 </div>
               </div>
