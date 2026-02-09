@@ -5,8 +5,11 @@
  * Creates an Opik dataset of test commands, runs them through each guardrail level,
  * scores the results with CommandSafetyMetric, and logs everything as Opik experiments.
  *
- * Usage:
+ * Usage (from repo root):
  *   npx tsx packages/cli/scripts/eval-guardrails.ts
+ *
+ * Or from packages/cli/:
+ *   npx tsx scripts/eval-guardrails.ts
  *
  * Requires OPIK_API_KEY and OPIK_WORKSPACE in your .env or environment.
  */
