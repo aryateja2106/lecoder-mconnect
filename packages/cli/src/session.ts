@@ -21,6 +21,7 @@ import {
   getPairingCodeManager,
   hashForLogging,
 } from './security.js';
+import { writeSessionFile, removeSessionFile } from './session-file.js';
 import type { SessionManager } from './session/SessionManager.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
@@ -39,10 +40,10 @@ export interface SessionConfig {
   enableTmux?: boolean;
   /** Server port (default: 8765) */
   port?: number;
-  /** Show pairing code in terminal (default: false, QR only for mobile) */
-  showPairingCode?: boolean;
   /** Web app base URL (if using external web UI) */
   webUrl?: string;
+  /** Output session info as JSON to stdout (for agents/scripts) */
+  jsonOutput?: boolean;
 }
 
 /**
@@ -96,8 +97,10 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const sessionToken = generateSecureToken();
   const port = config.port || 8765;
 
-  // Show startup spinner
-  const spinner = p.spinner();
+  const quiet = !!config.jsonOutput;
+
+  // Show startup spinner (skip in JSON mode)
+  const spinner = quiet ? { start: () => {}, message: () => {}, stop: () => {} } : p.spinner();
   spinner.start('Initializing MConnect v2...');
 
   // Initialize Opik tracer (graceful fallback if not configured)
@@ -356,25 +359,27 @@ export async function startSession(config: SessionConfig): Promise<void> {
   spinner.stop('Session ready!');
 
   // Display initialization status summary (T013)
-  console.log('\n');
-  p.log.info('Component Status:');
-  const statusIcon = (success: boolean) => (success ? chalk.green('✓') : chalk.yellow('○'));
-  console.log(`  ${statusIcon(initStatus.httpServer.success)} HTTP Server`);
-  console.log(`  ${statusIcon(initStatus.websocket.success)} WebSocket`);
-  console.log(
-    `  ${statusIcon(initStatus.pty.success)} PTY Manager${initStatus.pty.error ? chalk.dim(` (${initStatus.pty.error})`) : ''}`
-  );
-  console.log(
-    `  ${statusIcon(initStatus.tunnel.success)} Tunnel${initStatus.tunnel.error ? chalk.dim(` (${initStatus.tunnel.error})`) : ''}`
-  );
-  console.log(
-    `  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`
-  );
-  console.log(
-    `  ${statusIcon(initStatus.opik.success)} Opik${initStatus.opik.error ? chalk.dim(` (${initStatus.opik.error})`) : ''}`
-  );
+  if (!quiet) {
+    console.log('\n');
+    p.log.info('Component Status:');
+    const statusIcon = (success: boolean) => (success ? chalk.green('✓') : chalk.yellow('○'));
+    console.log(`  ${statusIcon(initStatus.httpServer.success)} HTTP Server`);
+    console.log(`  ${statusIcon(initStatus.websocket.success)} WebSocket`);
+    console.log(
+      `  ${statusIcon(initStatus.pty.success)} PTY Manager${initStatus.pty.error ? chalk.dim(` (${initStatus.pty.error})`) : ''}`
+    );
+    console.log(
+      `  ${statusIcon(initStatus.tunnel.success)} Tunnel${initStatus.tunnel.error ? chalk.dim(` (${initStatus.tunnel.error})`) : ''}`
+    );
+    console.log(
+      `  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`
+    );
+    console.log(
+      `  ${statusIcon(initStatus.opik.success)} Opik${initStatus.opik.error ? chalk.dim(` (${initStatus.opik.error})`) : ''}`
+    );
+  }
 
-  // Display session info
+  // Build connection URLs
   const serverUrl = tunnelUrl || `http://localhost:${port}`;
   let connectUrl = new URL(serverUrl);
   let usingWebUrl = false;
@@ -384,8 +389,10 @@ export async function startSession(config: SessionConfig): Promise<void> {
       connectUrl = new URL(config.webUrl);
       usingWebUrl = true;
     } catch (_error) {
-      p.log.warning(`Invalid web URL provided: ${config.webUrl}`);
-      p.log.warning('Falling back to the built-in web client.');
+      if (!config.jsonOutput) {
+        p.log.warning(`Invalid web URL provided: ${config.webUrl}`);
+        p.log.warning('Falling back to the built-in web client.');
+      }
     }
   }
 
@@ -395,47 +402,76 @@ export async function startSession(config: SessionConfig): Promise<void> {
   }
   const connectUrlString = connectUrl.toString();
 
-  console.log('\n');
-  p.log.success(`${PRODUCT_NAME} - Multi-Agent Session`);
-  console.log('\n');
+  // Write session file for `mconnect info` and agent consumption
+  const sessionFileData = {
+    sessionId,
+    pairingCode,
+    url: serverUrl,
+    connectUrl: connectUrlString,
+    token: sessionToken,
+    port,
+    startedAt: new Date().toISOString(),
+    pid: process.pid,
+  };
 
-  // Display QR code
-  console.log(chalk.bold('  Scan this QR code with your phone:\n'));
-  qrcode.generate(connectUrlString, { small: true }, (qr) => {
-    console.log(qr);
-  });
+  try {
+    writeSessionFile(config.workDir, sessionFileData);
+  } catch {
+    // Session file write is best-effort
+  }
 
-  console.log('\n');
-  console.log(chalk.dim(`  Session ID: ${sessionId}`));
-  if (usingWebUrl) {
-    console.log(chalk.green(`  Web URL: ${connectUrlString}`));
-    console.log(chalk.dim(`  Server URL: ${serverUrl}`));
-  } else if (tunnelUrl) {
-    console.log(chalk.green(`  Remote URL: ${tunnelUrl}`));
+  // JSON output mode: print machine-readable info and skip the fancy display
+  if (config.jsonOutput) {
+    console.log(JSON.stringify(sessionFileData, null, 2));
   } else {
-    console.log(chalk.yellow(`  Local URL: http://localhost:${port}`));
-    console.log(chalk.dim('  (Install cloudflared for remote access)'));
-  }
-  console.log(chalk.dim(`  Agents: ${agentManager.count}`));
-  console.log(chalk.dim(`  Mode: ${chalk.yellow('Read-only')} (toggle in app)`));
-  console.log(chalk.dim(`  Token: ${hashForLogging(sessionToken)}... (secure)`));
-  if (tmuxManager?.getCurrentSession()) {
-    console.log(chalk.dim(`  Tmux: ${tmuxManager.getCurrentSession()}`));
-  }
-  console.log('\n');
+    console.log('\n');
+    p.log.success(`${PRODUCT_NAME} - Multi-Agent Session`);
+    console.log('\n');
 
-  // Display pairing code only if --code flag is used
-  if (config.showPairingCode) {
-    console.log(chalk.bold.cyan('  ────────────────────────────────────'));
-    console.log(chalk.bold.cyan(`  │  PAIRING CODE:  ${chalk.white.bold(pairingCode)}  │`));
-    console.log(chalk.bold.cyan('  ────────────────────────────────────'));
-    console.log(chalk.dim('  Enter this code in the web app to connect'));
-    console.log(chalk.dim('  (Valid for 5 minutes)'));
+    // Display QR code
+    console.log(chalk.bold('  Scan this QR code with your phone:\n'));
+    qrcode.generate(connectUrlString, {}, (qr) => {
+      const lines = qr.split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          console.log(`  ${line}`);
+        }
+      }
+    });
+
+    console.log('\n');
+    console.log(chalk.dim(`  Session ID: ${sessionId}`));
+    if (usingWebUrl) {
+      console.log(chalk.green(`  Web URL: ${connectUrlString}`));
+      console.log(chalk.dim(`  Server URL: ${serverUrl}`));
+    } else if (tunnelUrl) {
+      console.log(chalk.green(`  Remote URL: ${tunnelUrl}`));
+    } else {
+      console.log(chalk.yellow(`  Local URL: http://localhost:${port}`));
+      console.log(chalk.dim('  (Install cloudflared for remote access)'));
+    }
+    console.log(chalk.dim(`  Agents: ${agentManager.count}`));
+    console.log(chalk.dim(`  Mode: ${chalk.yellow('Read-only')} (toggle in app)`));
+    console.log(chalk.dim(`  Token: ${hashForLogging(sessionToken)}... (secure)`));
+    if (tmuxManager?.getCurrentSession()) {
+      console.log(chalk.dim(`  Tmux: ${tmuxManager.getCurrentSession()}`));
+    }
+    console.log('\n');
+
+    {
+      const codeDisplay = chalk.bgCyan.black.bold(` ${pairingCode} `);
+      const border = chalk.bold;
+      process.stdout.write(border('  ╔══════════════════════════════════════╗\n'));
+      process.stdout.write(`${border('  ║  PAIRING CODE:  ')}${codeDisplay}${border('  ║')}\n`);
+      process.stdout.write(border('  ╚══════════════════════════════════════╝\n'));
+      console.log(chalk.dim('  Enter this code in the web app to connect'));
+      console.log(chalk.dim("  (Valid for 5 minutes) \xB7 Can't scan QR? Use this code."));
+      console.log('\n');
+    }
+
+    p.log.info(`Press ${chalk.cyan('Ctrl+C')} to stop the session`);
     console.log('\n');
   }
-
-  p.log.info(`Press ${chalk.cyan('Ctrl+C')} to stop the session`);
-  console.log('\n');
 
   // Event handlers for agent manager
   agentManager.on('data', (_agentId, data) => {
@@ -467,6 +503,12 @@ async function cleanup(): Promise<void> {
   if (!currentSession) return;
 
   p.log.info('Cleaning up session...');
+
+  try {
+    removeSessionFile(currentSession.config.workDir);
+  } catch {
+    // Best-effort cleanup
+  }
 
   // End Opik session traces (both tracers)
   const opikTracer = getOpikTracer();

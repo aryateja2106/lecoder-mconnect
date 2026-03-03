@@ -144,8 +144,11 @@ apps/video/
 # User uploads (development/testing)
 .mconnect-uploads/
 
+# Session info file (written by mconnect start)
+.mconnect-session.json
+
 # Xcode / iOS
-packages/ios-app/MConnect.xcodeproj/xcuserdata/
+**/xcuserdata/
 packages/ios-app/MConnect.xcodeproj/project.xcworkspace/xcuserdata/
 packages/ios-app/build/
 packages/ios-app/DerivedData/
