@@ -118,3 +118,25 @@ See `STYLE.md` for full brand guidelines.
 - **Repo**: https://github.com/aryateja2106/lecoder-mconnect
 - **npm**: https://www.npmjs.com/package/lecoder-mconnect
 - **Issues**: https://github.com/aryateja2106/lecoder-mconnect/issues
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+| Service | Location | Dev command | Port |
+|---------|----------|-------------|------|
+| CLI | `packages/cli` | `npm run dev:cli` (interactive) or build+run via `npm run build:cli && node packages/cli/dist/index.js` | 8765 (WebSocket) |
+| Web Dashboard | `apps/web` | `npm run dev` (from root) | 3000 |
+| Marketing Website | `apps/website` | `cd apps/website && npm run dev` | 3000 |
+| Shared types | `packages/shared` | `cd packages/shared && npx tsc` (build) | N/A |
+| V2 Server | `packages/server` | `bun run dev` (requires PostgreSQL + Bun) | 3001 |
+
+### Gotchas
+
+- **zsh required**: The PTY manager tests (`pty-manager.test.ts`) default to `/bin/zsh`. Install it with `sudo apt-get install -y zsh` or 19 tests will fail with "Shell not found: /bin/zsh".
+- **Lint warnings are pre-existing**: `npm run lint` reports biome warnings/errors in `packages/cli` (opik.ts `any` types, unused vars) and `packages/server`. These are known and not blocking.
+- **Website lint needs ESLint**: `apps/website` uses `next lint` which requires ESLint to be installed separately (`npm install --save-dev eslint` in that workspace). This is a known gap.
+- **CLI `start` is interactive**: The `mconnect start` command uses `@clack/prompts` and always prompts for working directory confirmation, even with `--preset` and `--guardrails` flags. Use `doctor` or `presets` subcommands for non-interactive verification.
+- **node-pty native module**: Already compiled during `npm install`. If you see spawn-helper permission warnings in tests, they're harmless. Run `npm rebuild node-pty` only if PTY spawn actually fails.
+- **Bun for V2 packages**: `packages/shared` and `packages/server` use Bun. Bun is installed at `~/.bun/bin/bun` and added to PATH via `~/.bashrc`. Build shared types before server: `cd packages/shared && npx tsc`.
+- **Port conflicts**: If port 3000 is already in use, Next.js auto-selects the next available port. Check terminal output for the actual port.
