@@ -6,7 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Opik Traced](https://img.shields.io/badge/Opik-Traced-blue.svg)](https://www.comet.com/opik)
 
-> Built for the [Commit To Change: An AI Agents Hackathon](https://www.encodeclub.com/programmes/comet-resolution-v2-hackathon) by Encode Club, powered by [Comet Opik](https://www.comet.com/opik).
+[![App Store Coming Soon](https://img.shields.io/badge/App_Store-Coming_Soon-black.svg?logo=apple)](https://testflight.apple.com/join/pB2TbMrX)
+
+> Control your AI coding agents from your phone. Now available on [TestFlight](https://testflight.apple.com/join/pB2TbMrX), App Store review in progress.
 
 ---
 
@@ -157,6 +159,20 @@ mconnect presets        # List available agent presets
 | `--port <number>` | Server port (default: 8765) |
 | `--no-tmux` | Disable tmux visualization |
 | `-c, --code` | Show pairing code for desktop use |
+
+## iOS App
+
+MConnect is also available as a native iOS app — the same terminal control experience, built for iPhone.
+
+**TestFlight (public beta):** [Join TestFlight](https://testflight.apple.com/join/pB2TbMrX)
+
+The iOS app connects to your MConnect CLI server and gives you:
+- Native terminal rendering
+- QR code and URL-based pairing
+- Touch-optimized controls
+- Works over any network via Cloudflare tunnel
+
+**App Store:** v1.0 submitted, currently in review.
 
 ### Setting up Opik (for observability)
 
