@@ -162,11 +162,17 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           {/* Badge */}
           <div className="flex justify-center mb-8">
-            <a href="https://github.com/aryateja2106/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#333] hover:border-[#e9e9e7] transition-colors text-xs text-[#888]">
-              <Star size={12} />
-              Open source · v0.1.3
-              <ChevronRight size={12} />
-            </a>
+            <div className="flex items-center gap-3">
+              <a href="https://github.com/aryateja2106/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#333] hover:border-[#e9e9e7] transition-colors text-xs text-[#888]">
+                <Star size={12} />
+                Open source · v0.1.3
+                <ChevronRight size={12} />
+              </a>
+              <a href="https://testflight.apple.com/join/pB2TbMrX" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 border border-[#e9e9e7] transition-colors text-xs text-[#e9e9e7]">
+                iOS App · TestFlight
+                <ChevronRight size={12} />
+              </a>
+            </div>
           </div>
 
           <h1 className="text-center text-[28px] sm:text-[36px] md:text-[44px] font-bold tracking-tight mb-6 leading-tight">
@@ -194,6 +200,10 @@ export default function Home() {
             <a href="https://github.com/aryateja2106/lecoder-mconnect#readme" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-[#555] text-sm hover:border-[#e9e9e7] transition-colors">
               Documentation
               <ArrowRight size={16} />
+            </a>
+            <a href="https://testflight.apple.com/join/pB2TbMrX" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-[#555] text-sm hover:border-[#e9e9e7] transition-colors">
+              <Smartphone size={16} />
+              TestFlight Beta
             </a>
           </div>
 
@@ -349,6 +359,13 @@ export default function Home() {
           <p className="text-[#888] mb-10 text-sm">What we&apos;re building next.</p>
 
           <div className="space-y-px bg-[#333]">
+            <div className="bg-[#191919]">
+              <RoadmapItem
+                status="done"
+                title="Native iOS app"
+                description="Control agents from your iPhone with native terminal rendering and touch controls"
+              />
+            </div>
             <div className="bg-[#191919]">
               <RoadmapItem
                 status="done"
@@ -524,6 +541,10 @@ export default function Home() {
             <a href="https://github.com/aryateja2106/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 border border-[#555] text-sm hover:border-[#e9e9e7] transition-colors">
               <Github size={18} />
               Star on GitHub
+            </a>
+            <a href="https://testflight.apple.com/join/pB2TbMrX" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 border border-[#555] text-sm hover:border-[#e9e9e7] transition-colors">
+              <Smartphone size={18} />
+              TestFlight Beta
             </a>
           </div>
         </div>

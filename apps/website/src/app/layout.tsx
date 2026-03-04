@@ -3,7 +3,7 @@ import './globals.css';
 
 const siteUrl = 'https://lecoder.lesearch.ai';
 const siteName = 'LeCoder MConnect';
-const siteDescription = 'Control your AI coding agents from your phone. Run Claude Code, Gemini CLI, Cursor Agent from anywhere. Terminal in your pocket.';
+const siteDescription = 'Control your AI coding agents from your phone. Native iOS app + CLI. Run Claude Code, Gemini CLI, Cursor Agent from anywhere.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
     'Aider',
     'LeCoder',
     'MConnect',
+    'iOS app',
+    'App Store',
+    'TestFlight',
+    'mobile AI development',
+    'agent orchestration',
   ],
   authors: [{ name: 'Arya Teja Rudraraju', url: 'https://github.com/aryateja2106' }],
   creator: 'LeSearch AI',
@@ -103,7 +108,7 @@ const jsonLd = {
   '@type': 'SoftwareApplication',
   name: 'LeCoder MConnect',
   applicationCategory: 'DeveloperApplication',
-  operatingSystem: 'macOS, Linux',
+  operatingSystem: 'macOS, Linux, iOS',
   description: siteDescription,
   url: siteUrl,
   author: {
