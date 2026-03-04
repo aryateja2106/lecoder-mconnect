@@ -78,6 +78,7 @@
       },
       "optionalDependencies": {
         "node-pty": "^1.1.0",
+        "opik": "^1.0.0",
       },
     },
     "packages/server": {

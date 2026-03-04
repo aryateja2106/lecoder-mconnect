@@ -60,6 +60,7 @@ import { createSessionCommand } from './cli/commands/session.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
+import { getSessionFilePath } from './session-file.js';
 import { VERSION, VERSION_DISPLAY } from './version.js';
 
 const program = new Command();
@@ -88,7 +89,9 @@ program
   .option('-g, --guardrails <level>', 'Guardrails level (default, strict, permissive, none)')
   .option('--port <number>', 'Server port (default: 8765)')
   .option('--no-tmux', 'Disable tmux visualization')
-  .option('-c, --code', 'Show pairing code (for dev/desktop use)')
+  .option('-y, --yes', 'Skip interactive wizard, use defaults (preset: shell-only, guardrails: default)')
+  .option('--json', 'Output session connection info as JSON (implies --yes)')
+  .option('-c, --code', '(Deprecated) Pairing code is now always shown')
   .option('--web-url <url>', 'Web app URL (e.g. http://localhost:3000)')
   .action(async (options) => {
     // Quick check for node-pty before starting wizard
@@ -114,7 +117,12 @@ program
       console.log(chalk.dim('  Run "mconnect doctor" for full diagnostics.\n'));
       process.exit(1);
     }
-    await runWizard(options);
+
+    if (options.json || options.yes) {
+      await quickStart(options);
+    } else {
+      await runWizard(options);
+    }
   });
 
 program
@@ -138,6 +146,77 @@ program
     }
   });
 
+program
+  .command('info')
+  .description('Show connection details for the running session')
+  .option('--json', 'Output as JSON (for agents/scripts)')
+  .option('-d, --dir <directory>', 'Working directory where session was started')
+  .action(async (options) => {
+    const sessionFile = getSessionFilePath(options.dir || process.cwd());
+    try {
+      const data = JSON.parse(readFileSync(sessionFile, 'utf-8'));
+
+      if (options.json) {
+        console.log(JSON.stringify(data, null, 2));
+        return;
+      }
+
+      console.log(`\n${chalk.bold('MConnect Session Info')}\n`);
+      console.log(`  ${chalk.bold('Session ID:')}   ${data.sessionId}`);
+      console.log(`  ${chalk.bold('Pairing Code:')} ${chalk.bgCyan.black.bold(` ${data.pairingCode} `)}`);
+      console.log(`  ${chalk.bold('URL:')}          ${chalk.green(data.url)}`);
+      console.log(`  ${chalk.bold('Token:')}        ${data.token}`);
+      console.log(`  ${chalk.bold('Connect URL:')}  ${chalk.cyan(data.connectUrl)}`);
+      console.log(`  ${chalk.bold('Started:')}      ${data.startedAt}`);
+      console.log(`  ${chalk.bold('Port:')}         ${data.port}`);
+      console.log('');
+
+      if (data.pairingCode) {
+        console.log(chalk.dim('  Quick connect: Open the URL above, enter the pairing code'));
+        console.log(chalk.dim('  Direct connect: Open the Connect URL in a browser'));
+      }
+      console.log('');
+    } catch {
+      console.log(chalk.red('\n  No active session found.\n'));
+      console.log(chalk.dim(`  Looked for: ${sessionFile}`));
+      console.log(chalk.dim('  Start a session first: mconnect start -y\n'));
+      process.exit(1);
+    }
+  });
+
+program
+  .command('commands')
+  .description('Show all available commands with examples')
+  .action(() => {
+    console.log(`\n${chalk.bold('MConnect Commands')}\n`);
+    console.log(chalk.cyan('  Quick Start (non-interactive):'));
+    console.log('    npx lecoder-mconnect -y');
+    console.log('    npx lecoder-mconnect start -y --preset shell-only');
+    console.log('    npx lecoder-mconnect start -y --json');
+    console.log('');
+    console.log(chalk.cyan('  Interactive Start:'));
+    console.log('    npx lecoder-mconnect');
+    console.log('    npx lecoder-mconnect start');
+    console.log('    npx lecoder-mconnect start --preset single --guardrails strict');
+    console.log('');
+    console.log(chalk.cyan('  Session Info (for agents/testing):'));
+    console.log('    npx lecoder-mconnect info');
+    console.log('    npx lecoder-mconnect info --json');
+    console.log('');
+    console.log(chalk.cyan('  Other Commands:'));
+    console.log('    npx lecoder-mconnect doctor     # System diagnostics');
+    console.log('    npx lecoder-mconnect presets     # List agent presets');
+    console.log('    npx lecoder-mconnect commands    # This help');
+    console.log('');
+    console.log(chalk.cyan('  Session Management:'));
+    console.log('    npx lecoder-mconnect session list');
+    console.log('    npx lecoder-mconnect session attach <id>');
+    console.log('');
+    console.log(chalk.cyan('  Daemon:'));
+    console.log('    npx lecoder-mconnect daemon start|stop|status|logs');
+    console.log('');
+  });
+
 interface WizardOptions {
   preset?: string;
   guardrails?: string;
@@ -146,6 +225,55 @@ interface WizardOptions {
   port?: string;
   code?: boolean;
   webUrl?: string;
+  yes?: boolean;
+  json?: boolean;
+}
+
+async function quickStart(options: WizardOptions): Promise<void> {
+  const preset = options.preset || 'shell-only';
+  const guardrails = options.guardrails || 'default';
+  const workDir = resolve(options.dir || process.cwd());
+  const jsonOutput = !!options.json;
+
+  if (!existsSync(workDir)) {
+    if (jsonOutput) {
+      console.log(JSON.stringify({ error: `Directory does not exist: ${workDir}` }));
+    } else {
+      console.log(chalk.red(`\n  Directory does not exist: ${workDir}\n`));
+    }
+    process.exit(1);
+  }
+
+  const presetConfig = AGENT_PRESETS.find((p) => p.name === preset);
+  const agents = presetConfig
+    ? [...presetConfig.agents]
+    : [{ type: 'shell' as const, name: 'Shell', command: getDefaultShell() }];
+
+  if (!jsonOutput) {
+    console.log('');
+    p.intro(chalk.bgCyan(chalk.black(` MConnect ${VERSION_DISPLAY} `)));
+    console.log(chalk.dim(`  Quick start: preset=${preset}, guardrails=${guardrails}`));
+    console.log(chalk.dim(`  Working dir: ${workDir}\n`));
+  }
+
+  try {
+    await startSession({
+      workDir,
+      guardrails,
+      agents,
+      enableTmux: options.tmux !== false,
+      port: options.port ? parseInt(options.port, 10) : undefined,
+      webUrl: options.webUrl,
+      jsonOutput,
+    });
+  } catch (error) {
+    if (jsonOutput) {
+      console.log(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }));
+    } else {
+      p.log.error(error instanceof Error ? error.message : 'Unknown error');
+    }
+    process.exit(1);
+  }
 }
 
 async function runWizard(options: WizardOptions): Promise<void> {
@@ -350,7 +478,6 @@ async function runWizard(options: WizardOptions): Promise<void> {
       agents,
       enableTmux: options.tmux !== false,
       port: options.port ? parseInt(options.port, 10) : undefined,
-      showPairingCode: options.code === true,
       webUrl: options.webUrl,
     });
   } catch (error) {
