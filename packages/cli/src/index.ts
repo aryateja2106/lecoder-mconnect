@@ -8,7 +8,7 @@
  */
 
 // Load .env file BEFORE any other imports that may read process.env
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 // Simple .env loader (no external dependency needed)
@@ -93,6 +93,7 @@ program
   .option('--json', 'Output session connection info as JSON (implies --yes)')
   .option('-c, --code', '(Deprecated) Pairing code is now always shown')
   .option('--web-url <url>', 'Web app URL (e.g. http://localhost:3000)')
+  .option('--timeout <minutes>', 'Session timeout in minutes (default: 60, 0 = no timeout)', '60')
   .action(async (options) => {
     // Quick check for node-pty before starting wizard
     const ptyAvailable = await isNodePtyAvailable();
@@ -150,30 +151,48 @@ program
   .command('info')
   .description('Show connection details for the running session')
   .option('--json', 'Output as JSON (for agents/scripts)')
+  .option('--show-token', 'Show full token (hidden by default for security)')
   .option('-d, --dir <directory>', 'Working directory where session was started')
   .action(async (options) => {
     const sessionFile = getSessionFilePath(options.dir || process.cwd());
     try {
       const data = JSON.parse(readFileSync(sessionFile, 'utf-8'));
 
+      // Check if session process is actually alive
+      let isAlive = false;
+      if (data.pid) {
+        try {
+          process.kill(data.pid, 0); // signal 0 = test existence
+          isAlive = true;
+        } catch {
+          isAlive = false;
+        }
+      }
+
       if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
+        console.log(JSON.stringify({ ...data, alive: isAlive }, null, 2));
         return;
       }
 
-      console.log(`\n${chalk.bold('MConnect Session Info')}\n`);
+      const statusBadge = isAlive
+        ? chalk.bgGreen.black.bold(' ACTIVE ')
+        : chalk.bgRed.white.bold(' DEAD ');
+
+      console.log(`\n${chalk.bold('MConnect Session Info')} ${statusBadge}\n`);
       console.log(`  ${chalk.bold('Session ID:')}   ${data.sessionId}`);
       console.log(`  ${chalk.bold('Pairing Code:')} ${chalk.bgCyan.black.bold(` ${data.pairingCode} `)}`);
       console.log(`  ${chalk.bold('URL:')}          ${chalk.green(data.url)}`);
-      console.log(`  ${chalk.bold('Token:')}        ${data.token}`);
-      console.log(`  ${chalk.bold('Connect URL:')}  ${chalk.cyan(data.connectUrl)}`);
+      console.log(`  ${chalk.bold('Token:')}        ${options.showToken ? data.token : chalk.dim(`${data.token.substring(0, 8)}... (use --show-token)`)}`);
       console.log(`  ${chalk.bold('Started:')}      ${data.startedAt}`);
+      console.log(`  ${chalk.bold('PID:')}          ${data.pid}`);
       console.log(`  ${chalk.bold('Port:')}         ${data.port}`);
       console.log('');
 
-      if (data.pairingCode) {
+      if (!isAlive) {
+        console.log(chalk.yellow('  ⚠  Session process is dead. Run `mconnect stop` to clean up.\n'));
+      } else if (data.pairingCode) {
         console.log(chalk.dim('  Quick connect: Open the URL above, enter the pairing code'));
-        console.log(chalk.dim('  Direct connect: Open the Connect URL in a browser'));
+        console.log(chalk.dim(`  Stop session:  mconnect stop -d ${options.dir || '.'}`));
       }
       console.log('');
     } catch {
@@ -181,6 +200,70 @@ program
       console.log(chalk.dim(`  Looked for: ${sessionFile}`));
       console.log(chalk.dim('  Start a session first: mconnect start -y\n'));
       process.exit(1);
+    }
+  });
+
+program
+  .command('stop')
+  .description('Stop a running MConnect session')
+  .option('-d, --dir <directory>', 'Working directory where session was started')
+  .option('-f, --force', 'Force kill (SIGKILL instead of SIGTERM)')
+  .action(async (options) => {
+    const sessionFile = getSessionFilePath(options.dir || process.cwd());
+    try {
+      const data = JSON.parse(readFileSync(sessionFile, 'utf-8'));
+
+      if (!data.pid) {
+        console.log(chalk.red('\n  Session file has no PID. Removing stale file.\n'));
+        unlinkSync(sessionFile);
+        return;
+      }
+
+      // Check if process is alive
+      let isAlive = false;
+      try {
+        process.kill(data.pid, 0);
+        isAlive = true;
+      } catch {
+        isAlive = false;
+      }
+
+      if (!isAlive) {
+        console.log(chalk.yellow(`\n  Session ${data.sessionId} is already dead (PID ${data.pid}).`));
+        console.log(chalk.dim('  Cleaning up stale session file...\n'));
+        unlinkSync(sessionFile);
+        console.log(chalk.green('  ✓ Session file removed.\n'));
+        return;
+      }
+
+      // Send signal to stop the session
+      const signal = options.force ? 'SIGKILL' : 'SIGTERM';
+      console.log(chalk.dim(`\n  Sending ${signal} to session ${data.sessionId} (PID ${data.pid})...`));
+
+      try {
+        process.kill(data.pid, signal);
+        console.log(chalk.green(`  ✓ Session ${data.sessionId} stopped.`));
+
+        // Wait briefly then clean up file if process exited
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          process.kill(data.pid, 0);
+          // Still alive after SIGTERM — inform user
+          if (!options.force) {
+            console.log(chalk.yellow('  Process still running. Use --force to SIGKILL.'));
+          }
+        } catch {
+          // Process died — clean up
+          try { unlinkSync(sessionFile); } catch { /* already gone */ }
+          console.log(chalk.green('  ✓ Session file cleaned up.'));
+        }
+      } catch (err) {
+        console.log(chalk.red(`  Failed to stop: ${err instanceof Error ? err.message : 'Unknown error'}`));
+        process.exit(1);
+      }
+      console.log('');
+    } catch {
+      console.log(chalk.green('\n  No active session found. Nothing to stop.\n'));
     }
   });
 
@@ -202,6 +285,11 @@ program
     console.log(chalk.cyan('  Session Info (for agents/testing):'));
     console.log('    npx lecoder-mconnect info');
     console.log('    npx lecoder-mconnect info --json');
+    console.log('');
+    console.log(chalk.cyan('  Stop & Manage:'));
+    console.log('    npx lecoder-mconnect stop              # Stop running session');
+    console.log('    npx lecoder-mconnect stop --force      # Force kill (SIGKILL)');
+    console.log('    npx lecoder-mconnect start --timeout 30  # 30-min auto-expiry');
     console.log('');
     console.log(chalk.cyan('  Other Commands:'));
     console.log('    npx lecoder-mconnect doctor     # System diagnostics');
@@ -227,6 +315,7 @@ interface WizardOptions {
   webUrl?: string;
   yes?: boolean;
   json?: boolean;
+  timeout?: string;
 }
 
 async function quickStart(options: WizardOptions): Promise<void> {
@@ -265,6 +354,7 @@ async function quickStart(options: WizardOptions): Promise<void> {
       port: options.port ? parseInt(options.port, 10) : undefined,
       webUrl: options.webUrl,
       jsonOutput,
+      timeout: parseInt(options.timeout || '60', 10),
     });
   } catch (error) {
     if (jsonOutput) {
@@ -479,6 +569,7 @@ async function runWizard(options: WizardOptions): Promise<void> {
       enableTmux: options.tmux !== false,
       port: options.port ? parseInt(options.port, 10) : undefined,
       webUrl: options.webUrl,
+      timeout: parseInt(options.timeout || '60', 10),
     });
   } catch (error) {
     p.log.error(error instanceof Error ? error.message : 'Unknown error');

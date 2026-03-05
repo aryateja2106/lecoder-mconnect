@@ -5,6 +5,7 @@
  * WebSocket hub, and optional tmux visualization.
  */
 
+import type { ChildProcess } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
@@ -44,6 +45,8 @@ export interface SessionConfig {
   webUrl?: string;
   /** Output session info as JSON to stdout (for agents/scripts) */
   jsonOutput?: boolean;
+  /** Session timeout in minutes (default: 60). 0 = no timeout. */
+  timeout?: number;
 }
 
 /**
@@ -81,6 +84,7 @@ export interface MConnectSession {
   tmuxManager: TmuxManager | null;
   guardrailConfig: GuardrailConfig;
   tunnelUrl: string | null;
+  tunnelProcess: ChildProcess | null;
   /** Session context for v2 persistent sessions */
   context: SessionContext | null;
   /** Initialization status for each component */
@@ -335,6 +339,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     tmuxManager,
     guardrailConfig,
     tunnelUrl,
+    tunnelProcess: tunnelResult?.process || null,
     context: {
       sessionManager: null, // Will be initialized in Phase 6 (US4)
       inputArbiter: null, // Will be initialized in Phase 7 (US5)
@@ -482,14 +487,38 @@ export async function startSession(config: SessionConfig): Promise<void> {
     p.log.info(`Agent ${agentId} exited with code ${code}`);
   });
 
+  // Session timeout — auto-shutdown after configured duration (0 = no timeout)
+  const timeoutMinutes = config.timeout ?? 60;
+  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  if (timeoutMinutes > 0) {
+    timeoutTimer = setTimeout(async () => {
+      if (!quiet) {
+        p.log.warning(`Session timed out after ${timeoutMinutes} minutes. Shutting down.`);
+      }
+      await cleanup();
+      process.exit(0);
+    }, timeoutMinutes * 60 * 1000);
+    timeoutTimer.unref();
+  }
+
+  if (!quiet) {
+    if (timeoutMinutes > 0) {
+      p.log.info(`Session will auto-expire in ${timeoutMinutes} minutes. Use --timeout to change.`);
+    } else {
+      p.log.info('Session has no timeout. Use --timeout <minutes> to set one.');
+    }
+  }
+
   // Keep running
   await new Promise<void>((resolve) => {
     process.on('SIGINT', async () => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       await cleanup();
       resolve();
     });
 
     process.on('SIGTERM', async () => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       await cleanup();
       resolve();
     });
@@ -528,6 +557,15 @@ async function cleanup(): Promise<void> {
   // Kill tmux session
   if (currentSession.tmuxManager) {
     currentSession.tmuxManager.killSession();
+  }
+
+  // Kill tunnel process (prevents orphaned cloudflared)
+  if (currentSession.tunnelProcess) {
+    try {
+      currentSession.tunnelProcess.kill();
+    } catch {
+      // Process may already be dead
+    }
   }
 
   // Close HTTP server
