@@ -324,7 +324,7 @@ export class MConnectObservability {
         value: toolResult.score,
         reason: toolResult.explanation,
       });
-    } catch (err) {
+    } catch (_err) {
       // Don't let scoring failures break command tracing
     }
   }
@@ -367,7 +367,7 @@ export class MConnectObservability {
         value: safetyResult.score,
         reason: safetyResult.explanation,
       });
-    } catch (err) {
+    } catch (_err) {
       // Don't let scoring failures break guardrail tracing
     }
   }
@@ -406,7 +406,7 @@ export class MConnectObservability {
   /**
    * Trace terminal I/O
    */
-  traceTerminalIO(agentId: string, direction: 'input' | 'output', bytes: number): void {
+  traceTerminalIO(_agentId: string, direction: 'input' | 'output', bytes: number): void {
     if (direction === 'input') {
       this.metrics.totalInputBytes += bytes;
     } else {

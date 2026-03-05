@@ -430,7 +430,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
 
     // Display QR code
     console.log(chalk.bold('  Scan this QR code with your phone:\n'));
-    qrcode.generate(connectUrlString, {}, (qr) => {
+    qrcode.generate(connectUrlString, { small: false }, (qr) => {
       const lines = qr.split('\n');
       for (const line of lines) {
         if (line.trim()) {
