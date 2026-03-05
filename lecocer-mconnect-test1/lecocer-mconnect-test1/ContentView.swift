@@ -161,10 +161,12 @@ struct ContentView: View {
 struct ConnectView: View {
     @ObservedObject var store: SessionStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.openURL) private var openURL
     @State private var showQRScanner = false
     @State private var showManualEntry = false
     @State private var showPairingCode = false
     @State private var connectionErrorBanner: String?
+    @State private var copiedCommand: String?
 
     private var isCompact: Bool { horizontalSizeClass == .compact }
 
@@ -210,6 +212,10 @@ struct ConnectView: View {
                         if !store.recentConnections.isEmpty {
                             recentSection
                         }
+
+                        quickStartSection
+
+                        feedbackSection
 
                         Spacer(minLength: 40)
                     }
@@ -283,7 +289,19 @@ struct ConnectView: View {
 
     @ViewBuilder
     private var connectOptionsStack: some View {
-        // QR Scan - primary action
+        // Pairing code - primary action (most reliable)
+        Button {
+            showPairingCode = true
+        } label: {
+            ConnectOptionRow(
+                icon: "keyboard",
+                title: "Enter Pairing Code",
+                subtitle: "Enter URL + 6-char code from CLI",
+                isPrimary: true
+            )
+        }
+
+        // QR Scan - secondary
         Button {
             showQRScanner = true
         } label: {
@@ -291,18 +309,6 @@ struct ConnectView: View {
                 icon: "qrcode.viewfinder",
                 title: "Scan QR Code",
                 subtitle: "Point camera at QR code in terminal",
-                isPrimary: true
-            )
-        }
-
-        // Pairing code - secondary
-        Button {
-            showPairingCode = true
-        } label: {
-            ConnectOptionRow(
-                icon: "keyboard",
-                title: "Enter Pairing Code",
-                subtitle: "Type the 6-character code shown in CLI",
                 isPrimary: false
             )
         }
@@ -355,6 +361,224 @@ struct ConnectView: View {
                     .padding(14)
                     .background(Color.white.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+        }
+    }
+
+    // MARK: - Quick Start
+
+    private var quickStartSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("GET STARTED")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundColor(.gray)
+
+            Text("Run these on your computer:")
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundColor(.white.opacity(0.7))
+
+            CodeBlockRow(
+                command: "npx lecoder-mconnect",
+                label: "START SESSION",
+                copiedCommand: $copiedCommand
+            )
+
+            CodeBlockRow(
+                command: "npx lecoder-mconnect info",
+                label: "GET PAIRING CODE",
+                copiedCommand: $copiedCommand
+            )
+
+            // Platform hints
+            HStack(spacing: 6) {
+                Image(systemName: "desktopcomputer")
+                    .font(.system(size: 11))
+                Text("macOS / Linux")
+                    .font(.system(size: 11, design: .monospaced))
+                Text("·")
+                    .font(.system(size: 11))
+                Text("Windows (WSL)")
+                    .font(.system(size: 11, design: .monospaced))
+            }
+            .foregroundColor(.gray)
+
+            // 3-step flow
+            HStack(spacing: 0) {
+                stepCircle(number: "1", label: "Run command")
+                stepConnector()
+                stepCircle(number: "2", label: "Enter code")
+                stepConnector()
+                stepCircle(number: "3", label: "Connected")
+            }
+            .padding(.top, 8)
+
+            // Pairing code hint
+            HStack(spacing: 10) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 13))
+                    .foregroundColor(.blue.opacity(0.8))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Run `info` in a second tab to get the pairing code and URL. Then tap \"Enter Pairing Code\" above.")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+            .padding(12)
+            .background(Color.blue.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private func stepCircle(number: String, label: String) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Text(number)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+            }
+            Text(label)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func stepConnector() -> some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.12))
+            .frame(height: 1)
+            .frame(maxWidth: 40)
+            .padding(.bottom, 20)
+    }
+
+    // MARK: - Feedback
+
+    private var feedbackSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("FEEDBACK")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundColor(.gray)
+
+            HStack(spacing: 12) {
+                Button {
+                    sendFeedbackEmail()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "envelope")
+                            .font(.system(size: 14))
+                        Text("Send Feedback")
+                            .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(14)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+
+                Button {
+                    openGitHubIssues()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "ladybug")
+                            .font(.system(size: 14))
+                        Text("Report Bug")
+                            .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(14)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+
+            Text("v1.0 · TestFlight")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(.gray.opacity(0.6))
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    private func sendFeedbackEmail() {
+        let device = UIDevice.current
+        let subject = "MConnect Feedback — v1.0 TestFlight"
+        let body = "\n\n---\nDevice: \(device.model), iOS \(device.systemVersion)"
+        let mailto = "mailto:aryateja2106@gmail.com?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+        if let url = URL(string: mailto) {
+            openURL(url)
+        }
+    }
+
+    private func openGitHubIssues() {
+        if let url = URL(string: "https://github.com/aryateja2106/lecoder-mconnect/issues/new") {
+            openURL(url)
+        }
+    }
+}
+
+// MARK: - Code Block Row
+
+struct CodeBlockRow: View {
+    let command: String
+    let label: String
+    @Binding var copiedCommand: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(.gray)
+                .tracking(1)
+
+            HStack(spacing: 12) {
+                Text("$")
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(.green.opacity(0.6))
+
+                Text(command)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Button {
+                    copyToClipboard(command)
+                } label: {
+                    Image(systemName: copiedCommand == command ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 14))
+                        .foregroundColor(copiedCommand == command ? .green : .gray)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+            )
+        }
+    }
+
+    private func copyToClipboard(_ text: String) {
+        UIPasteboard.general.string = text
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            copiedCommand = text
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if copiedCommand == text {
+                    copiedCommand = nil
                 }
             }
         }
@@ -427,9 +651,13 @@ struct QRScannerSheet: View {
                         Text("Point at the QR code in your terminal")
                             .font(.system(size: 14, design: .monospaced))
                             .foregroundColor(.white)
-                        Text("Run: lecoder-mconnect start")
+                        Text("Run: npx lecoder-mconnect")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.gray)
+                        Text("Can't scan? Use Pairing Code instead")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.gray.opacity(0.6))
+                            .padding(.top, 4)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(20)
@@ -532,10 +760,21 @@ struct QRScannerView: UIViewRepresentable {
     }
 }
 
-// Scanning reticle overlay
+// Scanning reticle overlay — uses even-odd fill so camera shows through the cutout
 class ScannerOverlayView: UIView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        isOpaque = false
+        backgroundColor = .clear
+    }
+
     override func draw(_ rect: CGRect) {
-        super.draw(rect)
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
 
         let size = min(rect.width, rect.height) * 0.6
@@ -545,10 +784,13 @@ class ScannerOverlayView: UIView {
         let cornerLen: CGFloat = 28
         let cornerWidth: CGFloat = 3
 
-        // Dim overlay
+        // Dim overlay with cutout using even-odd fill rule
+        let dimPath = UIBezierPath(rect: rect)
+        dimPath.append(UIBezierPath(roundedRect: scanRect, cornerRadius: 4))
+        dimPath.usesEvenOddFillRule = true
+        ctx.addPath(dimPath.cgPath)
         ctx.setFillColor(UIColor.black.withAlphaComponent(0.5).cgColor)
-        ctx.fill(rect)
-        ctx.clear(scanRect)
+        ctx.fillPath(using: .evenOdd)
 
         // Corner indicators
         ctx.setStrokeColor(UIColor.white.cgColor)
@@ -612,7 +854,7 @@ struct PairingCodeSheet: View {
                                 .font(.system(size: 22, weight: .bold, design: .monospaced))
                                 .foregroundColor(.white)
 
-                            Text("Find the code shown in your terminal\nafter running: lecoder-mconnect start")
+                            Text("Find the code shown in your terminal\nafter running: npx lecoder-mconnect")
                                 .font(.system(size: 13))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
@@ -621,11 +863,28 @@ struct PairingCodeSheet: View {
 
                         // Server URL
                         VStack(alignment: .leading, spacing: 8) {
-                            Label("SERVER URL", systemImage: "network")
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.gray)
+                            HStack {
+                                Label("SERVER URL", systemImage: "network")
+                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Button {
+                                    if let clip = UIPasteboard.general.string, !clip.isEmpty {
+                                        serverURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
+                                        focusedField = .code
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "doc.on.clipboard")
+                                            .font(.system(size: 10))
+                                        Text("Paste")
+                                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    }
+                                    .foregroundColor(.blue.opacity(0.8))
+                                }
+                            }
 
-                            TextField("https://xxx.trycloudflare.com or http://192.168.x.x:8765", text: $serverURL)
+                            TextField("https://xxx.trycloudflare.com", text: $serverURL)
                                 .font(.system(size: 14, design: .monospaced))
                                 .foregroundColor(.white)
                                 .autocapitalization(.none)
@@ -731,19 +990,16 @@ struct PairingCodeSheet: View {
         let base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 
-        guard let pairURL = URL(string: "\(base)/auth/pair") else {
+        // CLI endpoint is GET /api/pair?code=XXXX
+        guard let pairURL = URL(string: "\(base)/api/pair?code=\(code)") else {
             errorMessage = "Invalid server URL"
             isLoading = false
             return
         }
 
         var request = URLRequest(url: pairURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = "GET"
         request.timeoutInterval = 10
-
-        let body = ["code": code]
-        request.httpBody = try? JSONEncoder().encode(body)
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
@@ -756,10 +1012,14 @@ struct PairingCodeSheet: View {
 
                 guard let data = data,
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    // If no pair endpoint, just load the base URL directly with code as query
-                    let connectURL = "\(base)/?code=\(code)"
-                    isPresented = false
-                    store.connect(to: connectURL)
+                    errorMessage = "Could not reach server"
+                    return
+                }
+
+                if let errorMsg = json["error"] as? String {
+                    errorMessage = errorMsg == "code_expired"
+                        ? "Code expired. Get a new one from terminal."
+                        : errorMsg
                     return
                 }
 
@@ -768,11 +1028,8 @@ struct PairingCodeSheet: View {
                     let connectURL = "\(base)/?token=\(token)&session=\(sessionId)"
                     isPresented = false
                     store.connect(to: connectURL)
-                } else if let urlString = json["url"] as? String {
-                    isPresented = false
-                    store.connect(to: urlString)
                 } else {
-                    errorMessage = (json["error"] as? String) ?? "Invalid response from server"
+                    errorMessage = "Unexpected response from server"
                 }
             }
         }.resume()
