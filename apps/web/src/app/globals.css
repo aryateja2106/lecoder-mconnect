@@ -3,6 +3,22 @@
 :root {
   --background: #09090b;
   --foreground: #fafafa;
+  --surface: #131316;
+  --elevated: #1c1c21;
+  --border: #27272a;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+
+  /* Agent state colors */
+  --agent-active: #1fd5f9;
+  --agent-idle: #71717a;
+  --agent-success: #22c55e;
+  --agent-warning: #eab308;
+  --agent-error: #ef4444;
+
+  /* shadcn/ui CSS variables */
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -22,6 +38,83 @@ body {
 .safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
+
+/* Hide scrollbar while keeping scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Radix UI animation keyframes for shadcn dialogs/tooltips */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes zoom-in-95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes zoom-out-95 {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+@keyframes slide-in-from-top-1 {
+  from { transform: translateY(-4px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slide-in-from-top-2 {
+  from { transform: translateY(-8px); }
+  to { transform: translateY(0); }
+}
+@keyframes slide-in-from-bottom-2 {
+  from { transform: translateY(8px); }
+  to { transform: translateY(0); }
+}
+@keyframes slide-in-from-left-1\/2 {
+  from { transform: translateX(calc(-50% - 8px)); }
+  to { transform: translateX(-50%); }
+}
+@keyframes slide-in-from-top-48 {
+  from { transform: translateY(calc(-48% - 8px)); }
+  to { transform: translateY(-48%); }
+}
+@keyframes slide-out-to-left-1\/2 {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(calc(-50% - 8px)); }
+}
+@keyframes slide-out-to-top-48 {
+  from { transform: translateY(-48%); }
+  to { transform: translateY(calc(-48% - 8px)); }
+}
+
+.animate-in {
+  animation-duration: 150ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+.animate-out {
+  animation-duration: 100ms;
+  animation-timing-function: ease-in;
+  animation-fill-mode: both;
+}
+.fade-in-0 { animation-name: fade-in; }
+.fade-out-0 { animation-name: fade-out; }
+.zoom-in-95 { animation-name: zoom-in-95; }
+.zoom-out-95 { animation-name: zoom-out-95; }
+.slide-in-from-top-1 { animation-name: slide-in-from-top-1; }
+.slide-in-from-top-2 { animation-name: slide-in-from-top-2; }
+.slide-in-from-bottom-2 { animation-name: slide-in-from-bottom-2; }
+.slide-in-from-left-1\/2 { animation-name: slide-in-from-left-1\/2; }
+.slide-in-from-top-\[48\%\] { animation-name: slide-in-from-top-48; }
+.slide-out-to-left-1\/2 { animation-name: slide-out-to-left-1\/2; }
+.slide-out-to-top-\[48\%\] { animation-name: slide-out-to-top-48; }
 
 /* Terminal scrollbar */
 .xterm-viewport::-webkit-scrollbar {

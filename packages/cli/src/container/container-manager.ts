@@ -10,7 +10,6 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
-import { getObservability } from '../observability/index.js';
 import {
   createDefaultDevContainerConfig,
   getVolumeMounts,
@@ -417,21 +416,7 @@ export class ContainerManager {
 
     // Create container
     console.log(`[Container] Creating container: ${containerName}`);
-    let containerId: string;
-    try {
-      containerId = dockerExec(args);
-    } catch (error) {
-      // Trace container error
-      const obs = getObservability();
-      if (obs.isEnabled()) {
-        obs.traceContainerLifecycle('error', containerName, {
-          image,
-          workDir,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-      throw error;
-    }
+    const containerId = dockerExec(args);
 
     const instance: ContainerInstance = {
       id: containerId.trim(),
@@ -444,15 +429,6 @@ export class ContainerManager {
     };
 
     this.containers.set(containerName, instance);
-
-    // Trace container creation
-    const obs = getObservability();
-    if (obs.isEnabled()) {
-      obs.traceContainerLifecycle('create', containerName, {
-        image,
-        workDir,
-      });
-    }
 
     // Run post-create commands if any
     await this.runLifecycleCommands(instance, config);
@@ -537,12 +513,6 @@ export class ContainerManager {
     // Use full path to docker binary to pass PTY validation
     const dockerPath = findDockerPath();
 
-    // Trace container exec
-    const obs = getObservability();
-    if (obs.isEnabled()) {
-      obs.traceContainerExec(options.containerId, options.command);
-    }
-
     return {
       command: dockerPath,
       args,
@@ -570,22 +540,9 @@ export class ContainerManager {
         dockerExec(['rm', '-f', containerName]);
       }
 
-      // Trace container stop
-      const obs = getObservability();
-      if (obs.isEnabled()) {
-        obs.traceContainerLifecycle('stop', containerName);
-      }
-
       this.containers.delete(containerName);
     } catch (error) {
       console.warn(`[Container] Failed to stop/remove: ${error}`);
-      // Trace container error
-      const obs = getObservability();
-      if (obs.isEnabled()) {
-        obs.traceContainerLifecycle('error', containerName, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
       if (instance) {
         instance.state = 'error';
       }
@@ -709,31 +666,7 @@ export class ContainerManager {
 
     args.push(context);
 
-    const startTime = Date.now();
-    try {
-      dockerExec(args, { timeout: 600000 }); // 10 minute timeout for builds
-      const durationMs = Date.now() - startTime;
-
-      // Trace successful build
-      const obs = getObservability();
-      if (obs.isEnabled()) {
-        obs.traceContainerBuild(imageName, true, durationMs);
-      }
-    } catch (error) {
-      const durationMs = Date.now() - startTime;
-
-      // Trace failed build
-      const obs = getObservability();
-      if (obs.isEnabled()) {
-        obs.traceContainerBuild(
-          imageName,
-          false,
-          durationMs,
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-      throw error;
-    }
+    dockerExec(args, { timeout: 600000 }); // 10 minute timeout for builds
 
     return imageName;
   }

@@ -11,370 +11,148 @@ Control your AI coding agents (Claude Code, Gemini CLI, Cursor Agent, etc.) from
 
 ---
 
-## Table of Contents
+## Quick Start
 
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [CLI Commands](#cli-commands)
-- [Configuration Options](#configuration-options)
-- [Security](#security)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+```bash
+# Run directly (no install needed)
+npx lecoder-mconnect
+
+# Or install globally
+npm install -g lecoder-mconnect
+mconnect
+```
+
+1. A QR code appears in your terminal
+2. Scan it with your phone's camera
+3. You land on the **session list** showing all active MConnect sessions
+4. Tap a session or hit **Terminal** to open the live terminal view
 
 ---
 
 ## Requirements
 
-### System Requirements
-
 | Requirement | Version | Required | Notes |
 |-------------|---------|----------|-------|
 | **Node.js** | 20.0.0+ | Yes | LTS recommended |
 | **Python** | 3.x | Yes | For node-pty compilation |
-| **C++ Compiler** | - | Yes | See platform-specific below |
-| **cloudflared** | Latest | Yes | For secure remote access |
-| **tmux** | 3.x+ | No | Optional, for server visualization |
+| **C++ Compiler** | - | Yes | Xcode CLI tools (macOS) or build-essential (Linux) |
+| **cloudflared** | Latest | No | For secure remote access (auto-detected) |
+| **tmux** | 3.x+ | No | Optional server-side visualization |
 
-### Platform-Specific Requirements
-
-#### macOS
+### macOS
 
 ```bash
-# 1. Install Xcode Command Line Tools (C++ compiler)
 xcode-select --install
-
-# 2. Install Homebrew (if not installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# 3. Install cloudflared
-brew install cloudflared
-
-# 4. Install tmux (optional)
-brew install tmux
+brew install cloudflared   # optional, for remote access
+brew install tmux          # optional
 ```
 
-#### Linux (Ubuntu/Debian)
+### Linux (Ubuntu/Debian)
 
 ```bash
-# 1. Install build tools and Python
-sudo apt update
-sudo apt install -y build-essential python3 python3-pip
-
-# 2. Install cloudflared
-# Download from: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
-curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-sudo mv cloudflared /usr/local/bin/
-sudo chmod +x /usr/local/bin/cloudflared
-
-# 3. Install tmux (optional)
-sudo apt install -y tmux
+sudo apt install -y build-essential python3
+# cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
 ```
-
-#### Linux (RHEL/CentOS/Fedora)
-
-```bash
-# 1. Install build tools
-sudo dnf groupinstall "Development Tools"
-sudo dnf install python3
-
-# 2. Install cloudflared
-# Download from: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
-
-# 3. Install tmux (optional)
-sudo dnf install tmux
-```
-
----
-
-## Installation
-
-### Step 1: Verify Prerequisites
-
-Before installing, ensure all requirements are met:
-
-```bash
-# Check Node.js version (must be 20+)
-node --version
-
-# Check Python 3
-python3 --version
-
-# Check C++ compiler (macOS)
-xcode-select -p
-
-# Check C++ compiler (Linux)
-g++ --version
-
-# Check cloudflared
-cloudflared --version
-```
-
-### Step 2: Install MConnect
-
-```bash
-# Install globally (recommended)
-npm install -g lecoder-mconnect
-
-# Or run directly with npx (no install needed)
-npx lecoder-mconnect
-```
-
-### Step 3: Verify Installation
-
-```bash
-# Run diagnostics to verify all dependencies
-mconnect doctor
-```
-
-Expected output:
-```
-MConnect v0.2.0 - System Diagnostics
-
-  ✓ Node.js: Node.js v20.x.x installed
-  ✓ Shell: Default shell: /bin/zsh
-  ✓ Python: Python 3.x.x
-  ✓ C++ Compiler: Xcode Command Line Tools installed
-  ✓ node-pty: Native PTY module loaded
-  ✓ tmux: tmux 3.x
-  ✓ cloudflared: cloudflared version 2024.x.x
-
-  All checks passed! MConnect is ready to use.
-```
-
----
-
-## Quick Start
-
-### 1. Start MConnect
-
-```bash
-mconnect
-```
-
-### 2. Select Configuration
-
-The interactive wizard will guide you through:
-
-1. **Agent Configuration** - Choose a preset or custom setup
-2. **Guardrails Level** - Security settings for command execution
-3. **Working Directory** - Where agents will operate
-
-### 3. Connect from Your Phone
-
-1. A QR code will appear in your terminal
-2. Scan it with your phone's camera
-3. The web interface opens - you're connected!
-
-### 4. Control Your Agents
-
-- Switch between agent tabs
-- View terminal output in real-time
-- Send commands (with guardrails protection)
-- Monitor long-running tasks remotely
 
 ---
 
 ## CLI Commands
 
-### `mconnect` or `mconnect start`
+### `mconnect start`
 
-Start a new MConnect session (interactive wizard).
-
-```bash
-mconnect
-```
-
-### `mconnect start` with options
-
-Start with specific configuration:
+Start a new session. This is the default command (`mconnect` alone does the same thing).
 
 ```bash
-# Use a preset
-mconnect start --preset research-spec-test
-
-# Specify working directory
-mconnect start --dir /path/to/project
-
-# Set guardrails level
-mconnect start --guardrails strict
-
-# Custom port
-mconnect start --port 9000
-
-# Disable tmux visualization
-mconnect start --no-tmux
-
-# Show pairing code (for dev/desktop use)
-mconnect start --code
+mconnect start [options]
 ```
 
-By default, `mconnect` shows only a QR code optimized for mobile scanning. Use the `--code` flag to also display a 6-character pairing code for desktop/dev scenarios where you can't scan QR codes.
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--port <number>` | HTTP/WebSocket server port | `8765` |
+| `--timeout <minutes>` | Auto-expire session after N minutes (0 = never) | `0` |
+| `--guardrails <level>` | Security level: `default`, `strict`, `permissive`, `none` | `default` |
+| `--tunnel` | Force Cloudflare tunnel creation | auto-detect |
+| `--json` | Output session info as JSON (for scripts/agents) | off |
+| `-y` | Skip interactive prompts, use defaults | off |
+
+```bash
+# Start with strict guardrails on port 9000
+mconnect start --port 9000 --guardrails strict
+
+# Start non-interactively with JSON output (for automation)
+mconnect start -y --json
+
+# Auto-expire after 2 hours
+mconnect start --timeout 120
+```
+
+### `mconnect ps`
+
+List all registered MConnect sessions (active and dead).
+
+```bash
+mconnect ps
+```
+
+Shows session ID, working directory, URL, PID, and whether the process is still alive.
+
+### `mconnect info`
+
+Show connection details for the current session (reads `.mconnect-session.json` in the working directory).
+
+```bash
+mconnect info
+```
+
+### `mconnect stop`
+
+Stop a running session by ID.
+
+```bash
+mconnect stop <sessionId>
+```
 
 ### `mconnect doctor`
 
-Run system diagnostics to verify all dependencies:
+Run system diagnostics to verify all dependencies are installed.
 
 ```bash
 mconnect doctor
 ```
 
-### `mconnect presets`
+---
 
-List available agent presets:
+## Web UI
 
-```bash
-mconnect presets
-```
+When you open the MConnect URL on your phone, you get two views:
 
-Available presets:
-- `shell-only` - Single interactive shell (recommended to start)
-- `single` - Single AI agent (Claude Code)
-- `research-spec-test` - 3 shells for parallel workflows
-- `dev-review` - 2 shells for development workflow
-- `custom` - Configure multiple shells manually
+### Session List (Home)
+
+The landing page after pairing. Shows:
+
+- **Active Sessions** with green "online" dots — tap to open any session
+- **Previous Sessions** with grey "last seen X ago" dots — for context only
+- **Terminal** button at the bottom to jump straight to the current session's terminal
+
+The session list auto-refreshes every 10 seconds.
+
+### Terminal View
+
+The full terminal interface with:
+
+- Touch-optimized xterm.js terminal
+- Direct mode for native keyboard input
+- Shortcut bar (Ctrl+C, Tab, arrows, etc.)
+- Read-only / read-write mode toggle
+- Fullscreen toggle
+
+### Pairing
+
+If you open the URL without a token, you see a pairing code entry screen. Enter the 6-character code shown in your terminal to authenticate.
 
 ---
 
-## Daemon Commands (v0.2.0+)
-
-MConnect v0.2.0 introduces a daemon architecture for persistent sessions that survive disconnects.
-
-### `mconnect daemon start`
-
-Start the MConnect daemon as a background service:
-
-```bash
-mconnect daemon start
-```
-
-Options:
-- `--foreground` - Run in foreground (for systemd/launchd)
-- `--port <port>` - WebSocket server port (default: 8765)
-
-### `mconnect daemon stop`
-
-Stop the running daemon:
-
-```bash
-mconnect daemon stop
-```
-
-### `mconnect daemon status`
-
-Check daemon status:
-
-```bash
-mconnect daemon status
-```
-
-### `mconnect daemon logs`
-
-View daemon logs:
-
-```bash
-# View recent logs
-mconnect daemon logs
-
-# Follow logs in real-time
-mconnect daemon logs --follow
-
-# Show last N lines
-mconnect daemon logs --lines 100
-```
-
-### `mconnect daemon install`
-
-Install daemon as a system service:
-
-```bash
-# Install as system service (starts on boot)
-mconnect daemon install
-```
-
-### `mconnect daemon uninstall`
-
-Remove the system service:
-
-```bash
-mconnect daemon uninstall
-```
-
----
-
-## Session Commands (v0.2.0+)
-
-Manage persistent sessions with these commands:
-
-### `mconnect session list`
-
-List all sessions:
-
-```bash
-mconnect session list
-```
-
-### `mconnect session create`
-
-Create a new session:
-
-```bash
-mconnect session create --preset single --dir /path/to/project
-```
-
-### `mconnect session attach <sessionId>`
-
-Attach to an existing session:
-
-```bash
-# Attach to session by ID
-mconnect session attach abc12345
-
-# Detach with Ctrl+D
-```
-
-### `mconnect session kill <sessionId>`
-
-Terminate a session:
-
-```bash
-mconnect session kill abc12345
-```
-
-### `mconnect session export <sessionId>`
-
-Export session scrollback to file:
-
-```bash
-mconnect session export abc12345 --output session.log
-```
-
----
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MCONNECT_HOME` | Data directory for sessions and logs | `~/.mconnect` |
-| `MCONNECT_PORT` | WebSocket server port | `8765` |
-| `MCONNECT_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
-| `MCONNECT_MAX_SESSIONS` | Maximum concurrent sessions | `5` |
-| `MCONNECT_NO_TUNNEL` | Disable Cloudflare tunnel | `false` |
-
----
-
-## Configuration Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-d, --dir <path>` | Working directory for agents | Current directory |
-| `-p, --preset <name>` | Agent preset name | Interactive selection |
-| `-g, --guardrails <level>` | Security level | `default` |
-| `--port <number>` | WebSocket server port | `8765` |
-| `--no-tmux` | Disable tmux server visualization | Enabled |
-| `-c, --code` | Show pairing code (for dev/desktop) | QR only |
-
-### Guardrails Levels
+## Guardrails
 
 | Level | Description | Blocked | Requires Approval |
 |-------|-------------|---------|-------------------|
@@ -387,109 +165,52 @@ mconnect session export abc12345 --output session.log
 
 ## Security
 
-MConnect is designed with security as a priority:
-
-### Built-in Protections
-
 | Feature | Description |
 |---------|-------------|
 | **Token Authentication** | Cryptographically secure session tokens |
+| **Pairing Codes** | 6-character codes, valid for 5 minutes |
 | **Rate Limiting** | Protection against connection flooding |
 | **Input Sanitization** | Blocks command injection attacks |
 | **Guardrails System** | Configurable command blocking and approval |
 | **Tunnel Encryption** | All traffic encrypted via Cloudflare Tunnel |
 | **Ephemeral Sessions** | No persistent data, sessions end when CLI stops |
 
-### Security Best Practices
-
-1. **Use Default Guardrails** - Start with `default` level until comfortable
-2. **Review Commands** - Check what's being executed before approval
-3. **Secure Network** - Use trusted networks when possible
-4. **Keep Updated** - Run `npm update -g lecoder-mconnect` regularly
-5. **Monitor Sessions** - Don't leave sessions unattended for extended periods
-
-### No Data Collection
-
-- **No accounts required** - No signup, no login
-- **No cloud storage** - All data stays on your machine
-- **No telemetry** - We don't track anything
-- **Ephemeral URLs** - Tunnel URLs expire when CLI stops
+- No accounts required, no cloud storage, no telemetry
+- Tunnel URLs are ephemeral and expire when the CLI stops
 
 ---
 
-## Troubleshooting
+## Architecture
 
-### "node-pty is not available" Error
-
-This usually means the native module needs to be rebuilt:
-
-```bash
-# Rebuild node-pty
-npm rebuild node-pty
-
-# If that doesn't work, reinstall
-npm uninstall -g lecoder-mconnect
-npm install -g lecoder-mconnect
 ```
-
-### "posix_spawnp failed" Error
-
-Fixed in v0.1.2. Update to the latest version:
-
-```bash
-npm update -g lecoder-mconnect
-mconnect doctor
+┌──────────────────────────────────────────────┐
+│  YOUR LAPTOP                                  │
+│  ┌──────────────────────────────────────────┐│
+│  │  MConnect CLI                              ││
+│  │  ┌──────────┐  ┌──────────┐  ┌────────┐  ││
+│  │  │PTY Manager│  │Agent Mgr │  │ Tmux   │  ││
+│  │  │(node-pty) │  │          │  │(visual)│  ││
+│  │  └─────┬─────┘  └────┬─────┘  └───┬────┘  ││
+│  │        └──────────────┴────────────┘       ││
+│  │                    │                        ││
+│  │        ┌───────────┴───────────┐            ││
+│  │        │   WebSocket Hub       │            ││
+│  │        │   (multiplexed)       │            ││
+│  │        └───────────────────────┘            ││
+│  └──────────────────────────────────────────┘│
+└───────────────────┬──────────────────────────┘
+                    │ Cloudflare Tunnel (encrypted)
+                    ▼
+┌──────────────────────────────────────────────┐
+│  YOUR PHONE                                    │
+│  ┌──────────────────────────────────────────┐│
+│  │  Session List → Terminal View              ││
+│  │  - Active/previous sessions                ││
+│  │  - Touch-optimized xterm.js                ││
+│  │  - Agent tabs + guardrails                 ││
+│  └──────────────────────────────────────────┘│
+└──────────────────────────────────────────────┘
 ```
-
-### node-pty Installation Fails
-
-Ensure you have the required build tools:
-
-**macOS:**
-```bash
-xcode-select --install
-```
-
-**Linux:**
-```bash
-sudo apt install build-essential python3
-```
-
-### Tunnel Not Connecting
-
-Verify cloudflared is installed and accessible:
-
-```bash
-cloudflared --version
-```
-
-If not found, install it following the [Requirements](#requirements) section.
-
-### Permission Denied Errors
-
-If you see permission errors during global install:
-
-```bash
-# Option 1: Use sudo (not recommended)
-sudo npm install -g lecoder-mconnect
-
-# Option 2: Fix npm permissions (recommended)
-mkdir ~/.npm-global
-npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-npm install -g lecoder-mconnect
-```
-
-### Run Full Diagnostics
-
-For any issues, start with:
-
-```bash
-mconnect doctor
-```
-
-This will identify missing dependencies and provide fix instructions.
 
 ---
 
@@ -497,45 +218,39 @@ This will identify missing dependencies and provide fix instructions.
 
 | Agent | Status | Notes |
 |-------|--------|-------|
-| Claude Code | ✅ Tested | Full TUI support |
-| Gemini CLI | ✅ Tested | Full TUI support |
-| Cursor Agent | ✅ Tested | Full TUI support |
-| OpenAI Codex | ✅ Supported | Shell mode |
-| Aider | ✅ Supported | Shell mode |
-| Custom CLI | ✅ Supported | Any terminal application |
+| Claude Code | Tested | Full TUI support |
+| Gemini CLI | Tested | Full TUI support |
+| Cursor Agent | Tested | Full TUI support |
+| OpenAI Codex | Supported | Shell mode |
+| Aider | Supported | Shell mode |
+| Custom CLI | Supported | Any terminal application |
 
 ---
 
-## Architecture
+## Troubleshooting
 
+### node-pty issues
+
+```bash
+# Rebuild native module
+npm rebuild node-pty
+
+# Or reinstall
+npm uninstall -g lecoder-mconnect && npm install -g lecoder-mconnect
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  YOUR LAPTOP                                                 │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  MConnect CLI                                            ││
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────────────┐   ││
-│  │  │PTY Manager│  │Agent      │  │Tmux Manager       │   ││
-│  │  │(node-pty) │  │Manager    │  │(visualization)    │   ││
-│  │  └─────┬─────┘  └─────┬─────┘  └─────────┬─────────┘   ││
-│  │        └──────────────┴──────────────────┘              ││
-│  │                       │                                  ││
-│  │           ┌───────────┴───────────┐                     ││
-│  │           │   WebSocket Hub       │                     ││
-│  │           │   (multiplexed)       │                     ││
-│  │           └───────────────────────┘                     ││
-│  └─────────────────────────────────────────────────────────┘│
-└──────────────────────────┬──────────────────────────────────┘
-                           │ Cloudflare Tunnel (encrypted)
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  YOUR PHONE                                                  │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  Mobile Web UI (xterm.js)                                ││
-│  │  - Touch-optimized terminal                              ││
-│  │  - Agent tabs                                            ││
-│  │  - Command input with guardrails                         ││
-│  └─────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────┘
+
+### Tunnel not connecting
+
+```bash
+cloudflared --version   # verify installed
+```
+
+MConnect works without cloudflared (local-only mode). Install it for remote access.
+
+### Run diagnostics
+
+```bash
+mconnect doctor
 ```
 
 ---
@@ -543,49 +258,25 @@ This will identify missing dependencies and provide fix instructions.
 ## Development
 
 ```bash
-# Clone the repository
 git clone https://github.com/aryateja2106/lecoder-mconnect.git
-cd lecoder-mconnect
-
-# Install dependencies
+cd lecoder-mconnect/packages/cli
 npm install
-
-# Run tests
-npm run test --workspace=lecoder-mconnect
-
-# Build
-npm run build --workspace=lecoder-mconnect
-
-# Development mode (watch)
-cd packages/cli && npm run dev
+npm run dev          # watch mode
+npm run build        # production build
+npm run test         # run tests
+npm run typecheck    # tsc --noEmit
+npm run lint         # biome lint
 ```
-
----
-
-## Contributing
-
-Contributions are welcome! Please see our [GitHub repository](https://github.com/aryateja2106/lecoder-mconnect) for:
-
-- Issue reporting
-- Feature requests
-- Pull requests
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/aryateja2106/lecoder-mconnect/blob/main/LICENSE) for details.
-
----
+MIT - see [LICENSE](https://github.com/aryateja2106/lecoder-mconnect/blob/main/LICENSE)
 
 ## Author
 
 **Arya Teja Rudraraju** ([@aryateja2106](https://github.com/aryateja2106))
 
----
-
-## Links
-
-- [GitHub Repository](https://github.com/aryateja2106/lecoder-mconnect)
-- [npm Package](https://www.npmjs.com/package/lecoder-mconnect)
-- [Issue Tracker](https://github.com/aryateja2106/lecoder-mconnect/issues)
+- [GitHub](https://github.com/aryateja2106/lecoder-mconnect)
+- [npm](https://www.npmjs.com/package/lecoder-mconnect)

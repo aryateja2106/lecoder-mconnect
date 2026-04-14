@@ -1,0 +1,110 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img [ref=e6]
+        - generic [ref=e8]: MConnect
+      - button "Ask Vox ⌘K" [ref=e9]:
+        - generic [ref=e10]: Ask Vox
+        - generic [ref=e11]: ⌘K
+    - main [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - heading "Machines" [level=2] [ref=e16]
+            - generic [ref=e17]: 1/2 online
+          - generic [ref=e18]:
+            - generic [ref=e19]:
+              - generic [ref=e21]:
+                - img [ref=e23]
+                - generic [ref=e26]: MBP M4 Pro
+              - generic [ref=e28]:
+                - generic [ref=e29]: Online
+                - generic [ref=e30]: 2 agents
+              - generic [ref=e31]: 100.72.14.33
+            - generic [ref=e32]:
+              - generic [ref=e34]:
+                - img [ref=e36]
+                - generic [ref=e39]: rpi5-ubuntu
+              - generic [ref=e41]:
+                - generic [ref=e42]: Offline
+                - generic [ref=e43]: 0 agents
+              - generic [ref=e44]: 100.72.14.41
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - heading "Active Sessions" [level=2] [ref=e47]
+            - generic [ref=e48]: 3 total
+          - generic [ref=e49]:
+            - link "Claude Code Executing > cargo clippy --all-targets && cargo test Compiling lecoder-core v0.3.1 MBP M4 Pro 12s ago" [ref=e50] [cursor=pointer]:
+              - /url: /session/session-1
+              - generic [ref=e51]:
+                - generic [ref=e52]:
+                  - generic [ref=e53]: Claude Code
+                  - generic [ref=e56]: Executing
+                - paragraph [ref=e57]: "> cargo clippy --all-targets && cargo test Compiling lecoder-core v0.3.1"
+                - generic [ref=e58]:
+                  - generic [ref=e59]:
+                    - img [ref=e60]
+                    - text: MBP M4 Pro
+                  - generic [ref=e63]: 12s ago
+            - link "Research Agent Thinking Analyzing codebase structure for refactoring opportunities... MBP M4 Pro 3s ago" [ref=e64] [cursor=pointer]:
+              - /url: /session/session-2
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - generic [ref=e67]: Research Agent
+                  - generic [ref=e72]: Thinking
+                - paragraph [ref=e73]: Analyzing codebase structure for refactoring opportunities...
+                - generic [ref=e74]:
+                  - generic [ref=e75]:
+                    - img [ref=e76]
+                    - text: MBP M4 Pro
+                  - generic [ref=e79]: 3s ago
+            - link "Shell Idle $ MBP M4 Pro 5m ago" [ref=e80] [cursor=pointer]:
+              - /url: /session/session-3
+              - generic [ref=e81]:
+                - generic [ref=e82]:
+                  - generic [ref=e83]: Shell
+                  - generic [ref=e86]: Idle
+                - paragraph [ref=e87]: $
+                - generic [ref=e88]:
+                  - generic [ref=e89]:
+                    - img [ref=e90]
+                    - text: MBP M4 Pro
+                  - generic [ref=e93]: 5m ago
+        - generic [ref=e94]:
+          - heading "Stats" [level=2] [ref=e95]
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - img [ref=e99]
+              - generic [ref=e101]: "2"
+              - generic [ref=e102]: Active
+            - generic [ref=e103]:
+              - img [ref=e105]
+              - generic [ref=e107]: "0"
+              - generic [ref=e108]: Commands
+            - generic [ref=e109]:
+              - img [ref=e111]
+              - generic [ref=e114]: "--"
+              - generic [ref=e115]: Uptime
+        - button "New Session" [ref=e116]:
+          - img
+          - text: New Session
+    - navigation [ref=e117]:
+      - generic [ref=e118]:
+        - link "Dashboard" [ref=e119] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e120]
+          - generic [ref=e125]: Dashboard
+        - link "Agents" [ref=e126] [cursor=pointer]:
+          - /url: /agents
+          - img [ref=e127]
+          - generic [ref=e130]: Agents
+        - button [ref=e131]:
+          - img [ref=e133]
+        - link "Feedback" [ref=e136] [cursor=pointer]:
+          - /url: /feedback
+          - img [ref=e137]
+          - generic [ref=e139]: Feedback
+  - button "Open Next.js Dev Tools" [ref=e146] [cursor=pointer]:
+    - img [ref=e147]
+  - alert [ref=e140]

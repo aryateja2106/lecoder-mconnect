@@ -477,6 +477,57 @@ function checkDatabase(): DiagnosticResult {
 }
 
 /**
+ * Check if Ollama is running and the default vox model is available.
+ */
+async function checkOllama(): Promise<DiagnosticResult> {
+  const DEFAULT_VOX_MODEL = 'qwen2.5-coder:0.5b';
+  const apiUrl = 'http://localhost:11434';
+
+  try {
+    const response = await fetch(`${apiUrl}/api/tags`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (!response.ok) {
+      return {
+        name: 'Ollama (vox)',
+        status: 'warning',
+        message: 'Ollama responded with an error',
+        fix: 'Run: ollama serve',
+      };
+    }
+
+    const data = (await response.json()) as { models?: Array<{ name: string }> };
+    const models = (data.models ?? []).map((m: { name: string }) => m.name);
+    const found = models.some(
+      (m: string) => m === DEFAULT_VOX_MODEL || m.startsWith(`${DEFAULT_VOX_MODEL}:`)
+    );
+
+    if (found) {
+      return {
+        name: 'Ollama (vox)',
+        status: 'ok',
+        message: `Ollama running, model ${DEFAULT_VOX_MODEL} available`,
+      };
+    }
+
+    return {
+      name: 'Ollama (vox)',
+      status: 'warning',
+      message: `Ollama running but model '${DEFAULT_VOX_MODEL}' not found`,
+      fix: `Run: ollama pull ${DEFAULT_VOX_MODEL}`,
+    };
+  } catch {
+    return {
+      name: 'Ollama (vox)',
+      status: 'warning',
+      message: 'Ollama not running (optional — required for vox NL-to-shell)',
+      fix: 'Run: ollama serve',
+    };
+  }
+}
+
+/**
  * Run all diagnostics
  */
 export async function runDiagnostics(): Promise<DiagnosticResult[]> {
@@ -498,6 +549,9 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
   results.push(checkDaemon());
   results.push(checkIpcSocket());
   results.push(checkDatabase());
+
+  // Vox checks (optional — NL-to-shell feature)
+  results.push(await checkOllama());
 
   return results;
 }

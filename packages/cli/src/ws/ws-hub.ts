@@ -5,15 +5,12 @@
  * Handles authentication, message routing, broadcast, and protocol v2 session management.
  */
 
-import { createHash } from 'node:crypto';
 import type { Server as HTTPServer, IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
 import { InputArbiter } from '../input/InputArbiter.js';
-import { getOpikTracer } from '../opik/index.js';
-import { getObservability } from '../observability/index.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { ClientType, ControlState, Priority } from '../session/types.js';
@@ -251,11 +248,6 @@ export class WSHub {
     // Authenticate
     if (providedToken !== this.config.token) {
       console.log(`[WSHub] Unauthorized connection from ${ip}`);
-      // Trace auth failure
-      const observability = getObservability();
-      if (observability.isEnabled()) {
-        observability.traceAuthFailure(ip, 'invalid_token');
-      }
       ws.close(4001, 'Unauthorized');
       return;
     }
@@ -277,21 +269,6 @@ export class WSHub {
 
     this.clients.set(ws, clientInfo);
     console.log(`[WSHub] Client ${clientId} connected from ${ip} (${this.clients.size} total)`);
-
-    // Track connection in Opik (both tracers)
-    const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 12);
-    getOpikTracer().clientConnected(this.config.sessionId, {
-      clientId,
-      clientType,
-      ipHash,
-      connectedAt: now,
-    });
-
-    // Trace client connection (enhanced observability)
-    const observability = getObservability();
-    if (observability.isEnabled()) {
-      observability.traceClientConnection(clientType, 'connect');
-    }
 
     // For v2 protocol, send auth_success and session_list
     if (protocolVersion === '2.0') {
@@ -377,27 +354,9 @@ export class WSHub {
         this.sessionManager?.detachClient(client.clientId);
       }
 
-      // Track disconnection in Opik
-      if (client) {
-        const connectionDuration = Date.now() - client.connectedAt;
-        getOpikTracer().clientDisconnected(
-          this.config.sessionId,
-          client.clientId,
-          connectionDuration
-        );
-      }
-
       this.clients.delete(ws);
       this.controlRequestRateLimiter.delete(client?.clientId || '');
       console.log(`[WSHub] Client disconnected (${this.clients.size} remaining)`);
-
-      // Trace client disconnect
-      if (client) {
-        const obs = getObservability();
-        if (obs.isEnabled()) {
-          obs.traceClientConnection(client.clientType, 'disconnect');
-        }
-      }
     });
 
     ws.on('error', (error) => {
@@ -704,11 +663,6 @@ export class WSHub {
     }
 
     if (rateInfo.count >= maxRequests) {
-      // Trace rate limiting
-      const obs = getObservability();
-      if (obs.isEnabled()) {
-        obs.traceRateLimited(client.clientId, maxRequests);
-      }
       this.sendToClient(ws, {
         type: 'error',
         message: 'Scrollback rate limit exceeded (10 requests/second)',
@@ -912,10 +866,6 @@ export class WSHub {
    * Handle input to an agent
    */
   private handleInput(ws: WebSocket, agentId: string, data: string): void {
-    const clientInfo = this.clients.get(ws);
-    const clientType = clientInfo?.clientType || 'pc';
-    const sessionId = this.config.sessionId;
-
     if (!this.agentManager) {
       this.sendToClient(ws, {
         type: 'error',
@@ -944,25 +894,6 @@ export class WSHub {
     if (isCommand && this.guardrailConfig) {
       // Check for injection
       if (detectInjection(sanitized)) {
-        // Track blocked command with Opik
-        getOpikTracer().commandExecute(sessionId, {
-          agentId,
-          command: '[hidden for security]',
-          source: clientType,
-          blocked: true,
-          blockReason: 'Potential injection detected',
-          requiresApproval: false,
-          timestamp: Date.now(),
-        });
-
-        // Trace security event (enhanced observability)
-        const obs = getObservability();
-        if (obs.isEnabled()) {
-          obs.traceSecurityEvent('injection', {
-            input: sanitized,
-            clientId: this.clients.get(ws)?.clientId,
-          });
-        }
         this.broadcast({
           type: 'command_blocked',
           agentId,
@@ -976,17 +907,6 @@ export class WSHub {
       // Check guardrails
       const check = checkCommand(sanitized, this.guardrailConfig);
       if (check.blocked) {
-        // Track blocked command with Opik
-        getOpikTracer().commandExecute(sessionId, {
-          agentId,
-          command: sanitized,
-          source: clientType,
-          blocked: true,
-          blockReason: check.reason || 'Command blocked by guardrails',
-          requiresApproval: false,
-          timestamp: Date.now(),
-        });
-
         this.broadcast({
           type: 'command_blocked',
           agentId,
@@ -1000,24 +920,6 @@ export class WSHub {
       if (check.requiresApproval) {
         const now = Date.now();
 
-        // Track approval request with Opik
-        getOpikTracer().commandExecute(sessionId, {
-          agentId,
-          command: sanitized,
-          source: clientType,
-          blocked: false,
-          requiresApproval: true,
-          timestamp: now,
-        });
-
-        // Also start an approval span
-        getOpikTracer().approvalRequest(sessionId, {
-          agentId,
-          command: sanitized,
-          reason: check.reason || 'Command requires approval',
-          requestTime: now,
-        });
-
         // Track pending approval for response matching
         this.pendingApprovals.set(sanitized, { agentId, requestTime: now });
 
@@ -1030,18 +932,6 @@ export class WSHub {
         });
         return;
       }
-    }
-
-    // Track executed command with Opik (only for actual commands, not just keystrokes)
-    if (isCommand) {
-      getOpikTracer().commandExecute(sessionId, {
-        agentId,
-        command: sanitized,
-        source: clientType,
-        blocked: false,
-        requiresApproval: false,
-        timestamp: Date.now(),
-      });
     }
 
     // Send to agent
@@ -1108,10 +998,6 @@ export class WSHub {
    * Handle approval response from client
    */
   private handleApprovalResponse(ws: WebSocket, message: ApprovalResponseMessage): void {
-    const clientInfo = this.clients.get(ws);
-    const clientType = clientInfo?.clientType || 'pc';
-    const sessionId = this.config.sessionId;
-
     const pending = this.pendingApprovals.get(message.command);
     if (!pending) {
       this.sendToClient(ws, {
@@ -1122,29 +1008,11 @@ export class WSHub {
       return;
     }
 
-    const responseTime = Date.now() - pending.requestTime;
     this.pendingApprovals.delete(message.command);
-
-    // Close the approval span in Opik
-    getOpikTracer().approvalResponse(sessionId, message.command, {
-      approved: message.approved,
-      responder: clientType as 'mobile' | 'pc',
-      responseTime,
-    });
 
     if (message.approved && this.agentManager) {
       // Execute the approved command
       this.agentManager.writeToAgent(pending.agentId, message.command);
-
-      // Track as executed
-      getOpikTracer().commandExecute(sessionId, {
-        agentId: pending.agentId,
-        command: message.command,
-        source: clientType,
-        blocked: false,
-        requiresApproval: false,
-        timestamp: Date.now(),
-      });
     }
 
     // Notify all clients of approval resolution

@@ -57,10 +57,11 @@ import { AGENT_PRESETS, type AgentConfig, getDefaultShell } from './agents/types
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
+import { createVoxCommand } from './cli/commands/vox.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
-import { getSessionFilePath } from './session-file.js';
+import { cleanDeadSessions, getSessionFilePath, listRegisteredSessions } from './session-file.js';
 import { VERSION, VERSION_DISPLAY } from './version.js';
 
 const program = new Command();
@@ -78,6 +79,9 @@ const sessionCmd = createSessionCommand();
 sessionCmd.addCommand(createAttachCommand());
 program.addCommand(sessionCmd);
 
+// Add vox NL-to-shell command
+program.addCommand(createVoxCommand());
+
 program
   .command('start', { isDefault: true })
   .description('Start a new MConnect session')
@@ -93,7 +97,7 @@ program
   .option('--json', 'Output session connection info as JSON (implies --yes)')
   .option('-c, --code', '(Deprecated) Pairing code is now always shown')
   .option('--web-url <url>', 'Web app URL (e.g. http://localhost:3000)')
-  .option('--timeout <minutes>', 'Session timeout in minutes (default: 60, 0 = no timeout)', '60')
+  .option('--timeout <minutes>', 'Session timeout in minutes (default: no timeout, 0 = no timeout)', '0')
   .action(async (options) => {
     // Quick check for node-pty before starting wizard
     const ptyAvailable = await isNodePtyAvailable();
@@ -268,6 +272,57 @@ program
   });
 
 program
+  .command('ps')
+  .description('List all MConnect sessions across directories')
+  .option('--json', 'Output as JSON')
+  .action((options) => {
+    const sessions = listRegisteredSessions();
+
+    // Auto-clean dead sessions
+    const deadCount = cleanDeadSessions();
+
+    const alive = sessions.filter((s) => s.alive);
+
+    if (options.json) {
+      console.log(JSON.stringify(alive.map((s) => ({ ...s.data, status: 'ACTIVE' })), null, 2));
+      return;
+    }
+
+    if (alive.length === 0) {
+      console.log(chalk.dim('\n  No active MConnect sessions.\n'));
+      if (deadCount > 0) {
+        console.log(chalk.dim(`  Cleaned ${deadCount} stale session(s).\n`));
+      }
+      return;
+    }
+
+    console.log(`\n${chalk.bold('MConnect Sessions')}\n`);
+
+    for (const session of alive) {
+      const { data } = session;
+      const shortId = data.sessionId.substring(0, 12);
+      const started = new Date(data.startedAt);
+      const uptimeMs = Date.now() - started.getTime();
+      const uptimeMin = Math.floor(uptimeMs / 60000);
+      const uptimeStr =
+        uptimeMin < 60
+          ? `${uptimeMin}m`
+          : `${Math.floor(uptimeMin / 60)}h${uptimeMin % 60}m`;
+
+      console.log(
+        `  ${chalk.green('●')} ${chalk.bold(shortId)}  PID ${data.pid}  ${chalk.dim(uptimeStr)}  ${chalk.cyan(data.url)}`
+      );
+      console.log(`    ${chalk.dim(data.workDir)}`);
+    }
+
+    console.log('');
+    if (deadCount > 0) {
+      console.log(chalk.dim(`  Cleaned ${deadCount} stale session(s).`));
+    }
+    console.log(chalk.dim(`  ${alive.length} active session(s).\n`));
+  });
+
+program
   .command('commands')
   .description('Show all available commands with examples')
   .action(() => {
@@ -354,7 +409,7 @@ async function quickStart(options: WizardOptions): Promise<void> {
       port: options.port ? parseInt(options.port, 10) : undefined,
       webUrl: options.webUrl,
       jsonOutput,
-      timeout: parseInt(options.timeout || '60', 10),
+      timeout: parseInt(options.timeout || '0', 10),
     });
   } catch (error) {
     if (jsonOutput) {
@@ -569,7 +624,7 @@ async function runWizard(options: WizardOptions): Promise<void> {
       enableTmux: options.tmux !== false,
       port: options.port ? parseInt(options.port, 10) : undefined,
       webUrl: options.webUrl,
-      timeout: parseInt(options.timeout || '60', 10),
+      timeout: parseInt(options.timeout || '0', 10),
     });
   } catch (error) {
     p.log.error(error instanceof Error ? error.message : 'Unknown error');

@@ -1,0 +1,78 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img [ref=e6]
+        - generic [ref=e8]: MConnect
+      - button "Ask Vox ⌘K" [ref=e9]:
+        - generic [ref=e10]: Ask Vox
+        - generic [ref=e11]: ⌘K
+    - main [ref=e12]:
+      - generic [ref=e150]:
+        - generic [ref=e151]:
+          - generic [ref=e152]:
+            - button "Back to dashboard" [ref=e153]:
+              - img
+            - generic [ref=e154]: session-…
+          - generic [ref=e156]: Idle
+        - generic [ref=e157]:
+          - generic [ref=e161]:
+            - textbox "Terminal input" [ref=e162]
+            - generic:
+              - generic:
+                - generic: ┌─────────────────────────────────────┐
+              - generic:
+                - generic: │
+                - generic: LeCoder MConnect
+                - generic: │
+              - generic:
+                - generic: │
+                - generic: Terminal in your pocket
+                - generic: │
+              - generic:
+                - generic: └─────────────────────────────────────┘
+              - generic:
+                - generic: "Mode: Read-Only"
+              - generic:
+                - generic: Waiting for terminal output...
+          - generic [ref=e163]:
+            - img [ref=e164]
+            - paragraph [ref=e166]: Connecting…
+            - paragraph [ref=e167]: Establishing connection to the agent.
+        - generic [ref=e168]:
+          - button "C-c" [disabled] [ref=e169]
+          - button "C-d" [disabled] [ref=e170]
+          - button "C-z" [disabled] [ref=e171]
+          - button "Tab" [disabled] [ref=e172]
+          - button "Esc" [disabled] [ref=e173]
+          - button "Up arrow" [disabled] [ref=e174]:
+            - img [ref=e175]
+          - button "Down arrow" [disabled] [ref=e177]:
+            - img [ref=e178]
+          - button "Left arrow" [disabled] [ref=e180]:
+            - img [ref=e181]
+          - button "Right arrow" [disabled] [ref=e183]:
+            - img [ref=e184]
+          - button "Take control (edit mode)" [ref=e186]:
+            - img [ref=e187]
+          - button "Kill session" [ref=e190]:
+            - img [ref=e191]
+    - navigation [ref=e117]:
+      - generic [ref=e118]:
+        - link "Dashboard" [ref=e119] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e120]
+          - generic [ref=e125]: Dashboard
+        - link "Agents" [ref=e126] [cursor=pointer]:
+          - /url: /agents
+          - img [ref=e127]
+          - generic [ref=e130]: Agents
+        - button [ref=e131]:
+          - img [ref=e133]
+        - link "Feedback" [ref=e136] [cursor=pointer]:
+          - /url: /feedback
+          - img [ref=e137]
+          - generic [ref=e139]: Feedback
+  - button "Open Next.js Dev Tools" [ref=e146] [cursor=pointer]:
+    - img [ref=e147]
+  - alert [ref=e140]

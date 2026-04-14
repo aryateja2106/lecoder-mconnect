@@ -12,22 +12,22 @@ import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
+import { getDataDir } from './config.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
-import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
-import { getObservability, initObservabilityFromEnv } from './observability/index.js';
 import {
   generateSecureToken,
   generateSessionId,
   getPairingCodeManager,
   hashForLogging,
 } from './security.js';
-import { writeSessionFile, removeSessionFile } from './session-file.js';
-import type { SessionManager } from './session/SessionManager.js';
+import { writeSessionFile, removeSessionFile, registerSession, unregisterSession, listRegisteredSessions } from './session-file.js';
+import { SessionManager } from './session/SessionManager.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
 import { PRODUCT_NAME, VERSION } from './version.js';
 import { getWebClientHTML } from './web/web-client.js';
+import { getSessionListHTML } from './web/session-list.js';
 import { WSHub } from './ws/ws-hub.js';
 
 export interface SessionConfig {
@@ -71,7 +71,6 @@ export interface InitializationStatus {
   tunnel: { success: boolean; error?: string; url?: string };
   tmux: { success: boolean; error?: string };
   httpServer: { success: boolean; error?: string };
-  opik: { success: boolean; error?: string };
 }
 
 export interface MConnectSession {
@@ -82,6 +81,9 @@ export interface MConnectSession {
   wsHub: WSHub;
   agentManager: AgentManager;
   tmuxManager: TmuxManager | null;
+  sessionManager: SessionManager | null;
+  /** SQLite-assigned session UUID (may differ from mconnect session id) */
+  sqliteSessionId: string;
   guardrailConfig: GuardrailConfig;
   tunnelUrl: string | null;
   tunnelProcess: ChildProcess | null;
@@ -89,6 +91,8 @@ export interface MConnectSession {
   context: SessionContext | null;
   /** Initialization status for each component */
   initStatus: InitializationStatus;
+  /** Timer handle for periodic activity updates */
+  activityTimer: ReturnType<typeof setInterval> | null;
 }
 
 let currentSession: MConnectSession | null = null;
@@ -107,33 +111,8 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const spinner = quiet ? { start: () => {}, message: () => {}, stop: () => {} } : p.spinner();
   spinner.start('Initializing MConnect v2...');
 
-  // Initialize Opik tracer (graceful fallback if not configured)
-  spinner.message('Initializing observability...');
-  const opikEnabled = await initializeOpikTracer({
-    projectName: process.env.OPIK_PROJECT_NAME || 'lecoder-mconnect',
-    environment: process.env.NODE_ENV || 'development',
-  });
-
-  // Initialize enhanced observability (if configured)
-  const obsEnabled = await initObservabilityFromEnv();
-  if (obsEnabled) {
-    spinner.message('Opik enhanced observability enabled...');
-  }
-
   // Load guardrails
   const guardrailConfig = loadGuardrails(config.guardrails);
-
-  // Start Opik session trace
-  const observability = getObservability();
-  if (observability.isEnabled()) {
-    observability.startSessionTrace(sessionId, {
-      workDir: config.workDir,
-      guardrailsLevel: config.guardrails,
-      agents: config.agents.map(a => ({ ...a, cwd: config.workDir })),
-      enableTmux: config.enableTmux !== false,
-      version: VERSION,
-    });
-  }
 
   // Create pairing code
   const pairingManager = getPairingCodeManager();
@@ -202,7 +181,80 @@ export async function startSession(config: SessionConfig): Promise<void> {
       return;
     }
 
-    // Web client (requires token)
+    // Sessions API endpoint (requires token)
+    if (url.pathname === '/api/sessions') {
+      setCorsHeaders();
+      const apiToken = url.searchParams.get('token');
+      if (!apiToken || apiToken !== sessionToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+
+      // Return all sessions from SQLite (includes historical sessions)
+      const sessMgr = currentSession?.sessionManager;
+      if (sessMgr) {
+        const allSessions = sessMgr.getAllSessions(true);
+        const sessions = allSessions.map((s) => ({
+          sessionId: s.id,
+          state: s.state,
+          createdAt: s.createdAt.toISOString(),
+          lastActivity: s.lastActivity.toISOString(),
+          agentConfig: s.agentConfig,
+          workingDirectory: s.workingDirectory,
+          connectedClients: sessMgr.getSessionClients(s.id).length,
+        }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ currentSessionId: sessionId, sessions }));
+      } else {
+        // Fallback: return process-registry sessions when SQLite not available
+        const entries = listRegisteredSessions();
+        const sessions = entries.map((entry) => ({
+          sessionId: entry.data.sessionId,
+          workDir: entry.data.workDir,
+          url: entry.data.url,
+          connectUrl: entry.data.connectUrl,
+          startedAt: entry.data.startedAt,
+          pid: entry.data.pid,
+          alive: entry.alive,
+        }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ currentSessionId: sessionId, sessions }));
+      }
+      return;
+    }
+
+    // Scrollback API endpoint — returns scrollback lines for a session from SQLite
+    const scrollbackMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/scrollback$/);
+    if (scrollbackMatch) {
+      setCorsHeaders();
+      const apiToken = url.searchParams.get('token');
+      if (!apiToken || apiToken !== sessionToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+
+      const targetSessionId = scrollbackMatch[1];
+      const fromLine = parseInt(url.searchParams.get('from') ?? '0', 10);
+      const count = Math.min(parseInt(url.searchParams.get('count') ?? '1000', 10), 5000);
+
+      const sessMgr = currentSession?.sessionManager;
+      if (!sessMgr) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Session store not available' }));
+        return;
+      }
+
+      const lines = sessMgr.getScrollback(targetSessionId, fromLine, count);
+      const totalLines = sessMgr.getScrollbackLineCount(targetSessionId);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ sessionId: targetSessionId, fromLine, lines, totalLines }));
+      return;
+    }
+
+    // All other routes require token
     const providedToken = url.searchParams.get('token');
 
     if (!providedToken || providedToken !== sessionToken) {
@@ -212,11 +264,19 @@ export async function startSession(config: SessionConfig): Promise<void> {
       return;
     }
 
+    // Terminal view — the existing web client
+    if (url.pathname === '/terminal') {
+      res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' });
+      res.end(getWebClientHTML(sessionToken, sessionId, true));
+      return;
+    }
+
+    // Default: session list (home view)
     res.writeHead(200, {
       'Content-Type': 'text/html',
       'Cache-Control': 'no-store',
     });
-    res.end(getWebClientHTML(sessionToken, sessionId, true));
+    res.end(getSessionListHTML(sessionToken, sessionId));
   });
 
   // Start HTTP server (bind to 0.0.0.0 for tunnel/network accessibility)
@@ -232,10 +292,6 @@ export async function startSession(config: SessionConfig): Promise<void> {
     tunnel: { success: false },
     tmux: { success: false },
     httpServer: { success: true }, // Already started at this point
-    opik: {
-      success: opikEnabled || obsEnabled,
-      error: (opikEnabled || obsEnabled) ? undefined : 'OPIK_API_KEY not set',
-    },
   };
 
   // Create WebSocket hub
@@ -248,10 +304,42 @@ export async function startSession(config: SessionConfig): Promise<void> {
   wsHub.setGuardrails(guardrailConfig);
   initStatus.websocket = { success: true };
 
+  // Initialize SessionManager for SQLite persistence
+  spinner.message('Initializing session store...');
+  let sessionManager: SessionManager | null = null;
+  // sqliteSessionId is the SQLite-assigned UUID for the current session's record.
+  // It differs from the mconnect sessionId (used for WS auth) — we need this to
+  // route appendOutput() and terminateSession() calls to the right DB row.
+  let sqliteSessionId: string = sessionId;
+  try {
+    const dataDir = getDataDir();
+    sessionManager = new SessionManager({ dataDir });
+    await sessionManager.initialize();
+
+    // Create the session record in SQLite; SessionManager assigns its own UUID
+    const agentNames = config.agents.map((a) => a.name);
+    const persistedSession = sessionManager.createSession(
+      {
+        preset: config.guardrails,
+        agents: agentNames,
+        guardrails: config.guardrails,
+      },
+      config.workDir
+    );
+    sqliteSessionId = persistedSession.id;
+
+    // Wire session manager into WebSocket hub so v2 protocol works
+    wsHub.setSessionManager(sessionManager);
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    p.log.warning(`Session store initialization failed: ${errorMsg}`);
+    p.log.warning('Session will continue without persistence (reconnect/scrollback unavailable)');
+    sessionManager = null;
+  }
+
   // Create agent manager (T009 - graceful fallback)
   spinner.message('Initializing PTY manager...');
   const agentManager = new AgentManager(config.workDir);
-  agentManager.setSessionId(sessionId); // Enable Opik tracing for agents
 
   try {
     await agentManager.initialize();
@@ -297,36 +385,33 @@ export async function startSession(config: SessionConfig): Promise<void> {
   }
 
   // Create tunnel (T010 - already graceful)
-  spinner.message('Creating secure tunnel...');
-  const tunnelResult = await createTunnelWithFeedback(port);
-  const tunnelUrl = tunnelResult?.url || null;
-  if (tunnelUrl) {
-    initStatus.tunnel = { success: true, url: tunnelUrl };
-    // Trace tunnel success
-    if (observability.isEnabled()) {
-      observability.traceTunnelCreation(true, tunnelUrl);
-    }
+  // Check for named tunnel URL (production: MCONNECT_TUNNEL_URL=https://app.lesearch.ai)
+  const namedTunnelUrl = process.env.MCONNECT_TUNNEL_URL || null;
+  const tunnelDisabled = process.env.MCONNECT_NO_TUNNEL === '1' || process.env.MCONNECT_NO_TUNNEL === 'true';
+
+  let tunnelUrl: string | null = null;
+  let tunnelResult: Awaited<ReturnType<typeof createTunnelWithFeedback>> = null;
+
+  if (namedTunnelUrl) {
+    // Named tunnel already running externally (e.g. cloudflared tunnel run mconnect)
+    tunnelUrl = namedTunnelUrl;
+    initStatus.tunnel = { success: true, url: namedTunnelUrl };
+    spinner.message(`Using named tunnel: ${namedTunnelUrl}`);
+  } else if (tunnelDisabled) {
+    initStatus.tunnel = { success: false, error: 'Disabled via MCONNECT_NO_TUNNEL' };
   } else {
-    initStatus.tunnel = {
-      success: false,
-      error: 'Cloudflared not available or tunnel creation failed',
-    };
-    // Trace tunnel failure
-    if (observability.isEnabled()) {
-      observability.traceTunnelCreation(false, undefined, initStatus.tunnel.error);
+    spinner.message('Creating secure tunnel...');
+    tunnelResult = await createTunnelWithFeedback(port);
+    tunnelUrl = tunnelResult?.url || null;
+    if (tunnelUrl) {
+      initStatus.tunnel = { success: true, url: tunnelUrl };
+    } else {
+      initStatus.tunnel = {
+        success: false,
+        error: 'Cloudflared not available or tunnel creation failed',
+      };
     }
   }
-
-  // Start Opik session trace
-  const opikTracer = getOpikTracer();
-  opikTracer.startSession(sessionId, {
-    guardrailsPreset: config.guardrails,
-    workDir: config.workDir,
-    startTime: Date.now(),
-    tunnelEnabled: initStatus.tunnel.success,
-    tmuxEnabled: initStatus.tmux.success,
-    ptyInitialized: initStatus.pty.success,
-  });
 
   // Store session
   currentSession = {
@@ -337,15 +422,18 @@ export async function startSession(config: SessionConfig): Promise<void> {
     wsHub,
     agentManager,
     tmuxManager,
+    sessionManager,
+    sqliteSessionId,
     guardrailConfig,
     tunnelUrl,
     tunnelProcess: tunnelResult?.process || null,
     context: {
-      sessionManager: null, // Will be initialized in Phase 6 (US4)
-      inputArbiter: null, // Will be initialized in Phase 7 (US5)
+      sessionManager,
+      inputArbiter: null,
       sessionId,
     },
     initStatus,
+    activityTimer: null,
   };
 
   // Spawn initial agents
@@ -378,9 +466,6 @@ export async function startSession(config: SessionConfig): Promise<void> {
     );
     console.log(
       `  ${statusIcon(initStatus.tmux.success)} Tmux${initStatus.tmux.error ? chalk.dim(` (${initStatus.tmux.error})`) : ''}`
-    );
-    console.log(
-      `  ${statusIcon(initStatus.opik.success)} Opik${initStatus.opik.error ? chalk.dim(` (${initStatus.opik.error})`) : ''}`
     );
   }
 
@@ -423,6 +508,13 @@ export async function startSession(config: SessionConfig): Promise<void> {
     writeSessionFile(config.workDir, sessionFileData);
   } catch {
     // Session file write is best-effort
+  }
+
+  // Register session in central registry for `mconnect ps`
+  try {
+    registerSession({ ...sessionFileData, workDir: config.workDir });
+  } catch {
+    // Registry write is best-effort
   }
 
   // JSON output mode: print machine-readable info and skip the fancy display
@@ -481,14 +573,32 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Event handlers for agent manager
   agentManager.on('data', (_agentId, data) => {
     process.stdout.write(data);
+    // Persist output to SQLite scrollback (buffered via ScrollbackBuffer)
+    if (currentSession?.sessionManager) {
+      currentSession.sessionManager.appendOutput(sqliteSessionId, data);
+    }
   });
 
   agentManager.on('exit', (agentId, code) => {
     p.log.info(`Agent ${agentId} exited with code ${code}`);
   });
 
+  // Start periodic activity heartbeat — updates last_activity in SQLite every 30s
+  if (sessionManager) {
+    const activityTimer = setInterval(() => {
+      if (currentSession?.sessionManager) {
+        currentSession.sessionManager.updateActivity(currentSession.sqliteSessionId);
+      }
+    }, 30_000);
+    activityTimer.unref(); // Don't prevent process exit
+    currentSession.activityTimer = activityTimer;
+
+    // Start WebSocket heartbeat for v2 clients
+    wsHub.startHeartbeat();
+  }
+
   // Session timeout — auto-shutdown after configured duration (0 = no timeout)
-  const timeoutMinutes = config.timeout ?? 60;
+  const timeoutMinutes = config.timeout ?? 0;
   let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
   if (timeoutMinutes > 0) {
     timeoutTimer = setTimeout(async () => {
@@ -533,19 +643,37 @@ async function cleanup(): Promise<void> {
 
   p.log.info('Cleaning up session...');
 
+  // Stop activity heartbeat timer
+  if (currentSession.activityTimer) {
+    clearInterval(currentSession.activityTimer);
+    currentSession.activityTimer = null;
+  }
+
   try {
     removeSessionFile(currentSession.config.workDir);
   } catch {
     // Best-effort cleanup
   }
 
-  // End Opik session traces (both tracers)
-  const opikTracer = getOpikTracer();
-  opikTracer.endSession(currentSession.id);
+  // Unregister from central session registry
+  try {
+    unregisterSession(currentSession.id);
+  } catch {
+    // Best-effort cleanup
+  }
 
-  const observability = getObservability();
-  if (observability.isEnabled()) {
-    await observability.endSessionTrace('user_exit');
+  // Mark session as completed in SQLite and flush scrollback
+  if (currentSession.sessionManager) {
+    try {
+      currentSession.sessionManager.terminateSession(currentSession.sqliteSessionId);
+    } catch {
+      // Best-effort
+    }
+    try {
+      await currentSession.sessionManager.shutdown();
+    } catch {
+      // Best-effort
+    }
   }
 
   // Kill all agents
@@ -570,16 +698,6 @@ async function cleanup(): Promise<void> {
 
   // Close HTTP server
   currentSession.httpServer.close();
-
-  // Flush ALL Opik traces before exit (both tracers)
-  await opikTracer.flush();
-  if (observability.isEnabled()) {
-    try {
-      await observability.flush();
-    } catch (_e) {
-      // Graceful fallback - don't block exit for flush failure
-    }
-  }
 
   currentSession = null;
   p.outro(chalk.green('Session ended. Goodbye!'));
