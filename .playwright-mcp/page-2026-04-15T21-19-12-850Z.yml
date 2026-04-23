@@ -1,0 +1,31 @@
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - img [ref=e5]
+      - heading "MConnect" [level=1] [ref=e7]
+      - paragraph [ref=e8]: terminal in your pocket
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - img [ref=e11]
+        - generic [ref=e14]: Enter pairing code
+      - paragraph [ref=e15]:
+        - text: Run
+        - code [ref=e16]: mconnect daemon start
+        - text: to get your 6-char code
+      - generic [ref=e17]:
+        - textbox [active] [ref=e18]
+        - textbox [ref=e19]
+        - textbox [ref=e20]
+        - textbox [ref=e21]
+        - textbox [ref=e22]
+        - textbox [ref=e23]
+      - button "Connect" [disabled] [ref=e24]:
+        - img [ref=e25]
+        - text: Connect
+    - generic [ref=e27]:
+      - code [ref=e28]: npm i -g lecoder-mconnect
+      - button "Copy install command" [ref=e29]:
+        - img [ref=e30]
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]:
+    - img [ref=e39]
+  - alert [ref=e42]

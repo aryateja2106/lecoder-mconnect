@@ -1,0 +1,16 @@
+- generic [ref=e2]:
+  - img [ref=e4]
+  - heading "Enter Pairing Code" [level=1] [ref=e7]
+  - paragraph [ref=e8]: Enter the 6-character code shown in your terminal
+  - generic [ref=e9]:
+    - textbox [ref=e10]: "7"
+    - textbox [ref=e11]: P
+    - textbox [ref=e12]: Z
+    - textbox [ref=e13]
+    - textbox [ref=e14]: J
+    - textbox [active] [ref=e15]: Q
+  - button "Connect" [disabled] [ref=e16]
+  - paragraph [ref=e17]:
+    - text: Can't find the code? Run
+    - code [ref=e18]: mconnect
+    - text: in your terminal

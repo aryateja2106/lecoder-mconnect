@@ -1,0 +1,519 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - navigation [ref=e5]:
+          - list [ref=e6]:
+            - generic [ref=e7]:
+              - link "Replit" [ref=e9] [cursor=pointer]:
+                - /url: /
+                - img [ref=e10]
+              - generic [ref=e18]:
+                - button "Products" [ref=e21] [cursor=pointer]:
+                  - generic [ref=e23]: Products
+                  - img [ref=e24]
+                - button "For Work" [ref=e28] [cursor=pointer]:
+                  - generic [ref=e30]: For Work
+                  - img [ref=e31]
+                - button "Resources" [ref=e35] [cursor=pointer]:
+                  - generic [ref=e37]: Resources
+                  - img [ref=e38]
+                - listitem [ref=e40]:
+                  - link "Pricing" [ref=e41] [cursor=pointer]:
+                    - /url: /pricing
+                    - generic [ref=e43]: Pricing
+                - listitem [ref=e44]:
+                  - link "Careers" [ref=e45] [cursor=pointer]:
+                    - /url: /careers
+                    - generic [ref=e47]: Careers
+                - listitem [ref=e48]:
+                  - link "Agent 4" [ref=e50] [cursor=pointer]:
+                    - /url: /agent4
+                    - img [ref=e51]
+            - generic [ref=e60]:
+              - link "Contact sales" [ref=e61] [cursor=pointer]:
+                - /url: https://replit.com/enterprise
+                - generic [ref=e63]: Contact sales
+              - button "Log in" [ref=e64] [cursor=pointer]:
+                - generic [ref=e66]: Log in
+              - button "Create account" [ref=e67] [cursor=pointer]
+      - generic [ref=e68]:
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "What will you build?" [level=1] [ref=e72]
+            - generic [ref=e73]: Turn ideas into apps in minutes — no coding needed
+          - generic [ref=e75]:
+            - generic [ref=e78]:
+              - textbox "Describe your idea, Replit will bring it to life..." [active] [ref=e81]
+              - generic:
+                - button "Add attachment" [ref=e83] [cursor=pointer]:
+                  - img [ref=e84]
+                - button "Start" [disabled] [ref=e87]:
+                  - generic: Start
+                  - img [ref=e88]
+            - generic [ref=e92]:
+              - button "Previous" [disabled] [ref=e93]:
+                - img [ref=e94]
+              - generic [ref=e97]:
+                - button "Website" [ref=e99] [cursor=pointer]:
+                  - img [ref=e101]
+                  - generic [ref=e110]: Website
+                - button "Mobile" [ref=e112] [cursor=pointer]:
+                  - img [ref=e114]
+                  - generic [ref=e118]: Mobile
+                - button "Design" [ref=e120] [cursor=pointer]:
+                  - img [ref=e122]
+                  - generic [ref=e135]: Design
+                - button "Slides" [ref=e137] [cursor=pointer]:
+                  - img [ref=e139]
+                  - generic [ref=e149]: Slides
+                - button "Animation" [ref=e151] [cursor=pointer]:
+                  - img [ref=e153]
+                  - generic [ref=e161]: Animation
+                - button "Data Visualization" [ref=e163] [cursor=pointer]:
+                  - img [ref=e165]
+                  - generic [ref=e170]: Data Visualization
+                - button "3D Game" [ref=e172] [cursor=pointer]:
+                  - img [ref=e174]
+                  - generic [ref=e180]: 3D Game
+                - button "Document" [ref=e182] [cursor=pointer]:
+                  - img [ref=e184]
+                  - generic [ref=e193]: Document
+                - button "Spreadsheet" [ref=e195] [cursor=pointer]:
+                  - img [ref=e197]
+                  - generic [ref=e208]: Spreadsheet
+              - button "Next" [ref=e209] [cursor=pointer]:
+                - img [ref=e210]
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e216]: Try an example prompt
+                - button "Reshuffle" [ref=e218] [cursor=pointer]:
+                  - img [ref=e219]
+              - generic [ref=e221]:
+                - button "Fitness app onboarding wireframe" [ref=e223] [cursor=pointer]:
+                  - generic [ref=e225]: Fitness app onboarding wireframe
+                - button "Weekly meal planner" [ref=e227] [cursor=pointer]:
+                  - generic [ref=e229]: Weekly meal planner
+                - button "Quarterly review presentation" [ref=e231] [cursor=pointer]:
+                  - generic [ref=e233]: Quarterly review presentation
+        - generic [ref=e237]:
+          - generic [ref=e238]:
+            - img [ref=e240]
+            - img [ref=e244]
+            - img [ref=e247]
+            - img [ref=e261]
+            - img [ref=e270]
+            - img [ref=e276]
+            - img [ref=e280]
+            - img [ref=e291]
+            - img [ref=e299]
+            - img [ref=e303]
+            - img [ref=e311]
+            - img [ref=e315]
+            - img [ref=e327]
+            - img [ref=e336]
+          - generic [ref=e338]:
+            - img [ref=e340]
+            - img [ref=e344]
+            - img [ref=e347]
+            - img [ref=e361]
+            - img [ref=e370]
+            - img [ref=e376]
+            - img [ref=e380]
+            - img [ref=e391]
+            - img [ref=e399]
+            - img [ref=e403]
+            - img [ref=e411]
+            - img [ref=e415]
+            - img [ref=e427]
+            - img [ref=e436]
+          - generic [ref=e438]:
+            - img [ref=e440]
+            - img [ref=e444]
+            - img [ref=e447]
+            - img [ref=e461]
+            - img [ref=e470]
+            - img [ref=e476]
+            - img [ref=e480]
+            - img [ref=e491]
+            - img [ref=e499]
+            - img [ref=e503]
+            - img [ref=e511]
+            - img [ref=e515]
+            - img [ref=e527]
+            - img [ref=e536]
+          - generic [ref=e538]:
+            - img [ref=e540]
+            - img [ref=e544]
+            - img [ref=e547]
+            - img [ref=e561]
+            - img [ref=e570]
+            - img [ref=e576]
+            - img [ref=e580]
+            - img [ref=e591]
+            - img [ref=e599]
+            - img [ref=e603]
+            - img [ref=e611]
+            - img [ref=e615]
+            - img [ref=e627]
+            - img [ref=e636]
+      - generic [ref=e639]:
+        - generic [ref=e640]:
+          - heading "Meet Agent 4" [level=1] [ref=e641]
+          - paragraph [ref=e642]: Creativity runs on Replit
+        - generic [ref=e643]:
+          - generic [ref=e644]:
+            - generic [ref=e646]:
+              - generic [ref=e647]:
+                - paragraph [ref=e648]: Infinite Canvas
+                - heading "Design Freely" [level=2] [ref=e649]
+                - paragraph [ref=e650]: Introducing a new space that allows you to explore and tweak designs visually, and then apply them directly to your app.
+              - img [ref=e652]:
+                - generic [ref=e654]:
+                  - generic [ref=e657]: Menu
+                  - generic [ref=e664]: Store finder
+                  - generic [ref=e667]:
+                    - img [ref=e670]
+                    - generic [ref=e673]: Eau de parfum
+                    - generic [ref=e674]: $165.00
+                    - generic [ref=e675]: A fresh & woody fragrance with
+                    - generic [ref=e676]: notes of Sage, Geranium, & Wood
+                  - generic [ref=e677]:
+                    - img [ref=e680]
+                    - generic [ref=e683]: La nuit de l'homme
+                    - generic [ref=e684]: $145.00
+                    - generic [ref=e685]: Bold spices meet smooth leather
+                    - generic [ref=e686]: in a warm, mysterious accord
+                  - generic [ref=e687]:
+                    - img [ref=e690]
+                    - generic [ref=e693]: Velvet Oud
+                    - generic [ref=e694]: $190.00
+                    - generic [ref=e695]: Rich amber & smoky oud blend
+                    - generic [ref=e696]: into a deep, lasting finish
+                - generic [ref=e703]: Add to cart
+            - generic [ref=e709]:
+              - generic:
+                - img:
+                  - generic:
+                    - generic: Main task
+                  - generic:
+                    - generic:
+                      - generic: Subtask
+                    - generic:
+                      - generic: Subtask
+                    - generic:
+                      - generic: Subtask
+                  - generic:
+                    - generic:
+                      - generic: Agent
+                    - generic:
+                      - generic: Agent
+                    - generic:
+                      - generic: Agent
+                  - generic:
+                    - generic: Merged result
+              - generic [ref=e710]:
+                - paragraph [ref=e711]: Parallel Agents
+                - heading "Move faster" [level=2] [ref=e712]
+                - paragraph [ref=e713]: Parallel Agents run tasks together, keeping progress visible. Handle auth, database, and design seamlessly.
+          - generic [ref=e714]:
+            - generic [ref=e716]:
+              - generic:
+                - generic:
+                  - img
+              - generic [ref=e717]:
+                - paragraph [ref=e718]: Multiple Artifacts
+                - heading "Ship Anything" [level=2] [ref=e719]
+                - paragraph [ref=e720]: Create mobile and web apps, landing pages, and videos in one project with shared design. Build everything as your project scales without context switching.
+            - generic [ref=e722]:
+              - generic [ref=e723]:
+                - paragraph [ref=e724]: Support for Teams
+                - heading "Build together" [level=2] [ref=e725]
+                - paragraph [ref=e726]: Your team can focus on planning your app while the Agent handles all the messy coordination and execution. Submit requests in any order, and Agent 4 intelligently sequences them and executes in the best order.
+              - img [ref=e728]:
+                - generic [ref=e730]:
+                  - generic [ref=e732]: Agent
+                  - generic [ref=e733]: "4"
+                - generic [ref=e736]: Raina
+                - generic [ref=e744]: Jacob
+                - generic [ref=e747]: Matt
+        - generic [ref=e751]:
+          - link "Deep dive into Agent 4" [ref=e752] [cursor=pointer]:
+            - /url: https://replit.com/agent4
+            - text: Deep dive into Agent 4
+            - img [ref=e753]
+          - link "Read the documentation" [ref=e755] [cursor=pointer]:
+            - /url: https://docs.replit.com
+      - generic [ref=e758]:
+        - heading "Powered by the Replit platform" [level=2] [ref=e759]
+        - generic [ref=e761]:
+          - generic [ref=e762]:
+            - generic [ref=e764]:
+              - paragraph [ref=e765]: Agent chat
+              - paragraph [ref=e766]:
+                - text: Describe it.
+                - text: Publish it.
+            - generic [ref=e768]:
+              - generic [ref=e770]: Make my idea come true
+              - generic [ref=e772]:
+                - img [ref=e773]
+                - text: Publish
+              - generic [ref=e776]:
+                - img [ref=e777]
+                - text: Agent
+            - paragraph [ref=e780]: Describe and publish your project. The Agent writes production-ready code, evolves it, and stays out of your way.
+          - generic [ref=e781]:
+            - generic [ref=e783]:
+              - paragraph [ref=e784]: Full stack infrastructure
+              - paragraph [ref=e785]: Build & scale your apps easily.
+            - img [ref=e787]:
+              - generic [ref=e791]: AuthenticationDatabaseHostingMonitoring
+            - paragraph [ref=e792]: Built-in services with zero setup- Authentication, Database, Hosting, and Monitoring, enabling you to build fully scalable apps easily and securely from day one.
+          - generic [ref=e793]:
+            - generic [ref=e795]:
+              - paragraph [ref=e796]: Integrations
+              - paragraph [ref=e797]: Connect to AI & services.
+            - img [ref=e799]
+            - paragraph [ref=e815]: Enhance your apps with AI and 100+ integrations. Connect to OpenAI, Stripe, Google Workspace, and more in minutes.
+          - generic [ref=e816]:
+            - generic [ref=e818]:
+              - paragraph [ref=e819]: Enterprise control
+              - paragraph [ref=e820]: Secure your apps as they scale.
+            - img [ref=e822]
+            - paragraph [ref=e827]: "Security controls: SSO/SAML, SOC 2, and admin controls. Screening and secure services keep apps safe."
+      - generic [ref=e832]:
+        - generic [ref=e833]:
+          - generic [ref=e834]: Endorsed by innovators
+          - generic [ref=e835]: Trusted by builders
+        - generic [ref=e836]:
+          - generic [ref=e838]:
+            - generic [ref=e840]:
+              - generic [ref=e841]:
+                - generic [ref=e842]: “
+                - heading "By integrating with Lakebase and Databricks Apps, we're combining Replit's capabilities with trusted enterprise data and governance, helping teams move from idea to production faster and more securely than ever." [level=3] [ref=e843]
+              - generic [ref=e845]:
+                - img "Ali Ghodsi" [ref=e847]
+                - generic [ref=e848]:
+                  - generic [ref=e849]: Ali Ghodsi
+                  - generic [ref=e850]: CEO
+                  - generic [ref=e851]: Databricks
+            - generic [ref=e853]:
+              - generic [ref=e854]:
+                - generic [ref=e855]: “
+                - heading "Agent 4 unlocks true collaboration and real-time learning — now our teams can design and build with our closest partners live, turn instant feedback into measurable wins, and deliver outcomes that delight customers and partners." [level=3] [ref=e856]
+              - generic [ref=e858]:
+                - img "Doug Rodermund" [ref=e860]
+                - generic [ref=e861]:
+                  - generic [ref=e862]: Doug Rodermund
+                  - generic [ref=e863]: Principal Program Manager
+                  - generic [ref=e864]: Zillow
+            - generic [ref=e866]:
+              - generic [ref=e867]:
+                - generic [ref=e868]: “
+                - heading "Replit Agent 4 is incredible. Its ability to take a one-shot prompt and flesh out the requirements before a full build is unmatched. It requires very little guidance to take a rough concept to a functional prototype. This makes my life as a Product Manager 10x easier. Rather than writing requirements and waiting for Figmas, I can show, not tell." [level=3] [ref=e869]
+              - generic [ref=e870]:
+                - img "Alex Meyers" [ref=e872]
+                - generic [ref=e873]:
+                  - generic [ref=e874]: Alex Meyers
+                  - generic [ref=e875]: Principal Product Manager
+                  - generic [ref=e876]: Gusto
+            - generic [ref=e878]:
+              - generic [ref=e879]:
+                - generic [ref=e880]: “
+                - heading "The parallel task execution is a game-changer for us. We have multiple builders working on the same codebase every day, and the ability to submit tasks simultaneously with full visibility before anything merges is exactly how we've wanted to work. Agent 4 feels like it finally matches the speed our team actually operates at." [level=3] [ref=e881]
+              - generic [ref=e882]:
+                - img "Barak Hirchson" [ref=e884]
+                - generic [ref=e885]:
+                  - generic [ref=e886]: Barak Hirchson
+                  - generic [ref=e887]: Co-Founder & Chief AI Officer
+                  - generic [ref=e888]: Payouts.com
+            - generic [ref=e890]:
+              - generic [ref=e891]:
+                - generic [ref=e892]: “
+                - heading "To deliver the world's best customer experience, our internal teams need to work without limits. Replit gives our teams the 'superpowers' to prototype and scale internal solutions in hours rather than weeks, ensuring our operations are as innovative as the products we build. We're excited to see what we can build with Agent 4." [level=3] [ref=e893]
+              - generic [ref=e894]:
+                - img "Shauna Geraghty" [ref=e896]
+                - generic [ref=e897]:
+                  - generic [ref=e898]: Shauna Geraghty
+                  - generic [ref=e899]: SVP, Global People and Talent
+                  - generic [ref=e900]: Talkdesk
+            - generic [ref=e902]:
+              - generic [ref=e903]:
+                - generic [ref=e904]: “
+                - heading "Agent 4 is a game-changer. Multi-user vibe coding via the kanban is a significant milestone for enterprises. It's great for turning individual concepts into team realities and managing tasks through diverse role definitions." [level=3] [ref=e905]
+              - generic [ref=e907]:
+                - img "Takeshi Fujiwara" [ref=e909]
+                - generic [ref=e910]:
+                  - generic [ref=e911]: Takeshi Fujiwara
+                  - generic [ref=e912]: Director
+                  - generic [ref=e913]: SMFL Digital Lab
+          - generic [ref=e922]:
+            - button "Previous slide" [ref=e923] [cursor=pointer]:
+              - img [ref=e924]
+            - button "Next slide" [ref=e926] [cursor=pointer]:
+              - img [ref=e927]
+      - generic [ref=e931]:
+        - generic [ref=e932]:
+          - generic [ref=e933]:
+            - generic [ref=e934]: Start Small. Scale Fast.
+            - generic [ref=e935]: Designed for Every Stage
+          - group [ref=e937]:
+            - generic [ref=e938] [cursor=pointer]:
+              - radio "Monthly" [ref=e940]
+              - generic [ref=e941]: Monthly
+            - generic [ref=e942] [cursor=pointer]:
+              - radio "Yearly Save $24" [checked] [ref=e944]
+              - generic [ref=e945]:
+                - generic [ref=e946]: Yearly
+                - generic [ref=e947]:
+                  - img [ref=e949]
+                  - generic [ref=e951]: Save $24
+        - generic [ref=e952]:
+          - generic [ref=e954]:
+            - generic [ref=e955]:
+              - generic [ref=e956]: Starter
+              - generic [ref=e957]: For exploring what’s possible
+            - generic [ref=e960]: Free
+            - link "Sign up" [ref=e962] [cursor=pointer]:
+              - /url: /signup
+            - generic [ref=e965]:
+              - generic [ref=e968]: Free daily Agent credits
+              - generic [ref=e971]: Free credits for AI integrations
+              - generic [ref=e974]: Publish 1 app
+              - generic [ref=e977]: Limited Agent intelligence
+          - generic [ref=e979]:
+            - generic [ref=e980]:
+              - generic [ref=e981]: Replit Core
+              - generic [ref=e982]: For personal projects & simple apps
+            - generic [ref=e985]:
+              - generic [ref=e986]: $18
+              - generic [ref=e987]:
+                - generic [ref=e989]: per month
+                - generic [ref=e991]: billed annually
+            - link "Join Replit Core" [ref=e993] [cursor=pointer]:
+              - /url: /signup?goto=%2F%7E%3Fupgrade%3Dpricing_page_signup%26plan%3Dhacker_pro%26period%3Dyearly
+            - generic [ref=e996]:
+              - generic [ref=e999]: $20 of monthly credits
+              - generic [ref=e1002]: Includes up to 5 collaborators
+              - generic [ref=e1005]: Unlimited workspaces
+              - generic [ref=e1008]: Autonomous long builds
+              - generic [ref=e1011]: Remove "Made with Replit" badge
+          - generic [ref=e1013]:
+            - generic [ref=e1014]:
+              - generic [ref=e1015]: Replit Pro
+              - generic [ref=e1016]: For commercial and professional builds
+            - generic [ref=e1019]:
+              - generic [ref=e1020]: $100
+              - generic [ref=e1021]: $90
+              - generic [ref=e1022]:
+                - generic [ref=e1024]: per month
+                - generic [ref=e1026]: billed annually
+            - link "Join Replit Pro" [ref=e1028] [cursor=pointer]:
+              - /url: /signup?goto=%2F%7E%3Fupgrade%3Dpricing_page_signup%26plan%3Dpro%26period%3Dyearly%26tier%3D100
+            - generic [ref=e1030]:
+              - button "$100 $90 / month Credit tier" [ref=e1032] [cursor=pointer]:
+                - generic [ref=e1034]:
+                  - generic [ref=e1035]: $100
+                  - generic [ref=e1036]: $90 / month
+                - img [ref=e1037]
+              - combobox [ref=e1041]
+            - generic [ref=e1043]:
+              - generic [ref=e1046]: Everything in Core
+              - generic [ref=e1049]: $100 monthly credits
+              - generic [ref=e1052]: Includes up to 15 collaborators
+              - generic [ref=e1055]: Includes up to 50 viewers
+              - generic [ref=e1058]: Access to the most powerful models
+              - generic [ref=e1061]: Private deployments
+              - generic [ref=e1064]: Database restore up to 28 days
+          - generic [ref=e1066]:
+            - generic [ref=e1067]:
+              - generic [ref=e1068]: Enterprise
+              - generic [ref=e1069]: For enterprise-grade security & controls
+            - generic [ref=e1075]: Custom pricing
+            - link "Contact us" [ref=e1077] [cursor=pointer]:
+              - /url: https://replit.com/enterprise
+            - generic [ref=e1080]:
+              - generic [ref=e1083]: Everything in Pro
+              - generic [ref=e1086]: Custom seat limits
+              - generic [ref=e1089]: SSO / SAML
+              - generic [ref=e1092]: Advanced privacy controls
+              - generic [ref=e1095]: Design system support
+              - generic [ref=e1098]: Single-tenant environments
+              - generic [ref=e1101]: Static outbound IPs
+              - generic [ref=e1104]: VPC peering
+      - generic [ref=e1106]:
+        - heading "What are you waiting for?" [level=2] [ref=e1107]
+        - link "Get started free" [ref=e1108] [cursor=pointer]:
+          - /url: https://replit.com/signup
+      - contentinfo [ref=e1109]:
+        - generic [ref=e1114]:
+          - generic [ref=e1115]:
+            - img [ref=e1116]
+            - generic [ref=e1124]:
+              - generic [ref=e1125]:
+                - img [ref=e1126]
+                - generic [ref=e1131]:
+                  - generic [ref=e1132]: CA
+                  - generic [ref=e1133]: 2:06 PM
+                  - generic [ref=e1134]: 73°F
+              - generic [ref=e1135]:
+                - generic [ref=e1136]: Made in sunny California.
+                - generic [ref=e1138]: All rights reserved. Copyright © 2026 Replit, Inc.
+          - generic [ref=e1139]:
+            - generic [ref=e1140]:
+              - generic [ref=e1141]: Handy Links
+              - generic [ref=e1142]:
+                - link "Vibe Coding 101" [ref=e1143] [cursor=pointer]:
+                  - /url: https://blog.replit.com/what-is-vibe-coding
+                - link "How to guides" [ref=e1144] [cursor=pointer]:
+                  - /url: https://replit.com/build
+                - link "Import from GitHub" [ref=e1145] [cursor=pointer]:
+                  - /url: https://replit.com/github
+                - link "Help" [ref=e1146] [cursor=pointer]:
+                  - /url: https://replit.com/help
+                - link "Status" [ref=e1147] [cursor=pointer]:
+                  - /url: https://status.replit.com/
+            - generic [ref=e1148]:
+              - generic [ref=e1149]: Company
+              - generic [ref=e1150]:
+                - link "About us" [ref=e1151] [cursor=pointer]:
+                  - /url: https://replit.com/about
+                - link "Brand kit" [ref=e1152] [cursor=pointer]:
+                  - /url: https://replit.com/brandkit
+                - link "Certifications" [ref=e1153] [cursor=pointer]:
+                  - /url: https://replit.com/partners/certifications
+                - link "Partnerships" [ref=e1154] [cursor=pointer]:
+                  - /url: https://replit.com/partners
+                - link "Additional resources" [ref=e1155] [cursor=pointer]:
+                  - /url: https://replit.com/additional-resources
+            - generic [ref=e1156]:
+              - generic [ref=e1157]: Legal
+              - generic [ref=e1158]:
+                - link "Terms of service" [ref=e1159] [cursor=pointer]:
+                  - /url: https://replit.com/terms-of-service
+                - link "Commercial agreement" [ref=e1160] [cursor=pointer]:
+                  - /url: https://replit.com/commercial-agreement
+                - link "Privacy" [ref=e1161] [cursor=pointer]:
+                  - /url: https://replit.com/privacy-policy
+                - link "Subprocessors" [ref=e1162] [cursor=pointer]:
+                  - /url: https://replit.com/subprocessors
+                - link "DPA" [ref=e1163] [cursor=pointer]:
+                  - /url: https://replit.com/dpa
+                - link "Report abuse" [ref=e1164] [cursor=pointer]:
+                  - /url: https://docs.replit.com/legal-and-security-info/abuse-report
+            - generic [ref=e1165]:
+              - generic [ref=e1166]: Connect
+              - generic [ref=e1167]:
+                - link "X / Twitter" [ref=e1168] [cursor=pointer]:
+                  - /url: https://twitter.com/replit
+                - link "TikTok" [ref=e1169] [cursor=pointer]:
+                  - /url: https://www.tiktok.com/@replit
+                - link "Facebook" [ref=e1170] [cursor=pointer]:
+                  - /url: https://facebook.com/repl.it
+                - link "Instagram" [ref=e1171] [cursor=pointer]:
+                  - /url: https://instagram.com/repl.it
+                - link "LinkedIn" [ref=e1172] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/company/repl-it
+    - status "Messages (alt + T key to focus)" [ref=e1173]:
+      - list
+  - alert [ref=e1174]

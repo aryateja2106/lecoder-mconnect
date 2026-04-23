@@ -1,0 +1,460 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776285213183,
+  "projectRoot": "/Users/aryateja/Projects/lecoder-mconnect",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=20.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 20.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "npm run dev --workspace=@lecoder/web",
+      "dev:cli": "npm run dev --workspace=lecoder-mconnect",
+      "build": "npm run build --workspaces --if-present",
+      "build:cli": "npm run build --workspace=lecoder-mconnect",
+      "build:web": "npm run build --workspace=@lecoder/web",
+      "start": "node packages/cli/dist/index.js",
+      "cli": "node packages/cli/dist/index.js",
+      "setup": "./scripts/setup-pty.sh",
+      "test": "npm run test --workspaces --if-present",
+      "test:cli": "npm run test --workspace=lecoder-mconnect",
+      "lint": "npm run lint --workspaces --if-present",
+      "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
+      "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "packages/*",
+      "apps/*"
+    ],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "LeSearch-design-references": {
+      "path": "LeSearch-design-references",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1776285213163,
+      "keyFiles": [
+        "favicon.ico",
+        "globals.css"
+      ]
+    },
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776285213165,
+      "keyFiles": []
+    },
+    "brand-assets": {
+      "path": "brand-assets",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776285213172,
+      "keyFiles": []
+    },
+    "demos": {
+      "path": "demos",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1776285213172,
+      "keyFiles": [
+        "mconnect-agents.tape",
+        "mconnect-opik.tape",
+        "mconnect-start.tape"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 4,
+      "lastAccessed": 1776285213172,
+      "keyFiles": [
+        "ARCHITECTURE.md",
+        "COI-COLIMA-NOTES.md",
+        "IOS-TESTFLIGHT-RELEASE-RUNBOOK.md"
+      ]
+    },
+    "lecocer-mconnect-test1": {
+      "path": "lecocer-mconnect-test1",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1776285213173,
+      "keyFiles": [
+        "MConnectInfo.plist"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1776285213173,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1776285213173,
+      "keyFiles": [
+        "setup-pty.sh"
+      ]
+    },
+    "specs": {
+      "path": "specs",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1776285213174,
+      "keyFiles": [
+        "00-OVERVIEW.md",
+        "03-TECH-STACK.md",
+        "08-DEVCONTAINER.md",
+        "09-TESTING.md",
+        "10-ROADMAP.md"
+      ]
+    },
+    "LeSearch-design-references/components": {
+      "path": "LeSearch-design-references/components",
+      "purpose": "UI components",
+      "fileCount": 3,
+      "lastAccessed": 1776285213174,
+      "keyFiles": [
+        "Header.tsx",
+        "ThemeProvider.tsx",
+        "WaitlistDialog.tsx"
+      ]
+    },
+    "docs/api": {
+      "path": "docs/api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1776285213175,
+      "keyFiles": [
+        "openapi.yaml"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "PRD-LECODER-AGENTOS.md",
+      "accessCount": 6,
+      "lastAccessed": 1776287175447,
+      "type": "file"
+    },
+    {
+      "path": "STYLE.md",
+      "accessCount": 4,
+      "lastAccessed": 1776287167333,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/package.json",
+      "accessCount": 3,
+      "lastAccessed": 1776287109122,
+      "type": "file"
+    },
+    {
+      "path": "ROADMAP.md",
+      "accessCount": 2,
+      "lastAccessed": 1776286274090,
+      "type": "file"
+    },
+    {
+      "path": "LECODER-AGENT-HUB-PLAN.md",
+      "accessCount": 2,
+      "lastAccessed": 1776286274895,
+      "type": "file"
+    },
+    {
+      "path": "apps/website/package.json",
+      "accessCount": 2,
+      "lastAccessed": 1776287062175,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776287112121,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/app/page.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776287112673,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/app/globals.css",
+      "accessCount": 2,
+      "lastAccessed": 1776287112873,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/components/terminal/TerminalView.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776287113635,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/components/terminal/ControlBar.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776287114009,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/components/ReconnectOverlay.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1776287115556,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/hooks/useScrollback.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776287117815,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src",
+      "accessCount": 2,
+      "lastAccessed": 1776287127503,
+      "type": "directory"
+    },
+    {
+      "path": "",
+      "accessCount": 2,
+      "lastAccessed": 1776287143529,
+      "type": "directory"
+    },
+    {
+      "path": "PLAN-v0.1.2.md",
+      "accessCount": 1,
+      "lastAccessed": 1776285711190,
+      "type": "file"
+    },
+    {
+      "path": "specs/00-OVERVIEW.md",
+      "accessCount": 1,
+      "lastAccessed": 1776285718123,
+      "type": "file"
+    },
+    {
+      "path": "packages/cli/src/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776285737447,
+      "type": "file"
+    },
+    {
+      "path": "packages/cli/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1776285738236,
+      "type": "file"
+    },
+    {
+      "path": "apps/website/src/app/globals.css",
+      "accessCount": 1,
+      "lastAccessed": 1776287065844,
+      "type": "file"
+    },
+    {
+      "path": "apps/website/src/app/page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287066461,
+      "type": "file"
+    },
+    {
+      "path": "apps/website/src",
+      "accessCount": 1,
+      "lastAccessed": 1776287071172,
+      "type": "directory"
+    },
+    {
+      "path": "apps/website/src/app/layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287075584,
+      "type": "file"
+    },
+    {
+      "path": "apps/website/public/site.webmanifest",
+      "accessCount": 1,
+      "lastAccessed": 1776287081733,
+      "type": "file"
+    },
+    {
+      "path": "apps/website/src/app/blog/page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287090077,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/next.config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776287109344,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/components/ControlStatus.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287114365,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/components/OfflineQueue.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287115128,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/components/TakeControlButton.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287116312,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/hooks/useControlState.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776287116690,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/hooks/useOfflineQueue.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776287117067,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/hooks/useWebSocket.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776287118214,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/stores/sessionStore.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776287118600,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/context/DemoContext.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1776287119356,
+      "type": "file"
+    },
+    {
+      "path": "apps/web/src/lib/mock-websocket.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776287119927,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/01-surface-audit.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287214487,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/02-voice-and-tone.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287275530,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/03-mobile-a11y-audit.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287324079,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/04-token-architecture.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287414860,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/05-resource-synthesis.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287494601,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/06-social-kit-decisions.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287510554,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/07-competitive-decisions.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287578556,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/08-observability-decisions.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287610273,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/09-DESIGN.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287753501,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/10-social-kit-spec.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287835652,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/11-IMPLEMENTATION-ROADMAP.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287941965,
+      "type": "file"
+    },
+    {
+      "path": ".design-research/00-INDEX.md",
+      "accessCount": 1,
+      "lastAccessed": 1776287986253,
+      "type": "file"
+    },
+    {
+      "path": "specs/SPEC-UI-REDESIGN.md",
+      "accessCount": 1,
+      "lastAccessed": 1776362264820,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

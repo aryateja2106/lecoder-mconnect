@@ -1,0 +1,470 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - navigation [ref=e6]:
+      - generic [ref=e9]:
+        - paragraph [ref=e11]: Introducing first-class support for Claude Code, Codex, Gemini CLI and OpenCode.
+        - paragraph [ref=e13]:
+          - link "Learn more." [ref=e14] [cursor=pointer]:
+            - /url: ./agents
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - link [ref=e17] [cursor=pointer]:
+            - /url: ./
+          - generic [ref=e20]:
+            - link "Terminal" [ref=e22] [cursor=pointer]:
+              - /url: ./terminal
+              - paragraph [ref=e24]: Terminal
+            - link "Oz" [ref=e28] [cursor=pointer]:
+              - /url: ./oz
+              - paragraph [ref=e30]: Oz
+            - paragraph [ref=e34] [cursor=pointer]: Resources
+            - link "Pricing" [ref=e38] [cursor=pointer]:
+              - /url: ./pricing
+              - paragraph [ref=e40]: Pricing
+            - link "Careers" [ref=e42] [cursor=pointer]:
+              - /url: ./careers
+              - paragraph [ref=e44]: Careers
+            - link "Enterprise" [ref=e46] [cursor=pointer]:
+              - /url: ./enterprise
+              - paragraph [ref=e48]: Enterprise
+        - generic [ref=e51]:
+          - link "Contact sales" [ref=e53] [cursor=pointer]:
+            - /url: ./contact-sales
+            - paragraph [ref=e55]: Contact sales
+          - link "Download for Mac" [ref=e59] [cursor=pointer]:
+            - /url: https://app.warp.dev/get_warp?package=dmg
+            - generic [ref=e60]:
+              - paragraph [ref=e62]: Download
+              - paragraph [ref=e64]: for Mac
+    - generic [ref=e67]:
+      - generic [ref=e68]:
+        - generic [ref=e70]:
+          - paragraph [ref=e71]: Warp is the agentic
+          - paragraph [ref=e72]: development environment
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]:
+                - generic [ref=e77]:
+                  - img [ref=e82]
+                  - paragraph [ref=e85]: Warp Terminal
+                - paragraph [ref=e88]: A modern terminal for agentic coding
+              - generic [ref=e89]:
+                - link "Learn More" [ref=e91] [cursor=pointer]:
+                  - /url: ./terminal
+                  - paragraph [ref=e93]: Learn More
+                - link "Download for Mac" [ref=e95] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=dmg
+            - link [ref=e98] [cursor=pointer]:
+              - /url: ./terminal
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - paragraph [ref=e108]: Oz
+                - paragraph [ref=e111]: The orchestration platform for cloud agents
+              - generic [ref=e112]:
+                - link "Learn More" [ref=e115] [cursor=pointer]:
+                  - /url: ./oz
+                  - paragraph [ref=e117]: Learn More
+                - link "Sign Up" [ref=e120] [cursor=pointer]:
+                  - /url: https://oz.warp.dev
+                  - paragraph [ref=e122]: Sign Up
+            - link [ref=e125] [cursor=pointer]:
+              - /url: ./oz
+      - generic [ref=e127]:
+        - generic [ref=e128]:
+          - paragraph [ref=e130]: Trusted by industry leaders
+          - paragraph [ref=e132]: Trusted by over 700,000 developers and thousands of engineering teams at leading companies
+        - generic [ref=e133]:
+          - generic [ref=e135]:
+            - img [ref=e138]
+            - link "Livestream" [ref=e142] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=GBe0X14E0GM
+              - paragraph [ref=e144]: Livestream
+          - generic [ref=e146]:
+            - img [ref=e149]
+            - link "Livestream" [ref=e153] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=Kw6bfR5oLuQ
+              - paragraph [ref=e155]: Livestream
+          - generic [ref=e157]:
+            - img [ref=e160]
+            - link "Case Study" [ref=e164] [cursor=pointer]:
+              - /url: ./customers/docker
+              - paragraph [ref=e166]: Case Study
+          - link "Launch Partner" [ref=e172] [cursor=pointer]:
+            - /url: https://cloud.google.com/blog/products/ai-machine-learning/gemini-3-flash-for-enterprises
+            - paragraph [ref=e174]: Launch Partner
+          - link "Course Partner" [ref=e180] [cursor=pointer]:
+            - /url: https://themodernsoftware.dev/
+            - paragraph [ref=e182]: Course Partner
+        - generic [ref=e187]:
+          - list:
+            - listitem [ref=e188]
+            - listitem [ref=e189]
+            - listitem [ref=e190]
+            - listitem [ref=e191]
+            - listitem [ref=e192]:
+              - img [ref=e196]
+            - listitem [ref=e198]:
+              - img [ref=e202]
+            - listitem [ref=e204]:
+              - img [ref=e208]
+            - listitem [ref=e210]:
+              - img [ref=e214]
+            - listitem [ref=e216]
+            - listitem [ref=e218]
+            - listitem [ref=e219]
+            - listitem [ref=e220]
+            - listitem [ref=e221]
+            - listitem [ref=e222]:
+              - img [ref=e226]
+            - listitem [ref=e228]:
+              - img [ref=e232]
+            - listitem [ref=e234]:
+              - img [ref=e238]
+            - listitem [ref=e240]:
+              - img [ref=e244]
+            - listitem [ref=e246]
+            - listitem [ref=e248]
+            - listitem [ref=e249]
+            - listitem [ref=e250]
+            - listitem [ref=e251]
+            - listitem [ref=e252]:
+              - img [ref=e256]
+            - listitem [ref=e258]:
+              - img [ref=e262]
+            - listitem [ref=e264]:
+              - img [ref=e268]
+            - listitem [ref=e270]:
+              - img [ref=e274]
+            - listitem [ref=e276]
+      - generic [ref=e278]:
+        - paragraph [ref=e281]: Don’t take our word for it
+        - generic [ref=e283]:
+          - generic [ref=e288]:
+            - generic [ref=e289]:
+              - paragraph [ref=e292]: Marco Casalaina
+              - paragraph [ref=e295]: /
+              - paragraph [ref=e298]: VP Products, Core AI and AI Futurist
+            - paragraph [ref=e301]: “Turn minutes into seconds, things that would normally take me 10 minutes instead take just a few seconds to do with Warp."
+          - generic [ref=e306]:
+            - generic [ref=e307]:
+              - paragraph [ref=e310]: Kiyu Gabriel
+              - paragraph [ref=e313]: /
+              - paragraph [ref=e316]: Field CTO
+            - paragraph [ref=e319]: “Warp is the single greatest productivity tool I've ever used in my 30-year career in tech.”
+          - generic [ref=e324]:
+            - generic [ref=e325]:
+              - paragraph [ref=e328]: Yash Patil
+              - paragraph [ref=e331]: /
+              - paragraph [ref=e334]: Technical Staff at OpenAI
+            - paragraph [ref=e337]: “Warp is absolutely amazing. It has transformed my terminal workflow.”
+      - generic [ref=e339]:
+        - generic [ref=e340]:
+          - paragraph [ref=e342]: IN THE PRESS
+          - paragraph [ref=e344]: News and announcements
+          - link "See all press" [ref=e347] [cursor=pointer]:
+            - /url: ./press
+            - paragraph [ref=e349]: See all press
+        - generic [ref=e352]:
+          - link "Warp unveils new software for collaborative AI coding Fastcompany" [ref=e356] [cursor=pointer]:
+            - /url: https://www.fastcompany.com/91489692/warp-unveils-new-software-for-collaborative-ai-coding
+            - heading "Warp unveils new software for collaborative AI coding" [level=5] [ref=e358]
+            - heading "Fastcompany" [level=2] [ref=e361]
+          - link "Transforming the Command Line at Warp Speed Sequoia Capital" [ref=e365] [cursor=pointer]:
+            - /url: https://sequoiacap.com/article/warp-spotlight/
+            - heading "Transforming the Command Line at Warp Speed" [level=5] [ref=e367]
+            - heading "Sequoia Capital" [level=2] [ref=e370]
+          - 'link "Start with a prompt: Warps AI coding mandate First Round" [ref=e374] [cursor=pointer]':
+            - /url: https://www.firstround.com/ai/warp
+            - 'heading "Start with a prompt: Warps AI coding mandate" [level=5] [ref=e376]'
+            - heading "First Round" [level=2] [ref=e379]
+          - link "Warp's new agentic development environment helps developers work with Al coding agents Fastcompany" [ref=e383] [cursor=pointer]:
+            - /url: https://www.fastcompany.com/91356732/warps-new-agentic-development-environment-helps-developers-work-with-ai-coding-agents
+            - heading "Warp's new agentic development environment helps developers work with Al coding agents" [level=5] [ref=e385]
+            - heading "Fastcompany" [level=2] [ref=e388]
+          - 'link "Vibe coding is dead: Agentic swarm coding is the new enterprise moat Venture Beat" [ref=e392] [cursor=pointer]':
+            - /url: https://venturebeat.com/ai/vibe-coding-is-dead-agentic-swarm-coding-is-the-new-enterprise-moat
+            - 'heading "Vibe coding is dead: Agentic swarm coding is the new enterprise moat" [level=5] [ref=e394]'
+            - heading "Venture Beat" [level=2] [ref=e397]
+          - link "AI Won't Replace Developers, It Will Make the Best Ones Indispensable DevOps Digest" [ref=e401] [cursor=pointer]:
+            - /url: https://www.devopsdigest.com/ai-wont-replace-developers-it-will-make-the-best-ones-indispensable
+            - heading "AI Won't Replace Developers, It Will Make the Best Ones Indispensable" [level=5] [ref=e403]
+            - heading "DevOps Digest" [level=2] [ref=e406]
+          - link "Goodbye IDE. Hello ADE? Turing Post" [ref=e410] [cursor=pointer]:
+            - /url: https://www.turingpost.com/p/warp
+            - heading "Goodbye IDE. Hello ADE?" [level=5] [ref=e412]
+            - heading "Turing Post" [level=2] [ref=e415]
+      - generic [ref=e417]:
+        - generic [ref=e418]:
+          - generic [ref=e419]:
+            - paragraph [ref=e421]: careers
+            - paragraph [ref=e423]: Join our team
+            - paragraph [ref=e425]: "We're building a big future: the platform where developers and AI agents ship software together. Come build it with us."
+          - link "Careers" [ref=e428] [cursor=pointer]:
+            - /url: ./careers
+            - paragraph [ref=e430]: Careers
+        - list [ref=e436]:
+          - listitem [ref=e437]:
+            - link "Analytics Engineer Remote - New York" [ref=e438] [cursor=pointer]:
+              - /url: https://job-boards.greenhouse.io/warp/jobs/5828901004
+              - heading "Analytics Engineer" [level=3] [ref=e439]
+              - paragraph [ref=e440]: Remote - New York
+          - listitem [ref=e441]:
+            - link "Forward Deployed Engineer Remote within US and Canada" [ref=e442] [cursor=pointer]:
+              - /url: https://job-boards.greenhouse.io/warp/jobs/5749183004
+              - heading "Forward Deployed Engineer" [level=3] [ref=e443]
+              - paragraph [ref=e444]: Remote within US and Canada
+          - listitem [ref=e445]:
+            - link "Growth Marketing Lead Remote - New York" [ref=e446] [cursor=pointer]:
+              - /url: https://job-boards.greenhouse.io/warp/jobs/5728151004
+              - heading "Growth Marketing Lead" [level=3] [ref=e447]
+              - paragraph [ref=e448]: Remote - New York
+          - listitem [ref=e449]:
+            - link "Implementation Engineer Remote - New York" [ref=e450] [cursor=pointer]:
+              - /url: https://job-boards.greenhouse.io/warp/jobs/5832041004
+              - heading "Implementation Engineer" [level=3] [ref=e451]
+              - paragraph [ref=e452]: Remote - New York
+          - listitem [ref=e453]:
+            - link "Software Engineer Remote - New York" [ref=e454] [cursor=pointer]:
+              - /url: https://job-boards.greenhouse.io/warp/jobs/4324888004
+              - heading "Software Engineer" [level=3] [ref=e455]
+              - paragraph [ref=e456]: Remote - New York
+    - contentinfo [ref=e460]:
+      - generic [ref=e461]:
+        - generic [ref=e462]:
+          - generic [ref=e463]:
+            - img [ref=e466]
+            - img [ref=e470]
+          - link "All Systems Operational" [ref=e472] [cursor=pointer]:
+            - /url: https://status.warp.dev/
+            - generic [ref=e476]: All Systems Operational
+        - generic [ref=e477]:
+          - generic [ref=e479]:
+            - paragraph [ref=e481]: Features
+            - generic [ref=e482]:
+              - paragraph [ref=e484]:
+                - link "Code" [ref=e485] [cursor=pointer]:
+                  - /url: ./code
+              - paragraph [ref=e487]:
+                - link "Agents" [ref=e488] [cursor=pointer]:
+                  - /url: ./agents
+              - paragraph [ref=e490]:
+                - link "Terminal" [ref=e491] [cursor=pointer]:
+                  - /url: ./terminal
+              - paragraph [ref=e493]:
+                - link "Drive" [ref=e494] [cursor=pointer]:
+                  - /url: ./drive
+              - paragraph [ref=e496]:
+                - link "Security" [ref=e497] [cursor=pointer]:
+                  - /url: ./legal/security
+              - paragraph [ref=e499]:
+                - link "Changelog" [ref=e500] [cursor=pointer]:
+                  - /url: https://docs.warp.dev/getting-started/changelog
+          - generic [ref=e501]:
+            - paragraph [ref=e503]: Explore
+            - generic [ref=e504]:
+              - paragraph [ref=e506]:
+                - link "Pricing" [ref=e507] [cursor=pointer]:
+                  - /url: ./pricing
+              - paragraph [ref=e509]:
+                - link "Download" [ref=e510] [cursor=pointer]:
+                  - /url: ./download
+              - paragraph [ref=e512]:
+                - link "Documentation" [ref=e513] [cursor=pointer]:
+                  - /url: https://docs.warp.dev/getting-started/readme
+              - paragraph [ref=e515]:
+                - link "Enterprise" [ref=e516] [cursor=pointer]:
+                  - /url: ./enterprise
+              - paragraph [ref=e518]:
+                - link "Do Things with Warp" [ref=e519] [cursor=pointer]:
+                  - /url: https://dothings.warp.dev/
+              - paragraph [ref=e521]:
+                - link "Community" [ref=e522] [cursor=pointer]:
+                  - /url: https://docs.warp.dev/support-and-community
+              - paragraph [ref=e524]:
+                - link "Terminus" [ref=e525] [cursor=pointer]:
+                  - /url: https://www.warp.dev/terminus
+          - generic [ref=e526]:
+            - paragraph [ref=e528]: Company
+            - generic [ref=e529]:
+              - paragraph [ref=e531]:
+                - link "About" [ref=e532] [cursor=pointer]:
+                  - /url: ./about
+              - paragraph [ref=e534]:
+                - link "Careers" [ref=e535] [cursor=pointer]:
+                  - /url: ./careers
+              - paragraph [ref=e537]:
+                - link "Press" [ref=e538] [cursor=pointer]:
+                  - /url: ./press
+              - paragraph [ref=e540]:
+                - link "How we work" [ref=e541] [cursor=pointer]:
+                  - /url: https://notion.warp.dev/
+              - paragraph [ref=e543]:
+                - link "Contact" [ref=e544] [cursor=pointer]:
+                  - /url: ./contact
+              - paragraph [ref=e546]:
+                - link "Blog" [ref=e547] [cursor=pointer]:
+                  - /url: https://www.warp.dev/blog
+              - paragraph [ref=e549]:
+                - link "Privacy" [ref=e550] [cursor=pointer]:
+                  - /url: ./privacy
+              - paragraph [ref=e552]:
+                - link "FAQs" [ref=e553] [cursor=pointer]:
+                  - /url: ./faq
+              - paragraph [ref=e555]:
+                - link "Terms" [ref=e556] [cursor=pointer]:
+                  - /url: ./legal/terms-of-service
+      - generic [ref=e557]:
+        - img [ref=e560]
+        - generic [ref=e561]:
+          - generic [ref=e562]:
+            - paragraph [ref=e564]: All Rights Reserved ©️ 2026
+            - paragraph [ref=e568]:
+              - link "SOC 2 CERTIFIED" [ref=e569] [cursor=pointer]:
+                - /url: ./legal/security
+          - generic [ref=e570]:
+            - link [ref=e571] [cursor=pointer]:
+              - /url: https://twitter.com/warpdotdev
+              - img [ref=e574]
+            - link [ref=e576] [cursor=pointer]:
+              - /url: https://www.youtube.com/@warpdotdev
+              - img [ref=e579]
+            - link [ref=e581] [cursor=pointer]:
+              - /url: https://www.tiktok.com/@warp.dev
+              - img [ref=e584]
+            - link [ref=e586] [cursor=pointer]:
+              - /url: https://github.com/warpdotdev
+            - link [ref=e588] [cursor=pointer]:
+              - /url: https://bsky.app/profile/warp.dev
+              - img [ref=e591]
+            - link [ref=e593] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/warpdotdev
+            - link [ref=e595] [cursor=pointer]:
+              - /url: https://go.warp.dev/join-preview
+    - contentinfo [ref=e600]:
+      - generic [ref=e601]:
+        - generic [ref=e602]:
+          - heading "All Downloads" [level=1] [ref=e604]
+          - heading "Get Warp today" [level=1] [ref=e606]
+        - heading "Get early access to unreleased and experimental features with Warp Preview" [level=1] [ref=e608]:
+          - text: Get early access to unreleased and experimental features with
+          - link "Warp Preview" [ref=e609] [cursor=pointer]:
+            - /url: https://warp.dev/download-preview
+      - generic [ref=e610]:
+        - generic [ref=e611]:
+          - generic [ref=e612]:
+            - img [ref=e615]
+            - heading "Mac" [level=2] [ref=e618]
+          - link "macOS Version 10.14+" [ref=e620] [cursor=pointer]:
+            - /url: https://app.warp.dev/get_warp?package=dmg
+            - generic [ref=e621]:
+              - paragraph [ref=e623]: macOS
+              - paragraph [ref=e625]: Version 10.14+
+          - generic [ref=e629] [cursor=pointer]:
+            - button "$" [ref=e631]:
+              - generic [ref=e632]:
+                - generic [ref=e633]: $
+                - generic [ref=e634]: ✓
+            - paragraph [ref=e636]: brew install --cask warp
+        - generic [ref=e637]:
+          - generic [ref=e638]:
+            - img [ref=e641]
+            - heading "Linux" [level=2] [ref=e644]
+          - generic [ref=e645]:
+            - link ".deb Debian, Ubuntu" [ref=e647] [cursor=pointer]:
+              - /url: https://app.warp.dev/get_warp?package=deb
+              - generic [ref=e648]:
+                - paragraph [ref=e650]: .deb
+                - paragraph [ref=e652]: Debian, Ubuntu
+            - link ".rpm Red Hat, Fedora, SUSE" [ref=e656] [cursor=pointer]:
+              - /url: https://app.warp.dev/get_warp?package=rpm
+              - generic [ref=e657]:
+                - paragraph [ref=e659]: .rpm
+                - paragraph [ref=e661]: Red Hat, Fedora, SUSE
+          - generic [ref=e664]:
+            - generic [ref=e665]:
+              - heading ".deb" [level=2] [ref=e667]
+              - generic [ref=e668]:
+                - link "x64" [ref=e669] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=deb
+                  - heading "x64" [level=2] [ref=e671]
+                - link "ARM64" [ref=e672] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=deb_arm64
+                  - heading "ARM64" [level=2] [ref=e674]
+            - generic [ref=e676]:
+              - heading ".rpm" [level=2] [ref=e678]
+              - generic [ref=e679]:
+                - link "x64" [ref=e680] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=rpm
+                  - heading "x64" [level=2] [ref=e682]
+                - link "ARM64" [ref=e683] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=rpm_arm64
+                  - heading "ARM64" [level=2] [ref=e685]
+            - generic [ref=e687]:
+              - generic [ref=e688]:
+                - heading ".tar.zst" [level=2] [ref=e690]
+                - heading "Arch Linux" [level=2] [ref=e692]
+              - generic [ref=e693]:
+                - link "x64" [ref=e694] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=pacman
+                  - heading "x64" [level=2] [ref=e696]
+                - link "ARM64" [ref=e697] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=pacman_arm64
+                  - heading "ARM64" [level=2] [ref=e699]
+            - generic [ref=e701]:
+              - heading "AppImage" [level=2] [ref=e703]
+              - generic [ref=e704]:
+                - link "x64" [ref=e705] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=appimage
+                  - heading "x64" [level=2] [ref=e707]
+                - link "ARM64" [ref=e708] [cursor=pointer]:
+                  - /url: https://app.warp.dev/get_warp?package=appimage_arm64
+                  - heading "ARM64" [level=2] [ref=e710]
+        - generic [ref=e711]:
+          - generic [ref=e712]:
+            - img [ref=e715]
+            - heading "Windows" [level=2] [ref=e718]
+          - generic [ref=e719]:
+            - link ".exe Windows 11/10 x64" [ref=e721] [cursor=pointer]:
+              - /url: https://app.warp.dev/get_warp?package=exe_x86_64
+              - generic [ref=e722]:
+                - paragraph [ref=e724]: .exe
+                - paragraph [ref=e726]: Windows 11/10 x64
+            - link ".exe Windows 11/10 ARM64" [ref=e730] [cursor=pointer]:
+              - /url: https://app.warp.dev/get_warp?package=exe_arm64
+              - generic [ref=e731]:
+                - paragraph [ref=e733]: .exe
+                - paragraph [ref=e735]: Windows 11/10 ARM64
+          - generic [ref=e738]:
+            - heading ".exe" [level=2] [ref=e740]
+            - generic [ref=e741]:
+              - link "x64" [ref=e742] [cursor=pointer]:
+                - /url: https://app.warp.dev/get_warp?package=exe_x86_64
+                - heading "x64" [level=2] [ref=e744]
+              - link "ARM64" [ref=e745] [cursor=pointer]:
+                - /url: https://app.warp.dev/get_warp?package=exe_arm64
+                - heading "ARM64" [level=2] [ref=e747]
+          - generic [ref=e749] [cursor=pointer]:
+            - button "$" [ref=e751]:
+              - generic [ref=e752]:
+                - generic [ref=e753]: $
+                - generic [ref=e754]: ✓
+            - paragraph [ref=e756]: winget install Warp.Warp
+  - img [ref=e757]
+  - img [ref=e760]
+  - img [ref=e770]
+  - img [ref=e778]
+  - img [ref=e797]
+  - img [ref=e805]
+  - img [ref=e813]
+  - img [ref=e828]
+  - img [ref=e838]
+  - img [ref=e840]
+  - img [ref=e842]
+  - img [ref=e843]
+  - img [ref=e845]
+  - img [ref=e847]
+  - img [ref=e850]
+  - img [ref=e854]
+  - img [ref=e861]

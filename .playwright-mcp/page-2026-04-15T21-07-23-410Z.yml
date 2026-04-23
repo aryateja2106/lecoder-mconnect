@@ -1,0 +1,638 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - img [ref=e9]
+      - generic [ref=e11]: See this page in your preferred language.
+      - link "Change to English (UK)" [ref=e12] [cursor=pointer]:
+        - /url: /en-gb
+        - generic [ref=e13]: Change to English (UK)
+        - generic [ref=e14]: →
+    - navigation "Main" [ref=e19]:
+      - generic [ref=e20]:
+        - link "Notion – Home" [ref=e22] [cursor=pointer]:
+          - /url: /product
+          - img [ref=e23]
+        - generic [ref=e27]:
+          - button "Product" [ref=e29] [cursor=pointer]:
+            - generic [ref=e30]: Product
+            - img [ref=e32]
+          - button "AI" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: AI
+            - img [ref=e38]
+          - button "Solutions" [ref=e41] [cursor=pointer]:
+            - generic [ref=e42]: Solutions
+            - img [ref=e44]
+          - button "Resources" [ref=e47] [cursor=pointer]:
+            - generic [ref=e48]: Resources
+            - img [ref=e50]
+          - link "Enterprise" [ref=e52] [cursor=pointer]:
+            - /url: /enterprise
+            - generic [ref=e53]: Enterprise
+          - link "Pricing" [ref=e54] [cursor=pointer]:
+            - /url: /pricing
+            - generic [ref=e55]: Pricing
+          - link "Request a demo" [ref=e56] [cursor=pointer]:
+            - /url: /contact-sales
+            - generic [ref=e57]: Request a demo
+        - generic [ref=e58]:
+          - link "Get Notion free" [ref=e60] [cursor=pointer]:
+            - /url: /signup?from=marketing&pathname=%2F&tid=c43f4c2281944526a8c29b820e77f8bf
+            - generic [ref=e61]: Get Notion free
+          - link "Log in" [ref=e63] [cursor=pointer]:
+            - /url: /login?from=marketing&pathname=%2F&tid=c43f4c2281944526a8c29b820e77f8bf
+            - generic [ref=e64]: Log in
+    - main [ref=e65]:
+      - generic [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - img [ref=e73]
+            - img [ref=e90]
+            - img [ref=e99]
+          - generic [ref=e106]:
+            - img [ref=e109]
+            - img [ref=e117]
+            - img [ref=e131]
+          - generic [ref=e142]:
+            - heading "Meet the night shift." [level=1] [ref=e143]
+            - paragraph [ref=e144]: Notion agents keep work moving 24/7. They capture knowledge, answer questions, and push projects forward—all while you sleep.
+            - generic [ref=e145]:
+              - link "Get Notion free" [ref=e146] [cursor=pointer]:
+                - /url: /signup?from=marketing&pathname=%2F&tid=c43f4c2281944526a8c29b820e77f8bf
+              - link "Request a demo" [ref=e147] [cursor=pointer]:
+                - /url: /contact-sales
+          - button "Pause" [ref=e152] [cursor=pointer]:
+            - img [ref=e154]
+            - generic [ref=e157]: Pause
+        - paragraph [ref=e158]: Trusted by 98% of the Forbes Cloud 100
+        - generic [ref=e162]:
+          - link "OpenAI" [ref=e163] [cursor=pointer]:
+            - /url: /customers/openai
+            - img "OpenAI" [ref=e164]
+          - link "Figma" [ref=e165] [cursor=pointer]:
+            - /url: /customers/figma
+            - img "Figma" [ref=e166]
+          - link "Ramp" [ref=e167] [cursor=pointer]:
+            - /url: /customers/ramp
+            - img "Ramp" [ref=e168]
+          - link "Cursor" [ref=e169] [cursor=pointer]:
+            - /url: /customers/cursor
+            - img "Cursor" [ref=e170]
+          - link "Vercel" [ref=e171] [cursor=pointer]:
+            - /url: /customers/vercel
+            - img "Vercel" [ref=e172]
+          - generic:
+            - img "Nvidia"
+          - generic:
+            - img "Volvo"
+          - generic:
+            - img "L'Oreal"
+          - generic:
+            - img "Discord"
+          - generic:
+            - img "Lovable"
+          - generic:
+            - img "1Password"
+          - generic:
+            - img "Affirm"
+          - generic:
+            - img "Riot Games"
+          - link "Clay" [ref=e173] [cursor=pointer]:
+            - /url: /customers/clay
+            - img "Clay" [ref=e174]
+          - link "Remote" [ref=e175] [cursor=pointer]:
+            - /url: /customers/remote
+            - img "Remote" [ref=e176]
+          - link "Faire" [ref=e177] [cursor=pointer]:
+            - /url: /customers/faire
+            - img "Faire" [ref=e178]
+          - link "Toyota" [ref=e179] [cursor=pointer]:
+            - /url: /customers/toyota
+            - img "Toyota" [ref=e180]
+      - generic [ref=e182]:
+        - generic [ref=e183]:
+          - generic [ref=e184]:
+            - generic [ref=e185]:
+              - heading "Keep work moving 24/7." [level=2] [ref=e187]
+              - region "Custom Agents" [ref=e189]:
+                - link "Custom Agents New Automate repetitive work for your team." [ref=e191] [cursor=pointer]:
+                  - /url: /product/agents
+                  - heading "Custom Agents New" [level=3] [ref=e192]:
+                    - generic [ref=e193]: Custom Agents
+                    - generic [ref=e194]: New
+                  - paragraph [ref=e195]:
+                    - generic [ref=e196]: Automate repetitive work for your team.
+                    - generic [ref=e198]: →
+                - generic [ref=e199]:
+                  - generic:
+                    - generic:
+                      - button "next":
+                        - img [ref=e201] [cursor=pointer]
+                    - group "1 of 4":
+                      - figure
+                - generic [ref=e203]:
+                  - tablist "Custom Agents" [ref=e204]:
+                    - tab "Q&A agents Answers questions instantly using knowledge you already have." [selected]:
+                      - paragraph: Q&A agents
+                      - paragraph: Answers questions instantly using knowledge you already have.
+                    - tab "Task routing agents Assigns, prioritizes, and routes tasks on its own.":
+                      - paragraph [ref=e205] [cursor=pointer]: Task routing agents
+                      - paragraph: Assigns, prioritizes, and routes tasks on its own.
+                    - tab "Reporting agents Summarizes, writes, and sends reports for you.":
+                      - paragraph [ref=e206] [cursor=pointer]: Reporting agents
+                      - paragraph: Summarizes, writes, and sends reports for you.
+                    - tab "Create your own Make a Custom Agent for any work that repeats.":
+                      - paragraph [ref=e207] [cursor=pointer]: Create your own
+                      - paragraph: Make a Custom Agent for any work that repeats.
+                  - tablist "Current slide indicator" [ref=e208]:
+                    - tab "Go to slide 1" [selected] [ref=e209] [cursor=pointer]
+                    - tab "Go to slide 2" [ref=e210] [cursor=pointer]
+                    - tab "Go to slide 3" [ref=e211] [cursor=pointer]
+                    - tab "Go to slide 4" [ref=e212] [cursor=pointer]
+            - generic [ref=e214]:
+              - heading "See what Custom Agents can do" [level=3] [ref=e215]
+              - generic [ref=e216]:
+                - generic [ref=e217]:
+                  - link "Triage product feedback" [ref=e218] [cursor=pointer]:
+                    - /url: /product/ai/use-cases/triage-product-feedback
+                  - heading "Triage product feedback" [level=3] [ref=e220]:
+                    - text: Triage product feedback
+                    - generic [ref=e221]: →
+                - generic [ref=e222]:
+                  - link "Resolve support tickets in Slack" [ref=e223] [cursor=pointer]:
+                    - /url: /product/ai/use-cases/resolve-support-tickets-in-slack
+                  - heading "Resolve support tickets in Slack" [level=3] [ref=e225]:
+                    - text: Resolve support tickets in Slack
+                    - generic [ref=e226]: →
+                - generic [ref=e227]:
+                  - link "Respond to security alerts faster" [ref=e228] [cursor=pointer]:
+                    - /url: /product/ai/use-cases/respond-to-security-alerts-faster
+                  - heading "Respond to security alerts faster" [level=3] [ref=e230]:
+                    - text: Respond to security alerts faster
+                    - generic [ref=e231]: →
+                - generic [ref=e232]:
+                  - link "Automate weekly reporting" [ref=e233] [cursor=pointer]:
+                    - /url: /product/ai/use-cases/automate-weekly-reporting
+                  - heading "Automate weekly reporting" [level=3] [ref=e235]:
+                    - text: Automate weekly reporting
+                    - generic [ref=e236]: →
+                - generic [ref=e237]:
+                  - link "Create your own Custom Agent" [ref=e238] [cursor=pointer]:
+                    - /url: /product/agents
+                  - heading "Create your own Custom Agent" [level=3] [ref=e243]:
+                    - text: Create your own Custom Agent
+                    - generic [ref=e244]: →
+          - generic [ref=e245]:
+            - heading "Ask your on-demand assistants." [level=2] [ref=e247]
+            - generic [ref=e248]:
+              - article [ref=e249]:
+                - generic [ref=e250]:
+                  - link "Try it" [ref=e251] [cursor=pointer]:
+                    - /url: /product/agents
+                  - generic:
+                    - generic: Notion Agent
+                    - generic:
+                      - heading "You assign the tasks. Notion Agent does the work." [level=2]
+                      - generic: →
+                  - generic:
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Agent | Front | Desktop"
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Agent | Back | Desktop"
+                    - generic:
+                      - generic:
+                        - img "Homepage | Agents 26 | Bento | Agent | Layer"
+              - article [ref=e252]:
+                - generic [ref=e253]:
+                  - link "Try it" [ref=e254] [cursor=pointer]:
+                    - /url: /product/enterprise-search
+                  - generic:
+                    - generic: Enterprise Search
+                    - generic:
+                      - heading "One search for everything." [level=2]
+                      - generic: →
+                  - generic:
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Search | Desktop"
+                    - generic:
+                      - generic:
+                        - img "Homepage | Agents 26 | Bento | Search | Layer"
+              - article [ref=e255]:
+                - generic [ref=e256]:
+                  - link "Try it" [ref=e257] [cursor=pointer]:
+                    - /url: /product/ai-meeting-notes
+                  - generic:
+                    - generic: AI Meeting Notes
+                    - generic:
+                      - heading "Perfect notes, every time." [level=2]
+                      - generic: →
+                  - generic:
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Notes | Desktop"
+                    - generic:
+                      - generic:
+                        - img "Homepage | Agents 26 | Bento | Notes | Layer"
+          - generic [ref=e258]:
+            - heading "Bring all your work together." [level=2] [ref=e260]
+            - generic [ref=e261]:
+              - article [ref=e262]:
+                - generic [ref=e263]:
+                  - link "Try it" [ref=e264] [cursor=pointer]:
+                    - /url: /product/docs
+                  - generic:
+                    - generic: Docs
+                    - generic:
+                      - heading "Simple and powerful." [level=2]
+                      - generic: →
+                  - generic:
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Docs | Front | Desktop"
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Docs | Back | Desktop"
+              - article [ref=e265]:
+                - generic [ref=e266]:
+                  - link "Try it" [ref=e267] [cursor=pointer]:
+                    - /url: /product/wikis
+                  - generic:
+                    - generic: Knowledge Base
+                    - generic:
+                      - heading "One source of truth for teams and agents." [level=2]
+                      - generic: →
+                  - generic:
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Wikis | Desktop"
+              - article [ref=e268]:
+                - generic [ref=e269]:
+                  - link "Try it" [ref=e270] [cursor=pointer]:
+                    - /url: /product/projects
+                  - generic:
+                    - generic: Projects
+                    - generic:
+                      - heading "Less tracking. More progress." [level=2]
+                      - generic: →
+                  - generic:
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Projects | Front | Desktop"
+                    - generic:
+                      - img "Homepage | Agents 26 | Bento | Projects | Back | Desktop"
+        - figure "forbes" [ref=e272]:
+          - blockquote [ref=e273]: Your AI everything app.
+          - img "forbes" [ref=e277]
+      - generic [ref=e279]:
+        - generic [ref=e280]:
+          - generic [ref=e281]:
+            - heading "More productivity. Fewer tools." [level=2] [ref=e282]
+            - paragraph [ref=e283]: Bring all your tools and teams under one roof. Calculate savings below.
+            - link "See pricing plans" [ref=e285] [cursor=pointer]:
+              - /url: /pricing
+              - text: See pricing plans
+              - generic [ref=e286]: →
+          - img "Homepage | Fall 25 | Less Tools | L" [ref=e288]
+        - form [ref=e290]:
+          - generic [ref=e291]:
+            - group [ref=e293]:
+              - generic [ref=e294] [cursor=pointer]:
+                - checkbox "AI Search" [ref=e295]
+                - generic [ref=e296]: AI Search
+              - generic [ref=e297] [cursor=pointer]:
+                - checkbox "AI Chatbot $20/user" [checked] [ref=e298]
+                - generic [ref=e299]:
+                  - text: AI Chatbot
+                  - generic [ref=e300]: $20/user
+              - generic [ref=e301] [cursor=pointer]:
+                - checkbox "AI Meeting Notes" [ref=e302]
+                - generic [ref=e303]: AI Meeting Notes
+              - generic [ref=e304] [cursor=pointer]:
+                - checkbox "AI Writing Assistant" [ref=e305]
+                - generic [ref=e306]: AI Writing Assistant
+              - generic [ref=e307] [cursor=pointer]:
+                - checkbox "AI Email App" [ref=e308]
+                - generic [ref=e309]: AI Email App
+              - generic [ref=e310] [cursor=pointer]:
+                - checkbox "AI Research" [ref=e311]
+                - generic [ref=e312]: AI Research
+              - generic [ref=e313] [cursor=pointer]:
+                - checkbox "Calendar Scheduling" [ref=e314]
+                - generic [ref=e315]: Calendar Scheduling
+              - generic [ref=e316] [cursor=pointer]:
+                - checkbox "Team Wiki $10/user" [checked] [ref=e317]
+                - generic [ref=e318]:
+                  - text: Team Wiki
+                  - generic [ref=e319]: $10/user
+              - generic [ref=e320] [cursor=pointer]:
+                - checkbox "Project Management Tool $24/user" [checked] [ref=e321]
+                - generic [ref=e322]:
+                  - text: Project Management Tool
+                  - generic [ref=e323]: $24/user
+              - generic [ref=e324] [cursor=pointer]:
+                - checkbox "Basic CRM" [ref=e325]
+                - generic [ref=e326]: Basic CRM
+              - generic [ref=e327] [cursor=pointer]:
+                - checkbox "Site Builder" [ref=e328]
+                - generic [ref=e329]: Site Builder
+              - generic [ref=e330] [cursor=pointer]:
+                - checkbox "Forms" [ref=e331]
+                - generic [ref=e332]: Forms
+            - generic [ref=e333]:
+              - generic [ref=e334]:
+                - text: Team size
+                - spinbutton "Team size" [ref=e335] [cursor=pointer]: "10"
+              - generic [ref=e336]:
+                - text: Monthly savings
+                - status "Monthly savings" [ref=e337]: $340
+              - generic [ref=e338]:
+                - text: Annual savings
+                - status "Annual savings" [ref=e339]: $4,080
+      - generic [ref=e342]:
+        - heading "Trusted by teams that ship." [level=2] [ref=e344]
+        - generic [ref=e346]:
+          - generic [ref=e347]:
+            - figure "Read the full story" [ref=e349]:
+              - img "OpenAI-Logo" [ref=e350]
+              - blockquote [ref=e351]: There’s power in a single platform where you can do all your work. Notion is that single place.
+              - link "Read the full story" [ref=e353] [cursor=pointer]:
+                - /url: /customers/openai
+                - text: Read the full story
+                - generic [ref=e354]: →
+            - button "View the video" [ref=e355] [cursor=pointer]:
+              - img "Read the full story" [ref=e356]
+              - img [ref=e358]
+          - generic [ref=e360]:
+            - link "Streamlined workflows to reduce timelines by 3x." [ref=e361] [cursor=pointer]:
+              - /url: /customers/toyota
+              - generic [ref=e363]:
+                - text: Streamlined workflows to reduce timelines by 3x.
+                - generic [ref=e364]: →
+            - link "“Agents get created in three minutes between meetings, then hours of manual operational work disappear.”" [ref=e365] [cursor=pointer]:
+              - /url: /customers/ramp
+              - generic [ref=e367]:
+                - text: “Agents get created in three minutes between meetings, then hours of manual operational work disappear.”
+                - generic [ref=e368]: →
+            - link "“Notion understands that you can solve a lot of problems with one tool.”" [ref=e369] [cursor=pointer]:
+              - /url: /customers/vercel
+              - generic [ref=e371]:
+                - text: “Notion understands that you can solve a lot of problems with one tool.”
+                - generic [ref=e372]: →
+          - generic [ref=e373]:
+            - link "“Notion has been the most powerful and impactful way to streamline our workflow.”" [ref=e374] [cursor=pointer]:
+              - /url: /customers/match
+              - generic [ref=e376]:
+                - text: “Notion has been the most powerful and impactful way to streamline our workflow.”
+                - generic [ref=e377]: →
+            - link "“Using the most AI‑native tools like Notion is an important competitive advantage for us.”" [ref=e378] [cursor=pointer]:
+              - /url: /customers/cursor
+              - generic [ref=e380]:
+                - text: “Using the most AI‑native tools like Notion is an important competitive advantage for us.”
+                - generic [ref=e381]: →
+            - link "One hub for work and AI keeps everyone informed and work flowing." [ref=e382] [cursor=pointer]:
+              - /url: /customers/figma
+              - generic [ref=e384]:
+                - text: One hub for work and AI keeps everyone informed and work flowing.
+                - generic [ref=e385]: →
+        - generic [ref=e387]:
+          - generic [ref=e388]:
+            - paragraph [ref=e389]:
+              - img [ref=e391]
+              - text: Over 100M users worldwide
+            - paragraph [ref=e393]:
+              - img [ref=e395]
+              - text: "#1 knowledge base 3 years running (G2)"
+            - paragraph [ref=e397]:
+              - img [ref=e399]
+              - text: "#1 AI enterprise search (G2)"
+            - paragraph [ref=e401]:
+              - img [ref=e403]
+              - text: "#1 rated AI writing (G2)"
+            - paragraph [ref=e405]:
+              - img [ref=e407]
+              - text: 62% of Fortune 100
+            - paragraph [ref=e409]:
+              - img [ref=e411]
+              - text: Over 50% of YC companies
+            - paragraph [ref=e413]:
+              - img [ref=e415]
+              - text: 1.4M+ community members
+          - generic [ref=e417]:
+            - paragraph [ref=e418]:
+              - img [ref=e420]
+              - text: Over 100M users worldwide
+            - paragraph [ref=e422]:
+              - img [ref=e424]
+              - text: "#1 knowledge base 3 years running (G2)"
+            - paragraph [ref=e426]:
+              - img [ref=e428]
+              - text: "#1 AI enterprise search (G2)"
+            - paragraph [ref=e430]:
+              - img [ref=e432]
+              - text: "#1 rated AI writing (G2)"
+            - paragraph [ref=e434]:
+              - img [ref=e436]
+              - text: 62% of Fortune 100
+            - paragraph [ref=e438]:
+              - img [ref=e440]
+              - text: Over 50% of YC companies
+            - paragraph [ref=e442]:
+              - img [ref=e444]
+              - text: 1.4M+ community members
+            - paragraph [ref=e446]:
+              - img [ref=e448]
+              - text: Over 100M users worldwide
+            - paragraph [ref=e450]:
+              - img [ref=e452]
+              - text: "#1 knowledge base 3 years running (G2)"
+            - paragraph [ref=e454]:
+              - img [ref=e456]
+              - text: "#1 AI enterprise search (G2)"
+            - paragraph [ref=e458]:
+              - img [ref=e460]
+              - text: "#1 rated AI writing (G2)"
+            - paragraph [ref=e462]:
+              - img [ref=e464]
+              - text: 62% of Fortune 100
+            - paragraph [ref=e466]:
+              - img [ref=e468]
+              - text: Over 50% of YC companies
+            - paragraph [ref=e470]:
+              - img [ref=e472]
+              - text: 1.4M+ community members
+      - generic [ref=e476]:
+        - heading "Try for free." [level=2] [ref=e478]
+        - generic [ref=e479]:
+          - generic [ref=e480]:
+            - generic [ref=e481]:
+              - img [ref=e482]:
+                - img [ref=e483]
+              - generic [ref=e486]:
+                - heading "Get started on Notion" [level=3] [ref=e487]
+                - paragraph [ref=e488]: Your AI workspace with built-in agents.
+              - link "Download for Mac" [ref=e490] [cursor=pointer]:
+                - /url: /desktop/mac-apple-silicon/download?from=marketing&pathname=%2F&tid=c43f4c2281944526a8c29b820e77f8bf
+                - img [ref=e491]
+                - text: Download for Mac
+            - generic [ref=e493]:
+              - img "A preview image of the notion desktop app"
+          - generic [ref=e494]:
+            - generic [ref=e495]:
+              - img [ref=e496]:
+                - img [ref=e497]
+              - generic [ref=e500]:
+                - heading "Notion Mail" [level=3] [ref=e501]
+                - paragraph [ref=e502]: The AI inbox that thinks like you.
+              - link "Learn more about Notion Mail" [ref=e503] [cursor=pointer]:
+                - /url: /product/mail/download
+                - text: Download
+            - generic [ref=e504]:
+              - img "A preview image of the notion mail app"
+          - generic [ref=e505]:
+            - generic [ref=e506]:
+              - img [ref=e507]:
+                - img [ref=e508]
+              - generic [ref=e514]:
+                - heading "Notion Calendar" [level=3] [ref=e515]
+                - paragraph [ref=e516]: Time, scheduling, tasks—all together.
+              - link "Learn more about Notion Calendar" [ref=e517] [cursor=pointer]:
+                - /url: /product/calendar/download
+                - text: Download
+            - generic [ref=e518]:
+              - img "A preview image of the notion calendar app"
+        - paragraph [ref=e519]:
+          - text: Notion is always at home right
+          - link "in your browser" [ref=e520] [cursor=pointer]:
+            - /url: /signup
+          - text: .
+    - contentinfo [ref=e523]:
+      - navigation "Footer" [ref=e524]:
+        - generic [ref=e525]:
+          - link "Notion – Home" [ref=e527] [cursor=pointer]:
+            - /url: /product
+            - img [ref=e528]
+          - generic [ref=e534]:
+            - list "Social media" [ref=e535]:
+              - listitem [ref=e536]:
+                - link "Instagram" [ref=e537] [cursor=pointer]:
+                  - /url: https://www.instagram.com/notionhq/
+                  - img [ref=e538]
+              - listitem [ref=e540]:
+                - link "X" [ref=e541] [cursor=pointer]:
+                  - /url: https://twitter.com/NotionHQ
+                  - img [ref=e542]
+              - listitem [ref=e544]:
+                - link "LinkedIn" [ref=e545] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/company/notionhq/
+                  - img [ref=e546]
+              - listitem [ref=e548]:
+                - link "Facebook" [ref=e549] [cursor=pointer]:
+                  - /url: https://www.facebook.com/NotionHQ/
+                  - img [ref=e550]
+              - listitem [ref=e552]:
+                - link "YouTube" [ref=e553] [cursor=pointer]:
+                  - /url: https://www.youtube.com/channel/UCoSvlWS5XcwaSzIcbuJ-Ysg
+                  - img [ref=e554]
+            - generic [ref=e556]:
+              - button "English (US)" [ref=e558] [cursor=pointer]:
+                - generic [ref=e559]:
+                  - img [ref=e561]
+                  - generic [ref=e563]: English (US)
+                  - img [ref=e565]
+              - button "Cookie settings" [ref=e568] [cursor=pointer]
+              - generic [ref=e570]: © 2026 Notion Labs, Inc.
+        - generic [ref=e572]:
+          - list "Company" [ref=e573]:
+            - paragraph [ref=e574]: Company
+            - listitem [ref=e575] [cursor=pointer]:
+              - link "About us" [ref=e576]:
+                - /url: /about
+                - generic [ref=e577]: About us
+            - listitem [ref=e578] [cursor=pointer]:
+              - link "Careers" [ref=e579]:
+                - /url: /careers
+                - generic [ref=e580]: Careers
+            - listitem [ref=e581] [cursor=pointer]:
+              - link "Security" [ref=e582]:
+                - /url: /security
+                - generic [ref=e583]: Security
+            - listitem [ref=e584] [cursor=pointer]:
+              - link "Status" [ref=e585]:
+                - /url: https://www.notion-status.com
+                - generic [ref=e586]: Status
+            - listitem [ref=e587] [cursor=pointer]:
+              - link "Terms & privacy" [ref=e588]:
+                - /url: https://www.notion.so/28ffdd083dc3473e9c2da6ec011b58ac
+                - generic [ref=e589]: Terms & privacy
+            - listitem [ref=e590] [cursor=pointer]:
+              - link "Your privacy rights" [ref=e591]:
+                - /url: https://www.notion.com/trust/privacy-policy#california
+                - generic [ref=e592]: Your privacy rights
+          - list "Download" [ref=e593]:
+            - paragraph [ref=e594]: Download
+            - listitem [ref=e595] [cursor=pointer]:
+              - link "iOS & Android" [ref=e596]:
+                - /url: /mobile
+                - generic [ref=e597]: iOS & Android
+            - listitem [ref=e598] [cursor=pointer]:
+              - link "Mac & Windows" [ref=e599]:
+                - /url: /desktop
+                - generic [ref=e600]: Mac & Windows
+            - listitem [ref=e601] [cursor=pointer]:
+              - link "Mail" [ref=e602]:
+                - /url: /product/mail/download
+                - generic [ref=e603]: Mail
+            - listitem [ref=e604] [cursor=pointer]:
+              - link "Calendar" [ref=e605]:
+                - /url: /product/calendar/download
+                - generic [ref=e606]: Calendar
+            - listitem [ref=e607] [cursor=pointer]:
+              - link "Web Clipper" [ref=e608]:
+                - /url: /web-clipper
+                - generic [ref=e609]: Web Clipper
+          - list "Resources" [ref=e610]:
+            - paragraph [ref=e611]: Resources
+            - listitem [ref=e612] [cursor=pointer]:
+              - link "Help center" [ref=e613]:
+                - /url: /help
+                - generic [ref=e614]: Help center
+            - listitem [ref=e615] [cursor=pointer]:
+              - link "Pricing" [ref=e616]:
+                - /url: /pricing
+                - generic [ref=e617]: Pricing
+            - listitem [ref=e618] [cursor=pointer]:
+              - link "Blog" [ref=e619]:
+                - /url: /blog
+                - generic [ref=e620]: Blog
+            - listitem [ref=e621] [cursor=pointer]:
+              - link "Community" [ref=e622]:
+                - /url: /community
+                - generic [ref=e623]: Community
+            - listitem [ref=e624] [cursor=pointer]:
+              - link "Integrations" [ref=e625]:
+                - /url: /integrations
+                - generic [ref=e626]: Integrations
+            - listitem [ref=e627] [cursor=pointer]:
+              - link "Templates" [ref=e628]:
+                - /url: /templates
+                - generic [ref=e629]: Templates
+            - listitem [ref=e630] [cursor=pointer]:
+              - link "Partner programs" [ref=e631]:
+                - /url: /partners
+                - generic [ref=e632]: Partner programs
+          - list "Notion for" [ref=e633]:
+            - paragraph [ref=e634]: Notion for
+            - listitem [ref=e635] [cursor=pointer]:
+              - link "Enterprise" [ref=e636]:
+                - /url: /enterprise
+                - generic [ref=e637]: Enterprise
+            - listitem [ref=e638] [cursor=pointer]:
+              - link "Small business" [ref=e639]:
+                - /url: /teams
+                - generic [ref=e640]: Small business
+            - listitem [ref=e641] [cursor=pointer]:
+              - link "Personal" [ref=e642]:
+                - /url: /personal
+                - generic [ref=e643]: Personal
+            - listitem [ref=e644]:
+              - link "Explore more" [ref=e645] [cursor=pointer]:
+                - /url: /explore
+                - text: Explore more
+                - generic [ref=e646]: →
+    - status [ref=e648]:
+      - paragraph
+  - alert [ref=e649]

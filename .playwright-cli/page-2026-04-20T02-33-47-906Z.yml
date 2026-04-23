@@ -1,0 +1,44 @@
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - button "Back to sessions" [ref=e5]:
+          - img [ref=e6]
+        - img [ref=e8]
+        - generic [ref=e10]: MConnect
+        - generic [ref=e11]: 130ac055
+        - generic [ref=e42]: Read-only
+      - generic [ref=e12]:
+        - generic [ref=e13]: shell
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - text: Connected
+    - generic [ref=e46]:
+      - textbox "Terminal input" [ref=e47]
+      - generic:
+        - generic:
+          - generic: ┌─────────────────────────────────────┐
+        - generic:
+          - generic: │
+          - generic: LeCoder MConnect
+          - generic: │
+        - generic:
+          - generic: │
+          - generic: Terminal in your pocket
+          - generic: │
+        - generic:
+          - generic: └─────────────────────────────────────┘
+        - generic:
+          - generic: "Mode: Read-Only"
+        - generic:
+          - generic: Waiting for terminal output...
+    - generic [ref=e21]:
+      - button "Read-Only" [active] [ref=e48]:
+        - img [ref=e49]
+        - text: Read-Only
+      - button "Kill" [ref=e26]:
+        - img [ref=e27]
+        - text: Kill
+  - button "Open Next.js Dev Tools" [ref=e37] [cursor=pointer]:
+    - img [ref=e38]
+  - alert [ref=e41]

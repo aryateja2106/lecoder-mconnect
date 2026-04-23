@@ -1,0 +1,42 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]:
+    - img [ref=e39]
+  - alert [ref=e42]
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - button "Back to sessions" [ref=e46]:
+          - img [ref=e47]
+        - img [ref=e49]
+        - generic [ref=e51]: MConnect
+        - generic [ref=e52]: daemon-1
+        - generic [ref=e53]: shell
+      - generic [ref=e55]: Live
+    - generic [ref=e61]:
+      - textbox "Terminal input" [ref=e62]
+      - generic:
+        - generic:
+          - generic: ─────────────────────────────────────────
+        - generic:
+          - generic: MConnect
+          - generic: — terminal in your pocket
+        - generic:
+          - generic: ─────────────────────────────────────────
+        - generic:
+          - generic: Waiting for session output…
+    - generic [ref=e64]:
+      - button "Send Tab" [ref=e65]: Tab
+      - button "Send Esc" [ref=e66]: Esc
+      - button "Send ↑" [ref=e67]: ↑
+      - button "Send ↓" [ref=e68]: ↓
+      - button "Send ←" [ref=e69]: ←
+      - button "Send →" [ref=e70]: →
+      - button "Send Ctrl+C" [ref=e71]: Ctrl+C
+      - button "Send Ctrl+D" [ref=e72]: Ctrl+D
+      - button "Send Ctrl+L" [ref=e73]: Ctrl+L
+      - button "Switch to read-only" [ref=e75]: RW
+      - button "Kill process" [ref=e76]: ^C
+    - generic [ref=e77]:
+      - textbox "Type command…" [ref=e78]
+      - button "Send input" [disabled] [ref=e79]:
+        - img [ref=e80]

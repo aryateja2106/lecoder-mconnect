@@ -1,0 +1,48 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - button "Back to sessions" [ref=e5]:
+          - img [ref=e6]
+        - img [ref=e8]
+        - generic [ref=e10]: MConnect
+        - generic [ref=e11]: ffdba7e5
+      - generic [ref=e13]: Live
+    - generic [ref=e15]:
+      - button "Switch to session ffdba7e5" [pressed] [ref=e16]: ffdba7e5
+      - button "Switch to session 8dc498f9" [ref=e18]: 8dc498f9
+      - button "Switch to session 1d3324f4" [ref=e20]: 1d3324f4
+      - button "Switch to session baac0915" [ref=e22]: baac0915
+      - button "Switch to session e37ecfae" [ref=e24]: e37ecfae
+      - button "Switch to session 9657d137" [ref=e26]: 9657d137
+    - generic [ref=e32]:
+      - textbox "Terminal input" [ref=e33]
+      - generic:
+        - generic:
+          - generic: ─────────────────────────────────────────
+        - generic:
+          - generic: MConnect
+          - generic: — terminal in your pocket
+        - generic:
+          - generic: ─────────────────────────────────────────
+        - generic:
+          - generic: Waiting for session output…
+    - generic [ref=e35]:
+      - button "Send Tab" [disabled] [ref=e36]: Tab
+      - button "Send Esc" [disabled] [ref=e37]: Esc
+      - button "Send ↑" [disabled] [ref=e38]: ↑
+      - button "Send ↓" [disabled] [ref=e39]: ↓
+      - button "Send ←" [disabled] [ref=e40]: ←
+      - button "Send →" [disabled] [ref=e41]: →
+      - button "Send Ctrl+C" [disabled] [ref=e42]: Ctrl+C
+      - button "Send Ctrl+D" [disabled] [ref=e43]: Ctrl+D
+      - button "Send Ctrl+L" [disabled] [ref=e44]: Ctrl+L
+      - button "Enable edit mode" [ref=e46]: RO
+      - button "Kill process" [ref=e47]: ^C
+    - generic [ref=e48]:
+      - textbox "Read-only mode" [disabled] [ref=e49]
+      - button "Send input" [disabled] [ref=e50]:
+        - img [ref=e51]
+  - button "Open Next.js Dev Tools" [ref=e59] [cursor=pointer]:
+    - img [ref=e60]
+  - alert [ref=e63]

@@ -1,0 +1,88 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: ">_"
+        - generic [ref=e6]: MConnect
+      - generic [ref=e7]:
+        - generic [ref=e9]: Connected
+        - generic [ref=e10]: 80x24
+    - generic [ref=e11]:
+      - button "Shell" [ref=e12] [cursor=pointer]:
+        - generic [ref=e14]: Shell
+      - button "+" [ref=e15] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - button "↑" [ref=e19] [cursor=pointer]
+          - button "⇈" [ref=e20] [cursor=pointer]
+        - generic [ref=e21]:
+          - button "↓" [ref=e22] [cursor=pointer]
+          - button "⇊" [ref=e23] [cursor=pointer]
+      - textbox [active] [ref=e25]
+      - generic [ref=e28]: Typing...
+      - generic [ref=e53]:
+        - textbox "Terminal input" [ref=e113]
+        - generic [ref=e54]:
+          - generic [ref=e147]:  after-pair.png  PRD-LECODER-AGENTOS.md
+          - generic [ref=e148]:  after-typed.png  pwa-input-result.png
+          - generic [ref=e149]:  AGENTS.md  pwa-typed.png
+          - generic [ref=e150]:  attached-session.png  quick-start.mjs
+          - generic [ref=e151]:  autoattach.png 󰂺 README.md
+          - generic [ref=e152]:  biome.json  replit-hero.png
+          - generic [ref=e153]:  bun.lock  ROADMAP.md
+          - generic [ref=e154]:  CHANGELOG.md  SCRATCHPAD.md
+          - generic [ref=e155]:  CLAUDE.md  session-A-with-output.png
+          - generic [ref=e156]:  connected-v2.png  session-A.png
+          - generic [ref=e157]:  cursor-hero.png  session-B-after-switch.png
+          - generic [ref=e158]:  DASHBOARD-SETUP.md  SPRINT-PLAN.md
+          - generic [ref=e159]:  dashboard.png  STYLE.md
+          - generic [ref=e160]:  docker-compose.yml  test-pty.js
+          - generic [ref=e161]:  final-pairing.png  TESTING.md
+          - generic [ref=e162]:  fix-spawn-helper.sh  vercel-hero.png
+          - generic [ref=e163]:  HACKATHON-SUBMISSION.md  VIDEO_PROJECT_SUMMARY.md
+          - generic [ref=e164]:  HACKATHON.md  warp-full.png
+          - generic [ref=e165]:  HANDOFF.md  warp-hero.png
+          - generic [ref=e166]:  index.md
+          - generic [ref=e88]:
+            - generic [ref=e167]: ➜
+            - generic [ref=e168]: lecoder-mconnect
+            - generic [ref=e170]: git:(
+            - generic [ref=e171]: main
+            - generic [ref=e172]: )
+            - generic [ref=e173]: ✗
+            - generic [ref=e175]: pwd
+          - generic [ref=e176]: /Users/aryateja/Projects/lecoder-mconnect
+          - generic [ref=e90]:
+            - generic [ref=e177]: ➜
+            - generic [ref=e178]: lecoder-mconnect
+            - generic [ref=e180]: git:(
+            - generic [ref=e181]: main
+            - generic [ref=e182]: )
+            - generic [ref=e183]: ✗
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - button "Esc" [ref=e34] [cursor=pointer]
+        - button "Ctrl" [ref=e35] [cursor=pointer]
+        - button "Shift" [ref=e36] [cursor=pointer]
+        - button "Tab" [ref=e37] [cursor=pointer]
+        - button "Del" [ref=e38] [cursor=pointer]
+        - button "Copy" [ref=e39] [cursor=pointer]
+        - button "↵" [ref=e40] [cursor=pointer]
+        - button "⋮" [ref=e41] [cursor=pointer]
+      - generic:
+        - textbox "$ command..."
+        - button "↵"
+      - generic [ref=e42]:
+        - button "INPUT" [ref=e146] [cursor=pointer]
+        - button "DIR ON" [ref=e44] [cursor=pointer]:
+          - text: DIR
+          - generic [ref=e45]: "ON"
+        - generic [ref=e46]:
+          - button "←" [ref=e47] [cursor=pointer]
+          - button "↑" [ref=e48] [cursor=pointer]
+          - button "↓" [ref=e49] [cursor=pointer]
+          - button "→" [ref=e50] [cursor=pointer]
+        - button "^C" [ref=e51] [cursor=pointer]
+  - generic: Enable input mode to type
+  - generic [ref=e52]: ////////////////////////////////✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗

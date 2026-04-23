@@ -1,0 +1,174 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - img [ref=e6]
+        - generic [ref=e8]:
+          - generic [ref=e9]: MConnect Dashboard
+          - generic [ref=e10]: Connected to http://localhost:8765
+      - link "Open terminal" [ref=e12] [cursor=pointer]:
+        - /url: /
+        - img [ref=e13]
+        - text: Open terminal
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - img [ref=e18]
+          - generic [ref=e21]: Daemon
+        - generic [ref=e22]: :8765
+        - generic [ref=e23]: 2m 49s
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - img [ref=e26]
+          - generic [ref=e28]: Running
+        - generic [ref=e29]: "6"
+        - generic [ref=e30]: 0 completed
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - img [ref=e33]
+          - generic [ref=e38]: Clients
+        - generic [ref=e39]: "0"
+        - generic [ref=e40]: web + cli connected
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - generic [ref=e46]: Memory
+        - generic [ref=e47]: 10.2 MB
+        - generic [ref=e48]: daemon heap
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - img [ref=e52]
+          - heading "Sessions" [level=2] [ref=e55]
+          - generic [ref=e56]: "6"
+        - generic [ref=e57]: refreshes every 2s
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e63]: ffdba7e5-0c7…
+              - generic [ref=e64]: running
+            - link "Attach" [ref=e65] [cursor=pointer]:
+              - /url: /?session=ffdba7e5-0c78-4b6b-99f7-0866cb0ef012
+              - text: Attach
+              - img [ref=e66]
+          - generic [ref=e70]:
+            - generic [ref=e71]: provider shell
+            - generic [ref=e72]: uptime 2m 41s
+            - generic [ref=e73]: worktree —
+            - generic [ref=e74]: clients 0
+            - generic [ref=e75]:
+              - text: cwd
+              - generic "/Users/aryateja/Projects/lecoder-mconnect" [ref=e76]
+          - generic [ref=e77]:
+            - generic [ref=e78]: 0 lines buffered
+            - generic [ref=e79]: last activity 2m ago
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e84]: 8dc498f9-38c…
+              - generic [ref=e85]: running
+            - link "Attach" [ref=e86] [cursor=pointer]:
+              - /url: /?session=8dc498f9-38cc-4339-be11-98e0e560b676
+              - text: Attach
+              - img [ref=e87]
+          - generic [ref=e91]:
+            - generic [ref=e92]: provider shell
+            - generic [ref=e93]: uptime 7m 16s
+            - generic [ref=e94]: worktree —
+            - generic [ref=e95]: clients 0
+            - generic [ref=e96]:
+              - text: cwd
+              - generic "/Users/aryateja/Projects/lecoder-mconnect" [ref=e97]
+          - generic [ref=e98]:
+            - generic [ref=e99]: 0 lines buffered
+            - generic [ref=e100]: last activity 5m ago
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - generic [ref=e103]:
+              - generic [ref=e105]: 1d3324f4-fc6…
+              - generic [ref=e106]: running
+            - link "Attach" [ref=e107] [cursor=pointer]:
+              - /url: /?session=1d3324f4-fc6b-4d10-8365-7a262af40db3
+              - text: Attach
+              - img [ref=e108]
+          - generic [ref=e112]:
+            - generic [ref=e113]: provider shell
+            - generic [ref=e114]: uptime 18m 19s
+            - generic [ref=e115]: worktree —
+            - generic [ref=e116]: clients 0
+            - generic [ref=e117]:
+              - text: cwd
+              - generic "/Users/aryateja/Projects/lecoder-mconnect" [ref=e118]
+          - generic [ref=e119]:
+            - generic [ref=e120]: 0 lines buffered
+            - generic [ref=e121]: last activity 18m ago
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e126]: baac0915-6ca…
+              - generic [ref=e127]: running
+            - link "Attach" [ref=e128] [cursor=pointer]:
+              - /url: /?session=baac0915-6ca6-4ea4-8e93-911c1aad23aa
+              - text: Attach
+              - img [ref=e129]
+          - generic [ref=e133]:
+            - generic [ref=e134]: provider shell
+            - generic [ref=e135]: uptime 563h 48m
+            - generic [ref=e136]: worktree —
+            - generic [ref=e137]: clients 0
+            - generic [ref=e138]:
+              - text: cwd
+              - generic "/Users/aryateja/Projects/lecoder-mconnect/packages/cli" [ref=e139]
+          - generic [ref=e140]:
+            - generic [ref=e141]: 0 lines buffered
+            - generic [ref=e142]: last activity 23d ago
+        - generic [ref=e143]:
+          - generic [ref=e144]:
+            - generic [ref=e145]:
+              - generic [ref=e147]: e37ecfae-f69…
+              - generic [ref=e148]: running
+            - link "Attach" [ref=e149] [cursor=pointer]:
+              - /url: /?session=e37ecfae-f691-4415-ad98-b9909af73202
+              - text: Attach
+              - img [ref=e150]
+          - generic [ref=e154]:
+            - generic [ref=e155]: provider shell
+            - generic [ref=e156]: uptime 563h 51m
+            - generic [ref=e157]: worktree —
+            - generic [ref=e158]: clients 0
+            - generic [ref=e159]:
+              - text: cwd
+              - generic "/Users/aryateja/Projects/lecoder-mconnect/packages/cli" [ref=e160]
+          - generic [ref=e161]:
+            - generic [ref=e162]: 0 lines buffered
+            - generic [ref=e163]: last activity 23d ago
+        - generic [ref=e164]:
+          - generic [ref=e165]:
+            - generic [ref=e166]:
+              - generic [ref=e168]: 9657d137-068…
+              - generic [ref=e169]: running
+            - link "Attach" [ref=e170] [cursor=pointer]:
+              - /url: /?session=9657d137-068a-45a8-a3a6-329a513ffbef
+              - text: Attach
+              - img [ref=e171]
+          - generic [ref=e175]:
+            - generic [ref=e176]: provider shell
+            - generic [ref=e177]: uptime 564h 20m
+            - generic [ref=e178]: worktree —
+            - generic [ref=e179]: clients 0
+            - generic [ref=e180]:
+              - text: cwd
+              - generic "/Users/aryateja/Projects/lecoder-mconnect/packages/cli" [ref=e181]
+          - generic [ref=e182]:
+            - generic [ref=e183]: 0 lines buffered
+            - generic [ref=e184]: last activity 23d ago
+    - generic [ref=e185]:
+      - generic [ref=e186]: Deep tracing available in Opik dashboard — every command, approval, and session event is already streaming.
+      - link "Open Opik" [ref=e187] [cursor=pointer]:
+        - /url: https://www.comet.com/opik
+        - text: Open Opik
+        - img [ref=e188]
+  - button "Open Next.js Dev Tools" [ref=e197] [cursor=pointer]:
+    - img [ref=e198]
+  - alert [ref=e201]

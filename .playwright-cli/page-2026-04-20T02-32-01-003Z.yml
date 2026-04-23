@@ -1,0 +1,65 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: ">_"
+        - generic [ref=e6]: MConnect
+      - generic [ref=e7]:
+        - generic [ref=e9]: Connected
+        - generic [ref=e10]: 80x24
+    - generic [ref=e11]:
+      - button "Shell" [ref=e12] [cursor=pointer]:
+        - generic [ref=e14]: Shell
+      - button "+" [ref=e15] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - button "↑" [ref=e19] [cursor=pointer]
+          - button "⇈" [ref=e20] [cursor=pointer]
+        - generic [ref=e21]:
+          - button "↓" [ref=e22] [cursor=pointer]
+          - button "⇊" [ref=e23] [cursor=pointer]
+      - textbox [ref=e25]
+      - generic [ref=e28]: Tap here to type
+      - generic [ref=e53]:
+        - generic:
+          - textbox "Terminal input"
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: "[Shell]"
+            - generic [ref=e57]: Connected (
+            - generic [ref=e58]: 80x24
+            - generic [ref=e59]: )
+          - generic [ref=e60]:
+            - generic [ref=e61]: ➜
+            - generic [ref=e62]: lecoder-mconnect
+            - generic [ref=e64]: git:(
+            - generic [ref=e65]: main
+            - generic [ref=e66]: )
+            - generic [ref=e67]: ✗
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - button "Esc" [ref=e34] [cursor=pointer]
+        - button "Ctrl" [ref=e35] [cursor=pointer]
+        - button "Shift" [ref=e36] [cursor=pointer]
+        - button "Tab" [ref=e37] [cursor=pointer]
+        - button "Del" [ref=e38] [cursor=pointer]
+        - button "Copy" [ref=e39] [cursor=pointer]
+        - button "↵" [ref=e40] [cursor=pointer]
+        - button "⋮" [ref=e41] [cursor=pointer]
+      - generic:
+        - textbox "$ enable input..." [disabled]
+        - button "↵"
+      - generic [ref=e42]:
+        - button "READ-ONLY" [active] [ref=e92] [cursor=pointer]
+        - button "DIR ON" [ref=e44] [cursor=pointer]:
+          - text: DIR
+          - generic [ref=e45]: "ON"
+        - generic [ref=e46]:
+          - button "←" [ref=e47] [cursor=pointer]
+          - button "↑" [ref=e48] [cursor=pointer]
+          - button "↓" [ref=e49] [cursor=pointer]
+          - button "→" [ref=e50] [cursor=pointer]
+        - button "^C" [ref=e51] [cursor=pointer]
+  - generic: Enable input mode to type
+  - generic [ref=e52]: WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗✗

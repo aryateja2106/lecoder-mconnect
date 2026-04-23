@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - button "Back to sessions" [ref=e5]:
+          - img [ref=e6]
+        - img [ref=e8]
+        - generic [ref=e10]: MConnect
+        - generic [ref=e11]: 0a88b498
+      - generic [ref=e13]: Live
+    - generic [ref=e15]:
+      - button "Switch to session 48ca174a" [ref=e16]: 48ca174a
+      - button "Switch to session 0a88b498" [pressed] [ref=e18]: 0a88b498
+      - button "Switch to session 9657d137" [ref=e20]: 9657d137
+      - button "Switch to session e37ecfae" [ref=e22]: e37ecfae
+      - button "Switch to session baac0915" [ref=e24]: baac0915
+      - button "Switch to session 1d3324f4" [ref=e26]: 1d3324f4
+      - button "Switch to session ffdba7e5" [ref=e28]: ffdba7e5
+      - button "Switch to session 8dc498f9" [ref=e30]: 8dc498f9
+      - button "Switch to session a50c84c6" [ref=e32]: a50c84c6
+    - generic [ref=e38]:
+      - textbox "Terminal input" [ref=e39]
+      - generic:
+        - generic:
+          - generic: ─────────────────────────────────────────
+        - generic:
+          - generic: MConnect
+          - generic: — terminal in your pocket
+        - generic:
+          - generic: ─────────────────────────────────────────
+        - generic:
+          - generic: Waiting for session output…
+    - generic [ref=e41]:
+      - button "Send Tab" [disabled] [ref=e42]: Tab
+      - button "Send Esc" [disabled] [ref=e43]: Esc
+      - button "Send ↑" [disabled] [ref=e44]: ↑
+      - button "Send ↓" [disabled] [ref=e45]: ↓
+      - button "Send ←" [disabled] [ref=e46]: ←
+      - button "Send →" [disabled] [ref=e47]: →
+      - button "Send Ctrl+C" [disabled] [ref=e48]: Ctrl+C
+      - button "Send Ctrl+D" [disabled] [ref=e49]: Ctrl+D
+      - button "Send Ctrl+L" [disabled] [ref=e50]: Ctrl+L
+      - button "Enable edit mode" [ref=e52]: RO
+      - button "Kill process" [ref=e53]: ^C
+    - generic [ref=e54]:
+      - textbox "Read-only mode" [disabled] [ref=e55]
+      - button "Send input" [disabled] [ref=e56]:
+        - img [ref=e57]
+  - button "Open Next.js Dev Tools" [ref=e65] [cursor=pointer]:
+    - img [ref=e66]
+  - alert [ref=e69]
