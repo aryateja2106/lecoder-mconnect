@@ -8,7 +8,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { PRODUCT_NAME } from './version.js';
 import qrcode from 'qrcode-terminal';
 import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
@@ -23,6 +22,7 @@ import {
 import type { SessionManager } from './session/SessionManager.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
+import { PRODUCT_NAME } from './version.js';
 import { getWebClientHTML } from './web/web-client.js';
 import { WSHub } from './ws/ws-hub.js';
 
