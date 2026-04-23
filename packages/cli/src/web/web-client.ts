@@ -1,15 +1,18 @@
 /**
- * Web Client v2 for MConnect v0.1.2
+ * Web Client v4 for MConnect v0.2.0
  *
- * Multi-agent tab-based terminal interface.
- * Supports multiple AI agents with individual terminal views.
+ * LeCoder Design System - Monochrome Terminal Aesthetic
+ * Inspired by OpenCode, Conductor, Notion
+ * Mobile-first design with compact, efficient controls
  *
- * FIXES IMPLEMENTED:
- * 1. Terminal resize propagation to PTY (critical for TUI apps)
- * 2. Mobile touch scrolling with alternate buffer detection
- * 3. Real-time input for shell/TUI apps (they handle their own echo)
- * 4. VisualViewport API for mobile keyboard handling
- * 5. Proper terminal.onResize event handling
+ * FEATURES:
+ * 1. Compact icon-based shortcut bar with grouped controls
+ * 2. All essential keys: Tab, ⇧Tab, ^C, ^D, ^F, ^L, arrows
+ * 3. Copy/Paste/Link/Image buttons for mobile workflow
+ * 4. Terminal resize propagation to PTY
+ * 5. Mobile touch scrolling with alternate buffer detection
+ * 6. VisualViewport API for mobile keyboard handling
+ * 7. Image upload support with server-side storage
  */
 
 export function getWebClientHTML(
@@ -24,31 +27,42 @@ export function getWebClientHTML(
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#09090B">
+  <meta name="theme-color" content="#191919">
   <title>MConnect</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
   <style>
     :root {
-      --void: #09090B;
-      --surface: #18181B;
-      --border: #27272A;
-      --border-light: #3F3F46;
-      --text: #FAFAFA;
-      --text-muted: #A1A1AA;
-      --text-dim: #71717A;
-      --accent: #FAFAFA;
-      --success: #22C55E;
-      --warning: #EAB308;
-      --danger: #EF4444;
-      --agent-research: #3B82F6;
-      --agent-spec: #8B5CF6;
-      --agent-tests: #10B981;
-      --agent-shell: #F59E0B;
+      /* LeCoder Design System - Monochrome Terminal Aesthetic */
+      --bg-primary: #191919;
+      --bg-secondary: #202020;
+      --bg-elevated: #252525;
+      --bg-card: #1f1f1f;
+      --bg-hover: #2a2a2a;
+      --border-subtle: #2a2a2a;
+      --border-default: #373737;
+      --border-hover: #525252;
+      --text-primary: #e9e9e7;
+      --text-secondary: #9b9b9b;
+      --text-muted: #6b6b6b;
+      --text-dim: #4a4a4a;
+      --accent-green: #4ade80;
+      --accent-green-dim: #22c55e;
+      --accent-red: #ef4444;
+      --accent-red-dim: #dc2626;
+      --accent-yellow: #fbbf24;
+      --accent-blue: #60a5fa;
+      --accent-purple: #a78bfa;
+      --radius: 8px;
       --app-height: 100vh;
-      --bottom-bars-height: 152px; /* shortcut(~48) + input(~56) + control(~48) */
+      --bottom-height: 120px;
+    }
+
+    ::selection {
+      background: var(--text-primary);
+      color: var(--bg-primary);
     }
 
     * {
@@ -61,636 +75,836 @@ export function getWebClientHTML(
     html, body {
       height: 100%;
       height: var(--app-height);
-      background: var(--void);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      color: var(--text);
+      background: var(--bg-primary);
+      font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-primary);
       overflow: hidden;
       touch-action: manipulation;
       position: fixed;
       width: 100%;
     }
 
-    .container {
+    .app {
       display: flex;
       flex-direction: column;
       height: 100%;
       height: var(--app-height);
     }
 
-    /* Header */
+    /* ═══════════════════════════════════════════
+       HEADER - Compact status bar
+       ═══════════════════════════════════════════ */
     .header {
-      background: var(--void);
-      padding: 8px 12px;
+      background: var(--bg-primary);
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border-subtle);
       flex-shrink: 0;
     }
 
-    .logo {
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      color: var(--accent-green);
+      background: var(--bg-elevated);
+      padding: 4px 6px;
+      border-radius: 4px;
+      letter-spacing: -0.5px;
     }
 
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .brand-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
     }
 
-    .status-dot {
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .conn-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--success);
+      background: var(--accent-green);
+      box-shadow: 0 0 6px var(--accent-green);
     }
 
-    .status-dot.disconnected { background: var(--danger); }
-    .status-dot.connecting {
-      background: var(--warning);
-      animation: pulse 1s infinite;
+    .conn-dot.offline {
+      background: var(--accent-red);
+      box-shadow: 0 0 6px var(--accent-red);
+    }
+    .conn-dot.connecting {
+      background: var(--accent-yellow);
+      box-shadow: 0 0 6px var(--accent-yellow);
+      animation: blink 1.2s ease-in-out infinite;
     }
 
-    @keyframes pulse {
+    @keyframes blink {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50% { opacity: 0.3; }
     }
 
-    .status-text {
-      font-size: 10px;
-      color: var(--text-dim);
+    .conn-label {
       font-family: 'JetBrains Mono', monospace;
-      text-transform: uppercase;
-    }
-
-    .terminal-size {
       font-size: 9px;
-      color: var(--text-dim);
-      font-family: 'JetBrains Mono', monospace;
-      margin-left: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    /* Agent Tabs */
-    .agent-tabs {
+    .term-size {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      padding: 3px 7px;
+      border-radius: 4px;
+    }
+
+    /* ═══════════════════════════════════════════
+       TABS - Shell/Agent switcher
+       ═══════════════════════════════════════════ */
+    .tabs {
       display: flex;
-      background: var(--void);
-      border-bottom: 1px solid var(--border);
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border-subtle);
       overflow-x: auto;
       scrollbar-width: none;
-      -ms-overflow-style: none;
       flex-shrink: 0;
     }
 
-    .agent-tabs::-webkit-scrollbar {
-      display: none;
-    }
+    .tabs::-webkit-scrollbar { display: none; }
 
-    .agent-tab {
+    .tab {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 10px 14px;
+      padding: 9px 14px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       background: transparent;
       border: none;
       border-bottom: 2px solid transparent;
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
 
-    .agent-tab:hover {
-      color: var(--text-muted);
-      background: var(--surface);
+    .tab:hover {
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
     }
 
-    .agent-tab.active {
-      color: var(--text);
-      border-bottom-color: var(--text);
-      background: var(--surface);
+    .tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent-green);
+      background: var(--bg-secondary);
     }
 
-    .agent-tab .dot {
-      width: 6px;
-      height: 6px;
+    .tab-dot {
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
     }
 
-    .agent-tab .dot.running { background: var(--success); }
-    .agent-tab .dot.idle { background: var(--warning); }
-    .agent-tab .dot.exited { background: var(--danger); }
-    .agent-tab .dot.starting {
-      background: var(--warning);
-      animation: pulse 1s infinite;
+    .tab-dot.running { background: var(--accent-green); }
+    .tab-dot.idle { background: var(--accent-yellow); }
+    .tab-dot.exited { background: var(--accent-red); }
+    .tab-dot.starting {
+      background: var(--accent-yellow);
+      animation: blink 1s infinite;
     }
 
-    .add-agent-btn {
-      padding: 10px 14px;
+    .tab-add {
+      padding: 9px 12px;
       font-size: 14px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       background: transparent;
       border: none;
       cursor: pointer;
+      transition: color 0.12s;
     }
 
-    .add-agent-btn:hover {
-      color: var(--text);
-      background: var(--surface);
+    .tab-add:hover {
+      color: var(--accent-green);
     }
 
-    /* Terminal Container */
-    .terminals-container {
+    /* ═══════════════════════════════════════════
+       TERMINAL AREA
+       ═══════════════════════════════════════════ */
+    .terminal-area {
       flex: 1;
       position: relative;
       overflow: hidden;
       min-height: 0;
-      /* Bottom margin to reserve space for fixed bottom bars */
-      margin-bottom: var(--bottom-bars-height, 152px);
+      margin-bottom: var(--bottom-height, 120px);
     }
 
     .terminal-view {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      /* Leave extra space at bottom so TUI status bars are visible above our bottom bars */
-      bottom: 0;
+      inset: 0;
       display: none;
-      background: var(--void);
+      background: var(--bg-primary);
       overflow: hidden;
-      cursor: text; /* Show text cursor to indicate clickable for typing */
+      cursor: text;
     }
 
-    .terminal-view.active {
-      display: block;
-    }
+    .terminal-view.active { display: block; }
 
     .terminal-view .xterm {
       height: 100%;
-      padding: 4px;
+      padding: 6px;
     }
 
-    /* CRITICAL: Enable native xterm.js scrolling */
     .terminal-view .xterm-viewport {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
-      scrollbar-color: var(--border-light) transparent;
+      scrollbar-color: var(--border-hover) transparent;
     }
 
-    .terminal-view .xterm-viewport::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .terminal-view .xterm-viewport::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
+    .terminal-view .xterm-viewport::-webkit-scrollbar { width: 5px; }
+    .terminal-view .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
     .terminal-view .xterm-viewport::-webkit-scrollbar-thumb {
-      background: var(--border-light);
+      background: var(--border-hover);
       border-radius: 3px;
     }
 
-    /* Scroll Controls */
-    .scroll-controls {
+    /* Scroll nav - floating pills */
+    .scroll-nav {
       position: absolute;
-      right: 8px;
+      right: 6px;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       z-index: 10;
-      opacity: 0.6;
+      opacity: 0.5;
+      transition: opacity 0.15s;
     }
 
-    .scroll-controls:hover {
-      opacity: 1;
-    }
+    .scroll-nav:hover { opacity: 0.9; }
 
-    .scroll-btn {
-      width: 32px;
-      height: 32px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text-muted);
-      font-size: 14px;
+    .scroll-pill {
+      width: 28px;
+      height: 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.1s;
     }
 
-    .scroll-btn:active {
-      background: var(--border);
+    .scroll-pill:active {
+      background: var(--bg-hover);
+      transform: scale(0.95);
     }
 
-    /* Bottom Bars Container - Fixed at bottom */
-    .bottom-bars {
+    /* ═══════════════════════════════════════════
+       BOTTOM PANEL - Compact controls
+       ═══════════════════════════════════════════ */
+    .bottom-panel {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
       z-index: 20;
-      background: var(--void);
+      background: var(--bg-primary);
+      border-top: 1px solid var(--border-subtle);
       transition: transform 0.15s ease-out;
     }
 
-    /* Shortcut Bar */
-    .shortcut-bar {
+    /* Shortcut Row - Compact pills */
+    .shortcut-row {
       display: flex;
       gap: 4px;
-      padding: 8px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
+      padding: 6px 8px;
+      background: var(--bg-secondary);
       overflow-x: auto;
-      flex-shrink: 0;
+      scrollbar-width: none;
     }
 
-    .shortcut-btn {
+    .shortcut-row::-webkit-scrollbar { display: none; }
+
+    .key-pill {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      padding: 8px 12px;
-      background: var(--void);
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 6px 8px;
+      min-width: 32px;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: 5px;
       cursor: pointer;
       white-space: nowrap;
-    }
-
-    .shortcut-btn:active {
-      background: var(--border);
-    }
-
-    .shortcut-btn.active {
-      background: var(--text);
-      color: var(--void);
-    }
-
-    .shortcut-btn.enter-btn {
-      background: var(--success);
-      color: var(--void);
-      border-color: var(--success);
-      font-weight: 600;
-    }
-
-    .shortcut-btn.enter-btn:active {
-      background: #16A34A;
-    }
-
-    .shortcut-btn.copy-btn {
-      background: var(--agent-research);
-      color: white;
-      border-color: var(--agent-research);
-    }
-
-    .shortcut-btn.copy-btn:active {
-      background: #2563EB;
-    }
-
-    .shortcut-btn.copy-btn.copied {
-      background: var(--success);
-      border-color: var(--success);
-    }
-
-    .shortcut-btn.delete-btn {
-      background: var(--warning);
-      color: var(--void);
-      border-color: var(--warning);
-      font-size: 14px;
-    }
-
-    .shortcut-btn.delete-btn:active {
-      background: #CA8A04;
-    }
-
-    /* Input Bar */
-    .input-bar {
-      display: flex;
-      gap: 8px;
-      padding: 8px;
-      background: var(--void);
-      border-top: 1px solid var(--border);
+      text-align: center;
+      transition: all 0.1s;
       flex-shrink: 0;
     }
 
-    .input-field {
-      flex: 1;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      padding: 12px;
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      outline: none;
+    .key-pill:active {
+      background: var(--bg-hover);
+      transform: scale(0.96);
     }
 
-    .input-field:focus {
-      border-color: var(--text-dim);
+    .key-pill.active {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      border-color: var(--text-primary);
     }
 
-    .input-field:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    /* Key group separators */
+    .key-sep {
+      width: 1px;
+      background: var(--border-default);
+      margin: 0 2px;
+      flex-shrink: 0;
     }
 
-    .send-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+    /* Special key styles */
+    .key-pill.key-ctrl {
+      color: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+
+    .key-pill.key-danger {
+      color: var(--accent-red);
+      border-color: transparent;
+    }
+
+    .key-pill.key-action {
+      background: var(--accent-green);
+      color: var(--bg-primary);
+      border-color: var(--accent-green);
       font-weight: 600;
-      padding: 12px 20px;
-      background: var(--text);
-      color: var(--void);
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
     }
 
-    .send-btn:disabled {
+    .key-pill.key-action:active {
+      background: var(--accent-green-dim);
+    }
+
+    .key-pill.key-run {
+      padding: 10px 16px;
+      font-size: 14px;
+    }
+
+    .key-pill.key-run:disabled {
       opacity: 0.3;
       cursor: not-allowed;
     }
 
-    /* Control Bar */
-    .control-bar {
+    .key-pill.key-copy {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    .key-pill.key-copy.copied {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+
+    .key-pill.key-paste {
+      background: var(--accent-purple);
+      color: white;
+      border-color: var(--accent-purple);
+    }
+
+    .key-pill.key-link {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border-color: var(--border-default);
+    }
+
+    .key-pill.key-link:hover {
+      border-color: var(--border-hover);
+    }
+
+    .key-pill.key-image {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border-color: var(--border-default);
+    }
+
+    .key-pill.key-image:hover {
+      border-color: var(--border-hover);
+    }
+
+    /* Input Row */
+    .input-row {
+      display: flex;
+      gap: 6px;
+      padding: 6px 8px;
+      background: var(--bg-primary);
+    }
+
+    .cmd-input {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+
+    .cmd-input:focus {
+      border-color: var(--accent-green);
+    }
+
+    .cmd-input:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .cmd-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Control Row */
+    .control-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px;
-      background: var(--void);
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
+      padding: 6px 8px 8px;
+      background: var(--bg-primary);
     }
 
-    .mode-btn {
+    .mode-toggle {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      padding: 10px 16px;
-      background: var(--surface);
+      padding: 7px 12px;
+      background: var(--bg-secondary);
       color: var(--text-muted);
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      border: 1px solid var(--border-default);
+      border-radius: 5px;
       cursor: pointer;
       text-transform: uppercase;
+      letter-spacing: 0.3px;
+      transition: all 0.12s;
     }
 
-    .mode-btn.active {
-      background: var(--success);
-      color: var(--void);
-      border-color: var(--success);
+    .mode-toggle.active {
+      background: var(--accent-green);
+      color: var(--bg-primary);
+      border-color: var(--accent-green);
     }
 
     .kill-btn {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      padding: 10px 16px;
+      padding: 7px 12px;
       background: transparent;
-      color: var(--danger);
-      border: 1px solid var(--danger);
-      border-radius: 6px;
+      color: var(--accent-red);
+      border: 1px solid var(--accent-red);
+      border-radius: 5px;
       cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: all 0.12s;
     }
 
-    /* Modal */
-    .modal-overlay {
+    .kill-btn:active {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    /* ═══════════════════════════════════════════
+       MODALS
+       ═══════════════════════════════════════════ */
+    .modal-bg {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.85);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 100;
       padding: 20px;
+      backdrop-filter: blur(4px);
     }
 
-    .modal-overlay.show {
-      display: flex;
-    }
+    .modal-bg.show { display: flex; }
 
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
+    .modal-box {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
       border-radius: 12px;
-      padding: 24px;
-      max-width: 400px;
+      padding: 20px;
+      max-width: 340px;
       width: 100%;
+      animation: modalIn 0.15s ease-out;
     }
 
-    .modal h3 {
-      font-size: 16px;
-      margin-bottom: 12px;
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
 
-    .modal p {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
+    .modal-box h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
     }
 
-    .modal-buttons {
+    .modal-box p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
 
     .modal-btn {
       flex: 1;
-      padding: 12px;
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
+      padding: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
       font-weight: 500;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
+      transition: all 0.1s;
     }
 
-    .modal-btn.cancel {
-      background: var(--void);
-      color: var(--text);
-      border: 1px solid var(--border);
+    .modal-btn:active {
+      transform: scale(0.98);
     }
 
-    .modal-btn.confirm {
-      background: var(--text);
-      color: var(--void);
+    .modal-btn.secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .modal-btn.primary {
+      background: var(--text-primary);
+      color: var(--bg-primary);
     }
 
     .modal-btn.danger {
-      background: var(--danger);
+      background: var(--accent-red);
       color: white;
     }
 
-    /* Agent Color Badges */
-    .agent-badge {
-      display: inline-block;
-      width: 4px;
-      height: 100%;
-      border-radius: 2px;
+    .modal-input {
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius);
+      outline: none;
+      margin-bottom: 16px;
+      transition: border-color 0.15s ease;
     }
 
-    /* Readonly Hint */
-    .readonly-hint {
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--surface);
+    .modal-input:focus {
+      border-color: var(--accent-green);
+    }
+
+    .modal-input::placeholder {
       color: var(--text-muted);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-      z-index: 50;
     }
 
-    .readonly-hint.show {
-      opacity: 1;
+    .modal-path-container,
+    .modal-url-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
     }
 
-    /* Toast notification */
+    .modal-path {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 8px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      word-break: break-all;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .modal-btn-small {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 6px 10px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .modal-btn-small:active {
+      transform: scale(0.96);
+    }
+
+    .modal-warning {
+      font-size: 11px;
+      color: var(--accent-yellow);
+      background: rgba(251, 191, 36, 0.1);
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOAST & HINTS
+       ═══════════════════════════════════════════ */
     .toast {
       position: fixed;
-      bottom: 180px;
+      bottom: 140px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--surface);
-      color: var(--text);
-      padding: 10px 20px;
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      padding: 8px 16px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
+      font-weight: 500;
       opacity: 0;
       transition: opacity 0.2s;
       pointer-events: none;
       z-index: 50;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-default);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
-    .toast.show {
-      opacity: 1;
+    .toast.show { opacity: 1; }
+
+    .ro-hint {
+      position: fixed;
+      bottom: 140px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent-yellow);
+      color: var(--bg-primary);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 50;
     }
+
+    .ro-hint.show { opacity: 1; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="app">
     <!-- Header -->
-    <div class="header">
-      <div class="logo">
-        <span>>_<</span>
-        <span>MConnect</span>
+    <header class="header">
+      <div class="brand">
+        <span class="brand-icon">>_</span>
+        <span class="brand-name">MConnect</span>
       </div>
-      <div class="status">
-        <div class="status-dot" id="statusDot"></div>
-        <span class="status-text" id="statusText">Connecting</span>
-        <span class="terminal-size" id="terminalSize"></span>
+      <div class="status-group">
+        <div class="conn-status">
+          <div class="conn-dot" id="connDot"></div>
+          <span class="conn-label" id="connLabel">Connecting</span>
+        </div>
+        <span class="term-size" id="termSize">--x--</span>
       </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs" id="tabs">
+      <button class="tab-add" id="tabAdd" title="New shell">+</button>
+    </nav>
+
+    <!-- Terminal Area -->
+    <main class="terminal-area" id="terminalArea">
+      <!-- Terminal views injected here -->
+    </main>
+
+    <!-- Scroll Nav -->
+    <div class="scroll-nav" id="scrollNav">
+      <button class="scroll-pill" onclick="scrollTerm('top')" title="Top">⤒</button>
+      <button class="scroll-pill" onclick="scrollTerm('up')" title="Up">↑</button>
+      <button class="scroll-pill" onclick="scrollTerm('down')" title="Down">↓</button>
+      <button class="scroll-pill" onclick="scrollTerm('bottom')" title="Bottom">⤓</button>
     </div>
 
-    <!-- Agent Tabs -->
-    <div class="agent-tabs" id="agentTabs">
-      <!-- Tabs will be dynamically added -->
-      <button class="add-agent-btn" id="addAgentBtn" title="Add Agent">+</button>
-    </div>
-
-    <!-- Terminal Views -->
-    <div class="terminals-container" id="terminalsContainer">
-      <!-- Terminal views will be dynamically added -->
-    </div>
-
-    <!-- Scroll Controls (floating) -->
-    <div class="scroll-controls" id="scrollControls">
-      <button class="scroll-btn" onclick="scrollTerminal('top')" title="Scroll to top">\u2912</button>
-      <button class="scroll-btn" onclick="scrollTerminal('up')" title="Scroll up">\u2191</button>
-      <button class="scroll-btn" onclick="scrollTerminal('down')" title="Scroll down">\u2193</button>
-      <button class="scroll-btn" onclick="scrollTerminal('bottom')" title="Scroll to bottom">\u2913</button>
-    </div>
-
-    <!-- Bottom Bars (Fixed at bottom) -->
-    <div class="bottom-bars" id="bottomBars">
-      <!-- Shortcut Bar -->
-      <div class="shortcut-bar">
-        <button class="shortcut-btn copy-btn" id="copyBtn" onclick="copySelection()">Copy</button>
-        <button class="shortcut-btn delete-btn" onclick="sendBackspace()">\u232B</button>
-        <button class="shortcut-btn" id="ctrlBtn" onclick="toggleCtrl()">Ctrl</button>
-        <button class="shortcut-btn" onclick="sendKey('Tab')">Tab</button>
-        <button class="shortcut-btn" onclick="sendKey('Escape')">Esc</button>
-        <button class="shortcut-btn" onclick="sendKey('ArrowUp')">\u2191</button>
-        <button class="shortcut-btn" onclick="sendKey('ArrowDown')">\u2193</button>
+    <!-- Bottom Panel -->
+    <div class="bottom-panel" id="bottomPanel">
+      <!-- Shortcut Row -->
+      <div class="shortcut-row">
+        <button class="key-pill key-copy" id="copyBtn" onclick="doCopy()">Copy</button>
+        <button class="key-pill key-paste" id="pasteBtn" onclick="doPaste()">Paste</button>
+        <button class="key-pill" onclick="sendBS()">⌫</button>
+        <div class="key-sep"></div>
+        <button class="key-pill key-ctrl" id="ctrlKey" onclick="toggleCtrl()">Ctrl</button>
+        <button class="key-pill" onclick="sendKey('Tab')">Tab</button>
+        <button class="key-pill" onclick="sendKey('ShiftTab')">⇧Tab</button>
+        <button class="key-pill" onclick="sendKey('Escape')">Esc</button>
+        <div class="key-sep"></div>
+        <button class="key-pill" onclick="sendCtrl('c')">^C</button>
+        <button class="key-pill" onclick="sendCtrl('d')">^D</button>
+        <button class="key-pill" onclick="sendCtrl('f')">^F</button>
+        <button class="key-pill" onclick="sendCtrl('l')">^L</button>
+        <div class="key-sep"></div>
+        <button class="key-pill" onclick="sendKey('ArrowUp')">↑</button>
+        <button class="key-pill" onclick="sendKey('ArrowDown')">↓</button>
+        <button class="key-pill" onclick="sendKey('ArrowLeft')">←</button>
+        <button class="key-pill" onclick="sendKey('ArrowRight')">→</button>
+        <div class="key-sep"></div>
+        <button class="key-pill key-link" onclick="showLinkModal()">Link</button>
+        <button class="key-pill key-image" onclick="triggerImageUpload()">Img</button>
+        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
       </div>
 
-      <!-- Input Bar -->
-      <div class="input-bar">
+      <!-- Input Row -->
+      <div class="input-row">
         <input
           type="text"
-          class="input-field"
-          id="inputField"
-          placeholder="$ type command..."
+          class="cmd-input"
+          id="cmdInput"
+          placeholder="$ command..."
           autocomplete="off"
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
           disabled
         >
-        <button class="shortcut-btn enter-btn" onclick="sendEnter()" style="padding: 12px 16px;">Enter</button>
-        <button class="send-btn" id="sendBtn" onclick="sendInput()" disabled>Run</button>
+        <button class="key-pill key-action key-run" id="runBtn" onclick="sendEnter()">↵</button>
       </div>
 
-      <!-- Control Bar -->
-      <div class="control-bar">
-        <button class="mode-btn" id="modeToggle" onclick="toggleMode()">Read-Only</button>
-        <button class="kill-btn" id="killBtn" onclick="showKillModal()">KILL ^C</button>
+      <!-- Control Row -->
+      <div class="control-row">
+        <button class="mode-toggle" id="modeBtn" onclick="toggleMode()">Read-Only</button>
+        <button class="kill-btn" onclick="showKillModal()">KILL ^C</button>
       </div>
     </div>
   </div>
 
-  <!-- Mode Change Modal -->
-  <div class="modal-overlay" id="modeModal">
-    <div class="modal">
-      <h3>Enable Input Mode</h3>
-      <p>This allows you to send commands to the agent. Make sure you know what you're doing.</p>
-      <div class="modal-buttons">
-        <button class="modal-btn cancel" onclick="hideModeModal()">Cancel</button>
-        <button class="modal-btn confirm" onclick="confirmModeChange()">Enable</button>
+  <!-- Mode Modal -->
+  <div class="modal-bg" id="modeModal">
+    <div class="modal-box">
+      <h3>Enable Input Mode?</h3>
+      <p>This allows sending commands to the terminal. Use with caution.</p>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="hideModeModal()">Cancel</button>
+        <button class="modal-btn primary" onclick="confirmMode()">Enable</button>
       </div>
     </div>
   </div>
 
   <!-- Kill Modal -->
-  <div class="modal-overlay" id="killModal">
-    <div class="modal">
-      <h3>Kill Current Agent?</h3>
-      <p>This will send SIGINT (^C) to the current agent. Use this to interrupt long-running operations.</p>
-      <div class="modal-buttons">
-        <button class="modal-btn cancel" onclick="hideKillModal()">Cancel</button>
+  <div class="modal-bg" id="killModal">
+    <div class="modal-box">
+      <h3>Send SIGINT?</h3>
+      <p>This interrupts the current process (like pressing ^C).</p>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="hideKillModal()">Cancel</button>
         <button class="modal-btn danger" onclick="confirmKill()">Kill</button>
       </div>
     </div>
   </div>
 
-  <!-- Readonly Hint -->
-  <div class="readonly-hint" id="readonlyHint">Enable input mode to type</div>
+  <!-- Link Modal -->
+  <div class="modal-bg" id="linkModal">
+    <div class="modal-box">
+      <h3>Insert Link</h3>
+      <p>Paste a URL to insert into the command input.</p>
+      <input
+        type="url"
+        id="linkInput"
+        class="modal-input"
+        placeholder="https://example.com/..."
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      >
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="hideLinkModal()">Cancel</button>
+        <button class="modal-btn primary" onclick="insertLink()">Insert</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- Toast -->
+  <!-- Image Uploaded Modal -->
+  <div class="modal-bg" id="imageModal">
+    <div class="modal-box">
+      <h3>Image Uploaded</h3>
+      <p id="imageModalText">Image saved successfully.</p>
+      <div class="modal-path-container">
+        <code id="imageModalPath" class="modal-path"></code>
+        <button class="modal-btn-small" onclick="copyImagePath()">Copy</button>
+      </div>
+      <div class="modal-url-container" id="imageUrlContainer" style="display:none">
+        <code id="imageModalUrl" class="modal-path"></code>
+        <button class="modal-btn-small" onclick="copyImageUrl()">Copy</button>
+      </div>
+      <div class="modal-warning" id="imageWarning" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="modal-btn primary" onclick="hideImageModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast & Hint -->
   <div class="toast" id="toast"></div>
+  <div class="ro-hint" id="roHint">Enable input mode first</div>
 
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
   <script>
-    // State
+    // ═══════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════
     const token = '${token}';
     const sessionId = '${sessionId}';
     let ws = null;
@@ -700,46 +914,43 @@ export function getWebClientHTML(
     const maxReconnectAttempts = 5;
 
     // Agent management
-    const agents = new Map(); // agentId -> { terminal, fitAddon, info, touchHandler }
+    const agents = new Map();
     let activeAgentId = null;
 
-    // DOM elements
-    const inputField = document.getElementById('inputField');
-    const sendBtn = document.getElementById('sendBtn');
-    const ctrlBtn = document.getElementById('ctrlBtn');
-    const agentTabs = document.getElementById('agentTabs');
-    const terminalsContainer = document.getElementById('terminalsContainer');
-    const addAgentBtn = document.getElementById('addAgentBtn');
-    const terminalSizeEl = document.getElementById('terminalSize');
-    const bottomBars = document.getElementById('bottomBars');
+    // DOM refs
+    const $ = id => document.getElementById(id);
+    const cmdInput = $('cmdInput');
+    const runBtn = $('runBtn');
+    const ctrlKey = $('ctrlKey');
+    const tabs = $('tabs');
+    const terminalArea = $('terminalArea');
+    const tabAdd = $('tabAdd');
+    const termSize = $('termSize');
+    const bottomPanel = $('bottomPanel');
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // VIEWPORT HEIGHT FIX (Mobile Safari/Chrome)
-    // ============================================
+    // ═══════════════════════════════════════════
     let initialViewportHeight = window.innerHeight;
     let keyboardVisible = false;
 
     function updateViewportHeight() {
-      const vh = window.visualViewport
-        ? window.visualViewport.height
-        : window.innerHeight;
+      const vh = window.visualViewport?.height || window.innerHeight;
       document.documentElement.style.setProperty('--app-height', vh + 'px');
     }
 
-    function updateBottomBarsPosition() {
-      // Position bottom bars at the actual visual viewport bottom
-      // This keeps the input bar visible just above the keyboard
+    function updatePanelPosition() {
       if (window.visualViewport) {
-        const viewportBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-        bottomBars.style.bottom = Math.max(0, viewportBottom) + 'px';
+        const offset = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+        bottomPanel.style.bottom = Math.max(0, offset) + 'px';
       } else {
-        bottomBars.style.bottom = '0px';
+        bottomPanel.style.bottom = '0px';
       }
     }
 
     // Initial setup
     updateViewportHeight();
-    updateBottomBarsPosition();
+    updatePanelPosition();
     initialViewportHeight = window.visualViewport?.height || window.innerHeight;
 
     // Listen for viewport changes (keyboard show/hide)
@@ -748,43 +959,31 @@ export function getWebClientHTML(
         const currentHeight = window.visualViewport.height;
         const heightDiff = initialViewportHeight - currentHeight;
 
-        // Detect keyboard show/hide (keyboard typically > 200px)
         const wasKeyboardVisible = keyboardVisible;
         keyboardVisible = heightDiff > 200;
 
-        // Always update bottom bars position to stay above keyboard
-        updateBottomBarsPosition();
+        updatePanelPosition();
 
-        // DON'T resize terminal when keyboard shows - this keeps content stable
-        // Only resize when keyboard hides (going back to full screen)
         if (wasKeyboardVisible && !keyboardVisible) {
-          // Keyboard was hidden - safe to resize
           updateViewportHeight();
           debouncedRefitAll();
         }
 
-        // When keyboard shows, scroll terminal to bottom so user sees latest content
-        if (!wasKeyboardVisible && keyboardVisible) {
-          if (activeAgentId) {
-            const agent = agents.get(activeAgentId);
-            if (agent && agent.terminal.buffer.active.type !== 'alternate') {
-              agent.terminal.scrollToBottom();
-            }
+        if (!wasKeyboardVisible && keyboardVisible && activeAgentId) {
+          const agent = agents.get(activeAgentId);
+          if (agent && agent.terminal.buffer.active.type !== 'alternate') {
+            agent.terminal.scrollToBottom();
           }
         }
       });
 
-      // Also listen for scroll events on visualViewport (iOS Safari)
-      window.visualViewport.addEventListener('scroll', () => {
-        updateBottomBarsPosition();
-      });
+      window.visualViewport.addEventListener('scroll', updatePanelPosition);
     }
 
     window.addEventListener('resize', () => {
-      // Only resize if not keyboard-related
       if (!keyboardVisible) {
         updateViewportHeight();
-        updateBottomBarsPosition();
+        updatePanelPosition();
         initialViewportHeight = window.visualViewport?.height || window.innerHeight;
         debouncedRefitAll();
       }
@@ -793,15 +992,15 @@ export function getWebClientHTML(
     window.addEventListener('orientationchange', () => {
       setTimeout(() => {
         updateViewportHeight();
-        updateBottomBarsPosition();
+        updatePanelPosition();
         initialViewportHeight = window.visualViewport?.height || window.innerHeight;
         debouncedRefitAll();
       }, 100);
     });
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // TOUCH SCROLL HANDLER
-    // ============================================
+    // ═══════════════════════════════════════════
     class TouchScrollHandler {
       constructor(terminal, sendData) {
         this.terminal = terminal;
@@ -966,11 +1165,10 @@ export function getWebClientHTML(
       }
     }
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // TERMINAL MANAGEMENT
-    // ============================================
+    // ═══════════════════════════════════════════
 
-    // Debounced refit all terminals
     let refitTimeout = null;
     function debouncedRefitAll() {
       if (refitTimeout) clearTimeout(refitTimeout);
@@ -978,9 +1176,8 @@ export function getWebClientHTML(
         agents.forEach((agent, id) => {
           try {
             agent.fitAddon.fit();
-            // Send resize after fit
             sendResize(id, agent.terminal.cols, agent.terminal.rows);
-            updateTerminalSizeDisplay(agent.terminal);
+            updateSizeDisplay(agent.terminal);
           } catch (e) {
             console.warn('Fit failed for agent', id, e);
           }
@@ -988,40 +1185,39 @@ export function getWebClientHTML(
       }, 100);
     }
 
-    function updateTerminalSizeDisplay(terminal) {
+    function updateSizeDisplay(terminal) {
       if (terminal) {
-        terminalSizeEl.textContent = terminal.cols + 'x' + terminal.rows;
+        termSize.textContent = terminal.cols + 'x' + terminal.rows;
       }
     }
 
-    // Create terminal for an agent
     function createAgentTerminal(agentInfo) {
       const { id, config, status } = agentInfo;
 
-      // Create terminal with proper options for TUI support
+      // LeCoder Design System theme
       const terminal = new Terminal({
         theme: {
-          background: '#09090B',
-          foreground: '#FAFAFA',
-          cursor: '#FAFAFA',
-          cursorAccent: '#09090B',
-          selectionBackground: '#3F3F46',
-          black: '#27272A',
-          red: '#EF4444',
-          green: '#22C55E',
-          yellow: '#EAB308',
-          blue: '#3B82F6',
-          magenta: '#8B5CF6',
-          cyan: '#06B6D4',
-          white: '#FAFAFA',
+          background: '#191919',
+          foreground: '#e9e9e7',
+          cursor: '#4ade80',
+          cursorAccent: '#191919',
+          selectionBackground: '#525252',
+          selectionForeground: '#191919',
+          black: '#2a2a2a',
+          red: '#ef4444',
+          green: '#4ade80',
+          yellow: '#fbbf24',
+          blue: '#60a5fa',
+          magenta: '#a78bfa',
+          cyan: '#22d3ee',
+          white: '#e9e9e7',
         },
         fontSize: 13,
         fontFamily: "'JetBrains Mono', monospace",
         cursorBlink: true,
-        cursorStyle: 'block',
+        cursorStyle: 'bar',
         allowProposedApi: true,
         scrollback: 10000,
-        // CRITICAL for TUI apps: translate wheel to arrow keys in alternate buffer
         alternateScroll: true,
         smoothScrollDuration: 50,
       });
@@ -1031,130 +1227,100 @@ export function getWebClientHTML(
       terminal.loadAddon(fitAddon);
       terminal.loadAddon(webLinksAddon);
 
-      // Create DOM elements
+      // Create tab using safe DOM methods
       const tabEl = document.createElement('button');
-      tabEl.className = 'agent-tab';
+      tabEl.className = 'tab';
       tabEl.dataset.agentId = id;
-      tabEl.innerHTML = \`
-        <span class="dot \${status}"></span>
-        <span>\${config.name}</span>
-      \`;
+      const dotSpan = document.createElement('span');
+      dotSpan.className = 'tab-dot ' + status;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = config.name;
+      tabEl.appendChild(dotSpan);
+      tabEl.appendChild(nameSpan);
       tabEl.onclick = () => switchToAgent(id);
-      agentTabs.insertBefore(tabEl, addAgentBtn);
+      tabs.insertBefore(tabEl, tabAdd);
 
+      // Create terminal view
       const viewEl = document.createElement('div');
       viewEl.className = 'terminal-view';
       viewEl.id = 'terminal-' + id;
-      terminalsContainer.appendChild(viewEl);
+      terminalArea.appendChild(viewEl);
 
       terminal.open(viewEl);
 
-      // Wait for DOM to settle, then fit with minimum size enforcement
       requestAnimationFrame(() => {
         fitAddon.fit();
-
-        // Enforce minimum terminal size for TUI app compatibility
         let cols = Math.max(terminal.cols, 40);
         let rows = Math.max(terminal.rows, 10);
-
-        // If terminal calculated smaller than minimum, manually resize
         if (terminal.cols < 40 || terminal.rows < 10) {
           terminal.resize(cols, rows);
         }
-
-        // CRITICAL: Send initial resize to PTY immediately after fit
         sendResize(id, cols, rows);
-        updateTerminalSizeDisplay(terminal);
-        console.log('[Terminal] Initial size:', cols, 'x', rows, 'for agent', id);
+        updateSizeDisplay(terminal);
       });
 
-      // CRITICAL: Handle terminal.onResize event - sync size with PTY
       terminal.onResize(({ cols, rows }) => {
-        // Enforce minimum size
         cols = Math.max(cols, 40);
         rows = Math.max(rows, 10);
-        console.log('[Terminal] Resize event:', cols, 'x', rows, 'for agent', id);
         sendResize(id, cols, rows);
-        updateTerminalSizeDisplay(terminal);
+        updateSizeDisplay(terminal);
       });
 
-      // Setup touch scroll handler
       const touchHandler = new TouchScrollHandler(terminal, (data) => {
         sendTerminalData(id, data);
       });
 
-      // CRITICAL: Click on terminal focuses input field for immediate typing
       viewEl.addEventListener('click', (e) => {
-        // Don't focus if user is selecting text
         if (window.getSelection()?.toString()) return;
-        // Don't focus if touch is scrolling
         if (touchHandler.isScrolling) return;
-        // Focus input field if not in read-only mode
-        if (!isReadOnly && !inputField.disabled) {
-          inputField.focus();
+        if (!isReadOnly && !cmdInput.disabled) {
+          cmdInput.focus();
         }
       });
 
-      // Store agent data
-      agents.set(id, {
-        terminal,
-        fitAddon,
-        info: agentInfo,
-        tabEl,
-        viewEl,
-        touchHandler,
-      });
+      agents.set(id, { terminal, fitAddon, info: agentInfo, tabEl, viewEl, touchHandler });
 
-      // Welcome message
-      terminal.write(\`\\x1b[90m[\${config.name}]\\x1b[0m Connected (\\x1b[32m\${terminal.cols}x\${terminal.rows}\\x1b[0m)\\r\\n\`);
+      terminal.write(\`\\x1b[38;5;244m[\${config.name}]\\x1b[0m \\x1b[38;5;78m●\\x1b[0m connected\\r\\n\`);
 
       return id;
     }
 
-    // Switch to agent tab
     function switchToAgent(agentId) {
       if (!agents.has(agentId)) return;
 
-      // Update active state
       activeAgentId = agentId;
 
-      // Update tab styles
-      document.querySelectorAll('.agent-tab').forEach(tab => {
+      document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.agentId === agentId);
       });
 
-      // Update terminal visibility
       document.querySelectorAll('.terminal-view').forEach(view => {
         view.classList.toggle('active', view.id === 'terminal-' + agentId);
       });
 
-      // Fit terminal and send resize
       const agent = agents.get(agentId);
       if (agent) {
         setTimeout(() => {
           agent.fitAddon.fit();
           sendResize(agentId, agent.terminal.cols, agent.terminal.rows);
-          updateTerminalSizeDisplay(agent.terminal);
+          updateSizeDisplay(agent.terminal);
         }, 10);
       }
 
-      // Notify server
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'switch_agent', agentId }));
       }
     }
 
-    // Update agent status
     function updateAgentStatus(agentId, status) {
       const agent = agents.get(agentId);
       if (agent) {
         agent.info.status = status;
-        const dot = agent.tabEl.querySelector('.dot');
-        dot.className = 'dot ' + status;
+        const dot = agent.tabEl.querySelector('.tab-dot');
+        if (dot) dot.className = 'tab-dot ' + status;
       }
     }
 
-    // Remove agent
     function removeAgent(agentId) {
       const agent = agents.get(agentId);
       if (agent) {
@@ -1164,38 +1330,28 @@ export function getWebClientHTML(
         agent.viewEl.remove();
         agents.delete(agentId);
 
-        // Switch to another agent if this was active
         if (activeAgentId === agentId) {
           const remaining = Array.from(agents.keys());
-          if (remaining.length > 0) {
-            switchToAgent(remaining[0]);
-          }
+          if (remaining.length > 0) switchToAgent(remaining[0]);
         }
       }
     }
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // RESIZE HANDLING
-    // ============================================
+    // ═══════════════════════════════════════════
 
-    // Send resize to server - CRITICAL for TUI apps
     function sendResize(agentId, cols, rows) {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('[WS] Sending resize:', cols, 'x', rows, 'for agent', agentId);
-        ws.send(JSON.stringify({
-          type: 'resize',
-          agentId,
-          cols,
-          rows
-        }));
+        ws.send(JSON.stringify({ type: 'resize', agentId, cols, rows }));
       }
     }
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // SCROLL CONTROLS
-    // ============================================
+    // ═══════════════════════════════════════════
 
-    function scrollTerminal(direction) {
+    function scrollTerm(direction) {
       if (!activeAgentId) return;
       const agent = agents.get(activeAgentId);
       if (!agent) return;
@@ -1203,77 +1359,53 @@ export function getWebClientHTML(
       const terminal = agent.terminal;
       const isAltBuffer = terminal.buffer.active.type === 'alternate';
 
-      // For TUI apps, we need to send keys even in read-only mode
-      // because scrolling doesn't modify anything - it's viewing
       function sendScrollKey(key) {
         if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'input',
-            agentId: activeAgentId,
-            data: key
-          }));
+          ws.send(JSON.stringify({ type: 'input', agentId: activeAgentId, data: key }));
         }
       }
 
       switch (direction) {
         case 'up':
-          if (isAltBuffer) {
-            // Send multiple arrow keys for faster scrolling
-            sendScrollKey('\\x1b[A\\x1b[A\\x1b[A');
-          } else {
-            terminal.scrollLines(-5);
-          }
+          isAltBuffer ? sendScrollKey('\\x1b[A\\x1b[A\\x1b[A') : terminal.scrollLines(-5);
           break;
         case 'down':
-          if (isAltBuffer) {
-            sendScrollKey('\\x1b[B\\x1b[B\\x1b[B');
-          } else {
-            terminal.scrollLines(5);
-          }
+          isAltBuffer ? sendScrollKey('\\x1b[B\\x1b[B\\x1b[B') : terminal.scrollLines(5);
           break;
         case 'top':
-          if (isAltBuffer) {
-            // Send Page Up or gg (vim-like navigation)
-            sendScrollKey('\\x1b[5~'); // Page Up
-          } else {
-            terminal.scrollToTop();
-          }
+          isAltBuffer ? sendScrollKey('\\x1b[5~') : terminal.scrollToTop();
           break;
         case 'bottom':
-          if (isAltBuffer) {
-            // Send Page Down or G (vim-like navigation)
-            sendScrollKey('\\x1b[6~'); // Page Down
-          } else {
-            terminal.scrollToBottom();
-          }
+          isAltBuffer ? sendScrollKey('\\x1b[6~') : terminal.scrollToBottom();
           break;
       }
     }
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // INPUT HANDLING
-    // ============================================
+    // ═══════════════════════════════════════════
 
-    // Handle keydown for special keys
-    inputField.addEventListener('keydown', (e) => {
-      if (isReadOnly) return;
-      if (!activeAgentId) return;
+    cmdInput.addEventListener('keydown', (e) => {
+      if (isReadOnly || !activeAgentId) return;
 
-      // Send command on Enter
       if (e.key === 'Enter') {
         e.preventDefault();
-        sendInput();
+        runCmd();
         return;
       }
 
-      // Tab completion - send immediately
+      if (e.key === 'Tab' && e.shiftKey) {
+        e.preventDefault();
+        sendTerminalData(activeAgentId, '\\x1b[Z');
+        return;
+      }
+
       if (e.key === 'Tab') {
         e.preventDefault();
         sendTerminalData(activeAgentId, '\\t');
         return;
       }
 
-      // Handle Ctrl+ combinations (send immediately)
       if (e.ctrlKey && e.key.length === 1) {
         e.preventDefault();
         const charCode = e.key.toLowerCase().charCodeAt(0) - 96;
@@ -1282,24 +1414,17 @@ export function getWebClientHTML(
       }
     });
 
-    // Send the complete command from input field
-    function sendInput() {
+    function runCmd() {
       if (isReadOnly || !activeAgentId) return;
-      const command = inputField.value;
-      if (command) {
-        // Send command + carriage return
-        sendTerminalData(activeAgentId, command + '\\r');
-      } else {
-        // Just send Enter if empty
-        sendTerminalData(activeAgentId, '\\r');
-      }
-      inputField.value = '';
-      inputField.focus();
+      const command = cmdInput.value;
+      sendTerminalData(activeAgentId, command ? command + '\\r' : '\\r');
+      cmdInput.value = '';
+      cmdInput.focus();
     }
 
     function sendTerminalData(agentId, data) {
       if (isReadOnly) {
-        showReadonlyHint();
+        showROHint();
         return;
       }
       if (ws && ws.readyState === WebSocket.OPEN) {
@@ -1311,9 +1436,10 @@ export function getWebClientHTML(
       }
     }
 
-    // Key mappings for shortcut buttons
+    // Key mappings
     const keyMap = {
       'Tab': '\\t',
+      'ShiftTab': '\\x1b[Z',
       'Escape': '\\x1b',
       'ArrowUp': '\\x1b[A',
       'ArrowDown': '\\x1b[B',
@@ -1323,7 +1449,7 @@ export function getWebClientHTML(
 
     function sendKey(key) {
       if (!activeAgentId) return;
-      if (isReadOnly) { showReadonlyHint(); return; }
+      if (isReadOnly) { showROHint(); return; }
       let data = keyMap[key] || '';
       if (ctrlPressed && key.length === 1) {
         data = String.fromCharCode(key.toLowerCase().charCodeAt(0) - 96);
@@ -1332,63 +1458,87 @@ export function getWebClientHTML(
       if (data) sendTerminalData(activeAgentId, data);
     }
 
-    function sendBackspace() {
+    function sendBS() {
       if (!activeAgentId) return;
-      if (isReadOnly) { showReadonlyHint(); return; }
-      // Send backspace character (ASCII 127 or \\x7f)
+      if (isReadOnly) { showROHint(); return; }
       sendTerminalData(activeAgentId, '\\x7f');
     }
 
     function sendEnter() {
       if (!activeAgentId) return;
-      if (isReadOnly) { showReadonlyHint(); return; }
-      // If input field has content, send it
-      if (inputField.value) {
-        sendInput();
-      } else {
-        sendTerminalData(activeAgentId, '\\r');
-      }
+      if (isReadOnly) { showROHint(); return; }
+      cmdInput.value ? runCmd() : sendTerminalData(activeAgentId, '\\r');
     }
 
-    function sendCtrlKey(key) {
+    function sendCtrl(key) {
       if (!activeAgentId) return;
-      if (isReadOnly) { showReadonlyHint(); return; }
+      if (isReadOnly) { showROHint(); return; }
       const charCode = key.toLowerCase().charCodeAt(0) - 96;
       sendTerminalData(activeAgentId, String.fromCharCode(charCode));
     }
 
     function toggleCtrl() {
       ctrlPressed = !ctrlPressed;
-      ctrlBtn.classList.toggle('active', ctrlPressed);
+      ctrlKey.classList.toggle('active', ctrlPressed);
     }
 
-    // ============================================
-    // COPY FUNCTIONALITY
-    // ============================================
+    // ═══════════════════════════════════════════
+    // COPY/PASTE FUNCTIONALITY
+    // ═══════════════════════════════════════════
 
-    async function copySelection() {
-      if (!activeAgentId) return;
+    function getSelectionOrBuffer() {
+      if (!activeAgentId) return '';
       const agent = agents.get(activeAgentId);
-      if (!agent) return;
+      if (!agent) return '';
 
-      let text = '';
-
-      // Try to get selection first
       if (agent.terminal.hasSelection()) {
-        text = agent.terminal.getSelection();
-      } else {
-        // Copy all visible buffer content
-        const buffer = agent.terminal.buffer.active;
-        const lines = [];
-        for (let i = 0; i < buffer.length; i++) {
-          const line = buffer.getLine(i);
-          if (line) {
-            lines.push(line.translateToString(true));
-          }
-        }
-        text = lines.join('\\n').trimEnd();
+        return agent.terminal.getSelection();
       }
 
+      // Fall back to visible buffer content
+      const buffer = agent.terminal.buffer.active;
+      const lines = [];
+      for (let i = 0; i < buffer.length; i++) {
+        const line = buffer.getLine(i);
+        if (line) lines.push(line.translateToString(true));
+      }
+      return lines.join('\\n').trimEnd();
+    }
+
+    function showCopyFeedback() {
+      const btn = $('copyBtn');
+      btn.classList.add('copied');
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Copy';
+      }, 1500);
+    }
+
+    function fallbackCopy(text) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (success) {
+          showCopyFeedback();
+        } else {
+          showToast('Copy failed - try selecting text manually');
+        }
+      } catch (err) {
+        showToast('Copy not supported on this device');
+      }
+    }
+
+    async function doCopy() {
+      const text = getSelectionOrBuffer();
       if (!text) {
         showToast('Nothing to copy');
         return;
@@ -1396,91 +1546,223 @@ export function getWebClientHTML(
 
       try {
         await navigator.clipboard.writeText(text);
-        const copyBtn = document.getElementById('copyBtn');
-        copyBtn.classList.add('copied');
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => {
-          copyBtn.classList.remove('copied');
-          copyBtn.textContent = 'Copy';
-        }, 1500);
+        showCopyFeedback();
       } catch (err) {
-        showToast('Failed to copy');
+        // Fallback for mobile/older browsers
+        fallbackCopy(text);
       }
     }
 
-    // ============================================
+    async function doPaste() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          cmdInput.value += text;
+          cmdInput.focus();
+          showToast('Pasted to input');
+        } else {
+          showToast('Clipboard is empty');
+        }
+      } catch (err) {
+        showToast('Paste not available - check permissions');
+      }
+    }
+
+    // ═══════════════════════════════════════════
+    // LINK MODAL
+    // ═══════════════════════════════════════════
+
+    function showLinkModal() {
+      const modal = $('linkModal');
+      const input = $('linkInput');
+      modal.classList.add('show');
+      input.value = '';
+      setTimeout(() => input.focus(), 100);
+    }
+
+    function hideLinkModal() {
+      $('linkModal').classList.remove('show');
+    }
+
+    function insertLink() {
+      const input = $('linkInput');
+      const url = input.value.trim();
+      if (url) {
+        cmdInput.value += url;
+        cmdInput.focus();
+        showToast('URL inserted');
+      }
+      hideLinkModal();
+    }
+
+    // Handle Enter key in link modal
+    $('linkInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        insertLink();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        hideLinkModal();
+      }
+    });
+
+    // ═══════════════════════════════════════════
+    // IMAGE UPLOAD
+    // ═══════════════════════════════════════════
+
+    let lastImagePath = '';
+    let lastImageUrl = '';
+
+    function triggerImageUpload() {
+      $('imageInput').click();
+    }
+
+    async function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validate size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('Image too large (max 10MB)');
+        event.target.value = '';
+        return;
+      }
+
+      // Read as base64
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'file_upload',
+            filename: file.name,
+            mimeType: file.type,
+            data: base64
+          }));
+          showToast('Uploading image...');
+        } else {
+          showToast('Not connected - cannot upload');
+        }
+      };
+      reader.onerror = () => {
+        showToast('Failed to read image');
+      };
+      reader.readAsDataURL(file);
+
+      // Reset input for re-upload
+      event.target.value = '';
+    }
+
+    function showImageModal(path, url, warning) {
+      lastImagePath = path;
+      lastImageUrl = url || '';
+
+      $('imageModalPath').textContent = path;
+
+      if (url) {
+        $('imageModalUrl').textContent = url;
+        $('imageUrlContainer').style.display = 'flex';
+      } else {
+        $('imageUrlContainer').style.display = 'none';
+      }
+
+      if (warning) {
+        $('imageWarning').textContent = warning;
+        $('imageWarning').style.display = 'block';
+      } else {
+        $('imageWarning').style.display = 'none';
+      }
+
+      $('imageModal').classList.add('show');
+    }
+
+    function hideImageModal() {
+      $('imageModal').classList.remove('show');
+    }
+
+    async function copyImagePath() {
+      try {
+        await navigator.clipboard.writeText(lastImagePath);
+        showToast('Path copied!');
+      } catch (err) {
+        fallbackCopy(lastImagePath);
+      }
+    }
+
+    async function copyImageUrl() {
+      try {
+        await navigator.clipboard.writeText(lastImageUrl);
+        showToast('URL copied!');
+      } catch (err) {
+        fallbackCopy(lastImageUrl);
+      }
+    }
+
+    // ═══════════════════════════════════════════
     // UI HELPERS
-    // ============================================
+    // ═══════════════════════════════════════════
 
-    function showToast(message) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
+    function showToast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    function showReadonlyHint() {
-      const hint = document.getElementById('readonlyHint');
-      hint.classList.add('show');
-      setTimeout(() => hint.classList.remove('show'), 2000);
+    function showROHint() {
+      const h = $('roHint');
+      h.classList.add('show');
+      setTimeout(() => h.classList.remove('show'), 2000);
     }
 
-    // ============================================
+    // ═══════════════════════════════════════════
     // WEBSOCKET CONNECTION
-    // ============================================
+    // ═══════════════════════════════════════════
 
     function connect() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = protocol + '//' + window.location.host + '?token=' + token;
-      updateStatus('connecting', 'Connecting');
+      setConnStatus('connecting', 'Connecting');
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         reconnectAttempts = 0;
-        updateStatus('connected', 'Connected');
+        setConnStatus('connected', 'Connected');
       };
 
       ws.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data);
-          handleMessage(message);
+          handleMessage(JSON.parse(event.data));
         } catch (e) {
           console.error('Parse error:', e);
         }
       };
 
       ws.onclose = (event) => {
-        updateStatus('disconnected', 'Offline');
+        setConnStatus('offline', 'Offline');
         if (event.code === 4001) return;
         if (reconnectAttempts < maxReconnectAttempts) {
           reconnectAttempts++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
-          setTimeout(connect, delay);
+          setTimeout(connect, Math.min(1000 * Math.pow(2, reconnectAttempts), 10000));
         }
       };
 
-      ws.onerror = () => updateStatus('disconnected', 'Error');
+      ws.onerror = () => setConnStatus('offline', 'Error');
     }
 
     function handleMessage(message) {
       switch (message.type) {
         case 'output':
           const agent = agents.get(message.agentId);
-          if (agent) {
-            agent.terminal.write(message.data);
-          }
+          if (agent) agent.terminal.write(message.data);
           break;
 
         case 'session_info':
           isReadOnly = message.isReadOnly;
           updateModeUI();
-          // Create terminals for existing agents
           message.agents.forEach(agentInfo => {
-            if (!agents.has(agentInfo.id)) {
-              createAgentTerminal(agentInfo);
-            }
+            if (!agents.has(agentInfo.id)) createAgentTerminal(agentInfo);
           });
-          // Activate first agent
           if (message.agents.length > 0 && !activeAgentId) {
             switchToAgent(message.agents[0].id);
           }
@@ -1499,15 +1781,13 @@ export function getWebClientHTML(
           updateAgentStatus(message.agentId, 'exited');
           const exitAgent = agents.get(message.agentId);
           if (exitAgent) {
-            exitAgent.terminal.write(\`\\r\\n\\x1b[33m[exit]\\x1b[0m code \${message.exitCode}\\r\\n\`);
+            exitAgent.terminal.write(\`\\r\\n\\x1b[38;5;214m[exit]\\x1b[0m code \${message.exitCode}\\r\\n\`);
           }
           break;
 
         case 'agent_list':
           message.agents.forEach(agentInfo => {
-            if (!agents.has(agentInfo.id)) {
-              createAgentTerminal(agentInfo);
-            }
+            if (!agents.has(agentInfo.id)) createAgentTerminal(agentInfo);
           });
           break;
 
@@ -1519,7 +1799,7 @@ export function getWebClientHTML(
         case 'command_blocked':
           const blockedAgent = agents.get(message.agentId);
           if (blockedAgent) {
-            blockedAgent.terminal.write(\`\\r\\n\\x1b[31m[blocked]\\x1b[0m \${message.reason}\\r\\n\`);
+            blockedAgent.terminal.write(\`\\r\\n\\x1b[38;5;203m[blocked]\\x1b[0m \${message.reason}\\r\\n\`);
           }
           break;
 
@@ -1529,73 +1809,82 @@ export function getWebClientHTML(
 
         case 'pong':
           break;
+
+        case 'file_uploaded':
+          // Image/file upload response
+          const { path: filePath, url, filename, warning } = message;
+          showImageModal(filePath, url, warning);
+          // Auto-copy path to clipboard
+          navigator.clipboard.writeText(filePath).catch(() => {});
+          break;
+
+        case 'file_upload_error':
+          showToast('Upload failed: ' + (message.error || 'Unknown error'));
+          break;
       }
     }
 
-    function updateStatus(status, text) {
-      document.getElementById('statusDot').className = 'status-dot ' + status;
-      document.getElementById('statusText').textContent = text;
+    function setConnStatus(status, text) {
+      const dot = $('connDot');
+      dot.className = 'conn-dot';
+      if (status === 'offline') dot.classList.add('offline');
+      if (status === 'connecting') dot.classList.add('connecting');
+      $('connLabel').textContent = text;
     }
 
     function updateModeUI() {
-      const btn = document.getElementById('modeToggle');
+      const btn = $('modeBtn');
       if (isReadOnly) {
         btn.textContent = 'Read-Only';
         btn.classList.remove('active');
-        inputField.disabled = true;
-        sendBtn.disabled = true;
-        inputField.placeholder = '$ enable input mode...';
+        cmdInput.disabled = true;
+        runBtn.disabled = true;
+        cmdInput.placeholder = '$ enable input...';
       } else {
         btn.textContent = 'Input';
         btn.classList.add('active');
-        inputField.disabled = false;
-        sendBtn.disabled = false;
-        inputField.placeholder = '$ type command...';
-        inputField.focus();
+        cmdInput.disabled = false;
+        runBtn.disabled = false;
+        cmdInput.placeholder = '$ command...';
+        cmdInput.focus();
       }
     }
 
     function toggleMode() {
       if (isReadOnly) {
-        document.getElementById('modeModal').classList.add('show');
+        $('modeModal').classList.add('show');
       } else {
         sendModeChange(true);
       }
     }
 
     function hideModeModal() {
-      document.getElementById('modeModal').classList.remove('show');
+      $('modeModal').classList.remove('show');
     }
 
-    function confirmModeChange() {
+    function confirmMode() {
       hideModeModal();
       sendModeChange(false);
     }
 
     function sendModeChange(readOnly) {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'mode_change',
-          readOnly: readOnly
-        }));
+        ws.send(JSON.stringify({ type: 'mode_change', readOnly }));
       }
     }
 
     function showKillModal() {
-      document.getElementById('killModal').classList.add('show');
+      $('killModal').classList.add('show');
     }
 
     function hideKillModal() {
-      document.getElementById('killModal').classList.remove('show');
+      $('killModal').classList.remove('show');
     }
 
     function confirmKill() {
       hideKillModal();
       if (activeAgentId && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'kill_agent',
-          agentId: activeAgentId
-        }));
+        ws.send(JSON.stringify({ type: 'kill_agent', agentId: activeAgentId }));
       }
     }
 
@@ -1612,7 +1901,7 @@ export function getWebClientHTML(
     }, 30000);
 
     // Add new shell tab
-    addAgentBtn.onclick = () => {
+    tabAdd.onclick = () => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         const shellName = 'Shell ' + (agents.size + 1);
         ws.send(JSON.stringify({
@@ -1625,17 +1914,17 @@ export function getWebClientHTML(
       }
     };
 
-    // Calculate actual bottom bars height and set CSS variable
-    function measureBottomBarsHeight() {
-      if (bottomBars) {
-        const height = bottomBars.offsetHeight;
-        document.documentElement.style.setProperty('--bottom-bars-height', height + 'px');
+    // Calculate actual bottom panel height and set CSS variable
+    function measureBottomHeight() {
+      if (bottomPanel) {
+        const height = bottomPanel.offsetHeight;
+        document.documentElement.style.setProperty('--bottom-height', height + 'px');
       }
     }
 
     // Init
     updateModeUI();
-    measureBottomBarsHeight();
+    measureBottomHeight();
     connect();
   </script>
 </body>

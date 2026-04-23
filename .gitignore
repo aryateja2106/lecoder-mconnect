@@ -137,3 +137,4 @@ MCONNECT_VIDEO_CREATION_COMPLETE.md
 # Video project output
 apps/video/out/
 apps/video/node_modules/
+apps/video/build

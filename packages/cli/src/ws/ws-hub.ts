@@ -6,12 +6,22 @@
  */
 
 import type { Server as HTTPServer, IncomingMessage } from 'node:http';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
-import type { ClientInfo, ClientMessage, ServerMessage, WSHubConfig } from './types.js';
+import type {
+  ClientInfo,
+  ClientMessage,
+  ServerMessage,
+  WSHubConfig,
+  ClientFileUploadMessage,
+  ServerFileUploadedMessage,
+  ServerFileUploadErrorMessage,
+} from './types.js';
 import type {
   SessionAttachMessage,
   ScrollbackRequestMessage,
@@ -114,6 +124,8 @@ export class WSHub {
   private sessionArbiters: Map<string, InputArbiter> = new Map();
   private controlRequestRateLimiter: Map<string, number> = new Map(); // clientId -> last request time
   private scrollbackRateLimiter: Map<string, { count: number; windowStart: number }> = new Map();
+  private workingDirectory: string = process.cwd();
+  private tunnelUrl: string | null = null;
 
   constructor(httpServer: HTTPServer, config: WSHubConfig) {
     this.config = config;
@@ -185,6 +197,20 @@ export class WSHub {
    */
   setSessionManager(manager: SessionManager): void {
     this.sessionManager = manager;
+  }
+
+  /**
+   * Set the working directory for file uploads
+   */
+  setWorkingDirectory(dir: string): void {
+    this.workingDirectory = dir;
+  }
+
+  /**
+   * Set the tunnel URL for public file access
+   */
+  setTunnelUrl(url: string | null): void {
+    this.tunnelUrl = url;
   }
 
   /**
@@ -467,6 +493,10 @@ export class WSHub {
         }
 
         this.handleInput(ws, agentId, inputData);
+        break;
+
+      case 'file_upload':
+        this.handleFileUpload(ws, message as ClientFileUploadMessage);
         break;
 
       default:
@@ -966,6 +996,85 @@ export class WSHub {
         agentId,
         timestamp: Date.now(),
       });
+    }
+  }
+
+  /**
+   * Handle file upload from client
+   */
+  private async handleFileUpload(ws: WebSocket, message: ClientFileUploadMessage): Promise<void> {
+    const { filename, mimeType, data } = message;
+
+    try {
+      // Decode base64 data
+      const buffer = Buffer.from(data, 'base64');
+
+      // Validate file size (max 10MB)
+      if (buffer.length > 10 * 1024 * 1024) {
+        const errorMsg: ServerFileUploadErrorMessage = {
+          type: 'file_upload_error',
+          error: 'File too large (max 10MB)',
+          timestamp: Date.now(),
+        };
+        this.sendToClient(ws, errorMsg);
+        return;
+      }
+
+      // Create uploads directory
+      const uploadsDir = path.join(this.workingDirectory, '.mconnect-uploads');
+      await fs.promises.mkdir(uploadsDir, { recursive: true });
+
+      // Generate unique filename with timestamp
+      const timestamp = Date.now();
+      const safeName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const finalName = `${timestamp}-${safeName}`;
+      const filePath = path.join(uploadsDir, finalName);
+
+      // Write file
+      await fs.promises.writeFile(filePath, buffer);
+
+      // Detect container environment
+      let warning: string | undefined;
+      if (fs.existsSync('/.dockerenv')) {
+        warning = 'Running in Docker container - path is inside container filesystem. Use URL or mount volume for external access.';
+      } else {
+        try {
+          const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
+          if (cgroup.includes('docker') || cgroup.includes('kubepods')) {
+            warning = 'Running in container - path is inside container filesystem. Use URL or mount volume for external access.';
+          }
+        } catch {
+          // Not in container or can't detect
+        }
+      }
+
+      // Build response
+      const response: ServerFileUploadedMessage = {
+        type: 'file_uploaded',
+        path: filePath,
+        filename: finalName,
+        timestamp: Date.now(),
+      };
+
+      // Add public URL if tunnel is active
+      if (this.tunnelUrl) {
+        response.url = `${this.tunnelUrl}/uploads/${finalName}`;
+      }
+
+      // Add warning if in container
+      if (warning) {
+        response.warning = warning;
+      }
+
+      this.sendToClient(ws, response);
+      console.log(`[WSHub] File uploaded: ${filePath}`);
+    } catch (error) {
+      const errorMsg: ServerFileUploadErrorMessage = {
+        type: 'file_upload_error',
+        error: error instanceof Error ? error.message : 'Unknown error saving file',
+        timestamp: Date.now(),
+      };
+      this.sendToClient(ws, errorMsg);
     }
   }
 

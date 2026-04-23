@@ -92,28 +92,6 @@ export const RemotionRoot: React.FC = () => {
           height={HEIGHT}
         />
       </Folder>
-
-      {/* Social Media Formats */}
-      <Folder name="Social">
-        {/* Instagram/TikTok Vertical */}
-        <Composition
-          id="MainVideo-Vertical"
-          component={MainVideo}
-          durationInFrames={TOTAL_DURATION}
-          fps={FPS}
-          width={1080}
-          height={1920}
-        />
-        {/* Square Format */}
-        <Composition
-          id="MainVideo-Square"
-          component={MainVideo}
-          durationInFrames={TOTAL_DURATION}
-          fps={FPS}
-          width={1080}
-          height={1080}
-        />
-      </Folder>
     </>
   );
 };

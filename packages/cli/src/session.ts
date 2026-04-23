@@ -8,6 +8,8 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import qrcode from 'qrcode-terminal';
 
 // Lazy-load @clack/prompts and chalk only when in TTY mode
@@ -234,6 +236,55 @@ export async function startSession(config: SessionConfig): Promise<void> {
       return;
     }
 
+    // Serve uploaded files (requires token in query or referrer)
+    if (url.pathname.startsWith('/uploads/')) {
+      const tokenParam = url.searchParams.get('token');
+      const referer = req.headers.referer || '';
+      const hasValidToken = tokenParam === sessionToken || referer.includes(`token=${sessionToken}`);
+
+      if (!hasValidToken) {
+        res.writeHead(401, { 'Content-Type': 'text/plain' });
+        res.end('Unauthorized');
+        return;
+      }
+
+      const filename = url.pathname.replace('/uploads/', '');
+      const filePath = path.join(config.workDir, '.mconnect-uploads', filename);
+
+      try {
+        const stat = fs.statSync(filePath);
+        if (!stat.isFile()) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not found');
+          return;
+        }
+
+        // Determine content type
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.webp': 'image/webp',
+          '.svg': 'image/svg+xml',
+          '.pdf': 'application/pdf',
+        };
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Content-Length': stat.size,
+          'Cache-Control': 'private, max-age=3600',
+        });
+        fs.createReadStream(filePath).pipe(res);
+      } catch (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+      }
+      return;
+    }
+
     // Web client (requires token)
     const providedToken = url.searchParams.get('token');
 
@@ -274,6 +325,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     rateLimitWindow: 60000,
   });
   wsHub.setGuardrails(guardrailConfig);
+  wsHub.setWorkingDirectory(config.workDir);
   initStatus.websocket = { success: true };
 
   // Create agent manager (T009 - graceful fallback)
@@ -329,6 +381,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const tunnelUrl = tunnelResult?.url || null;
   if (tunnelUrl) {
     initStatus.tunnel = { success: true, url: tunnelUrl };
+    wsHub.setTunnelUrl(tunnelUrl);
   } else {
     initStatus.tunnel = { success: false, error: 'Cloudflared not available or tunnel creation failed' };
   }
@@ -537,6 +590,55 @@ export async function startSessionHeadless(config: HeadlessSessionConfig): Promi
       return;
     }
 
+    // Serve uploaded files (requires token in query or referrer)
+    if (url.pathname.startsWith('/uploads/')) {
+      const tokenParam = url.searchParams.get('token');
+      const referer = req.headers.referer || '';
+      const hasValidToken = tokenParam === sessionToken || referer.includes(`token=${sessionToken}`);
+
+      if (!hasValidToken) {
+        res.writeHead(401, { 'Content-Type': 'text/plain' });
+        res.end('Unauthorized');
+        return;
+      }
+
+      const filename = url.pathname.replace('/uploads/', '');
+      const filePath = path.join(config.workDir, '.mconnect-uploads', filename);
+
+      try {
+        const stat = fs.statSync(filePath);
+        if (!stat.isFile()) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not found');
+          return;
+        }
+
+        // Determine content type
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.webp': 'image/webp',
+          '.svg': 'image/svg+xml',
+          '.pdf': 'application/pdf',
+        };
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Content-Length': stat.size,
+          'Cache-Control': 'private, max-age=3600',
+        });
+        fs.createReadStream(filePath).pipe(res);
+      } catch (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+      }
+      return;
+    }
+
     const providedToken = url.searchParams.get('token');
 
     if (!providedToken || providedToken !== sessionToken) {
@@ -577,6 +679,7 @@ export async function startSessionHeadless(config: HeadlessSessionConfig): Promi
     rateLimitWindow: 60000,
   });
   wsHub.setGuardrails(guardrailConfig);
+  wsHub.setWorkingDirectory(config.workDir);
   initStatus.websocket = { success: true };
   headlessLog('WebSocket hub ready', 'success');
 
@@ -626,6 +729,7 @@ export async function startSessionHeadless(config: HeadlessSessionConfig): Promi
   const tunnelUrl = tunnelResult?.url || null;
   if (tunnelUrl) {
     initStatus.tunnel = { success: true, url: tunnelUrl };
+    wsHub.setTunnelUrl(tunnelUrl);
     headlessLog(`Tunnel created: ${tunnelUrl}`, 'success');
   } else {
     initStatus.tunnel = { success: false, error: 'Cloudflared not available' };

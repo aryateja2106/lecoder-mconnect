@@ -53,6 +53,14 @@ export interface ClientModeChangeMessage {
   readOnly: boolean;
 }
 
+export interface ClientFileUploadMessage {
+  type: 'file_upload';
+  filename: string;
+  mimeType: string;
+  /** Base64 encoded file data */
+  data: string;
+}
+
 export type ClientMessage =
   | ClientInputMessage
   | ClientResizeMessage
@@ -62,6 +70,7 @@ export type ClientMessage =
   | ClientListAgentsMessage
   | ClientPingMessage
   | ClientModeChangeMessage
+  | ClientFileUploadMessage
   | ClientMessageV2;
 
 // ============================================
@@ -144,6 +153,25 @@ export interface ServerPongMessage {
   timestamp: number;
 }
 
+export interface ServerFileUploadedMessage {
+  type: 'file_uploaded';
+  /** Absolute path to the saved file */
+  path: string;
+  /** Original filename */
+  filename: string;
+  /** Public URL if tunnel is active */
+  url?: string;
+  /** Warning message (e.g., container environment) */
+  warning?: string;
+  timestamp: number;
+}
+
+export interface ServerFileUploadErrorMessage {
+  type: 'file_upload_error';
+  error: string;
+  timestamp: number;
+}
+
 export type ServerMessage =
   | ServerOutputMessage
   | ServerAgentCreatedMessage
@@ -156,6 +184,8 @@ export type ServerMessage =
   | ServerCommandBlockedMessage
   | ServerApprovalRequestMessage
   | ServerPongMessage
+  | ServerFileUploadedMessage
+  | ServerFileUploadErrorMessage
   | ServerMessageV2;
 
 // ============================================
