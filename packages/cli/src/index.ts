@@ -309,6 +309,19 @@ program
     console.log(chalk.cyan('  Daemon:'));
     console.log('    npx lecoder-mconnect daemon start|stop|status|logs');
     console.log('');
+    console.log(chalk.cyan('  Fleet (LeSearch hub, set LECODER_HUB_URL):'));
+    console.log('    npx lecoder-mconnect fleet ls');
+    console.log('    npx lecoder-mconnect fleet send <runtimeId> "task title"');
+    console.log('');
+    console.log(chalk.cyan('  Tasks:'));
+    console.log('    npx lecoder-mconnect task new "fix flaky test"');
+    console.log('    npx lecoder-mconnect task ls --status running');
+    console.log('    npx lecoder-mconnect task view <task-id>');
+    console.log('');
+    console.log(chalk.cyan('  Skills:'));
+    console.log('    npx lecoder-mconnect skills add getpaseo/paseo');
+    console.log('    npx lecoder-mconnect skills ls');
+    console.log('');
   });
 
 interface WizardOptions {
