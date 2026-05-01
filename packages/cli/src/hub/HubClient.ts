@@ -75,6 +75,23 @@ export interface HubTask {
   workingDirectory?: string;
 }
 
+/** Lightweight task-API surface used by TaskRunner. */
+export interface HubTaskClient {
+  claimNextTask(runtimeId: string): Promise<HubTask | null>;
+  startRun(input: {
+    taskId: string;
+    runtimeId: string;
+    agentId?: string;
+    worktreePath: string;
+  }): Promise<{ runId: string }>;
+  finishRun(input: {
+    taskId: string;
+    runId: string;
+    status: 'completed' | 'failed' | 'cancelled';
+    exitCode?: number;
+  }): Promise<void>;
+}
+
 export type HubClientStatus = 'idle' | 'connecting' | 'registered' | 'error';
 
 /**
@@ -281,6 +298,71 @@ export class HubClient {
       }
     }
     return tasks;
+  }
+
+  /**
+   * Get a `HubTaskClient` view of this client suitable for passing to
+   * `TaskRunner`. Always returns the same instance.
+   */
+  asTaskClient(): HubTaskClient {
+    return {
+      claimNextTask: (runtimeId) => this.claimNextTask(runtimeId),
+      startRun: (input) => this.startRun(input),
+      finishRun: (input) => this.finishRun(input),
+    };
+  }
+
+  /** Atomically claim the oldest queued task for the given runtime. */
+  async claimNextTask(runtimeId: string): Promise<HubTask | null> {
+    const response = await this.fetchImpl(
+      `${this.config.hubUrl}/runtimes/${runtimeId}/tasks/claim`,
+      { method: 'POST', headers: this.headers() }
+    );
+    if (response.status === 204) return null;
+    if (!response.ok) throw new Error(`claim failed: ${response.status}`);
+    const body = (await response.json()) as { task?: HubTask };
+    return body.task ?? null;
+  }
+
+  async startRun(input: {
+    taskId: string;
+    runtimeId: string;
+    agentId?: string;
+    worktreePath: string;
+  }): Promise<{ runId: string }> {
+    const response = await this.fetchImpl(
+      `${this.config.hubUrl}/tasks/${input.taskId}/runs`,
+      {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({
+          runtimeId: input.runtimeId,
+          agentId: input.agentId,
+          worktreePath: input.worktreePath,
+        }),
+      }
+    );
+    if (!response.ok) throw new Error(`startRun failed: ${response.status}`);
+    const body = (await response.json()) as { run?: { id: string } };
+    if (!body.run?.id) throw new Error('startRun response missing run.id');
+    return { runId: body.run.id };
+  }
+
+  async finishRun(input: {
+    taskId: string;
+    runId: string;
+    status: 'completed' | 'failed' | 'cancelled';
+    exitCode?: number;
+  }): Promise<void> {
+    const response = await this.fetchImpl(
+      `${this.config.hubUrl}/tasks/${input.taskId}/runs/${input.runId}`,
+      {
+        method: 'PATCH',
+        headers: this.headers(),
+        body: JSON.stringify({ status: input.status, exitCode: input.exitCode }),
+      }
+    );
+    if (!response.ok) throw new Error(`finishRun failed: ${response.status}`);
   }
 
   private snapshot(): RuntimeRegistration {
