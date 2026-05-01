@@ -351,6 +351,65 @@ mconnect session export abc12345 --output session.log
 
 ---
 
+## Cursor Infinite Agentic Loop
+
+> Inspired by [Disler's `infinite-agentic-loop`](https://github.com/disler/infinite-agentic-loop), adapted to Cursor's hook lifecycle and designed to coexist with [`mksglu/context-mode`](https://github.com/mksglu/context-mode).
+
+Run **long, multi-turn tasks** on Cursor agents without babysitting. A `stop` hook fires after every Cursor turn, advances loop state on disk, and tells Cursor what to do next via `followup_message`. Cursor keeps going until the target is hit or the loop is paused.
+
+### One-time setup
+
+```bash
+cd your-project
+mconnect loop install
+```
+
+This adds entries to `.cursor/hooks.json` (merging with any existing context-mode entries) and writes a `.cursor/rules/lecoder-loop.mdc` file that teaches the agent the per-turn protocol. Restart Cursor afterwards.
+
+### Run a loop
+
+```bash
+# Single iteration
+mconnect loop start specs/invent_new_ui.md src 1
+
+# 5 sequential iterations
+mconnect loop start specs/invent_new_ui.md src 5
+
+# 20 iterations
+mconnect loop start specs/invent_new_ui.md src 20
+
+# Run forever (1000-iteration safety cap)
+mconnect loop start specs/invent_new_ui.md infinite_src/ infinite
+
+# Long-running single task instead of "N files"
+mconnect loop start TASK.md . 50 --mode task
+```
+
+The CLI prints a kickoff prompt — paste it into Cursor's agent chat. Cursor runs iteration 1, the `stop` hook continues with iteration 2, and so on, with progressively bolder creative-direction directives in each iteration band.
+
+### Observe
+
+```bash
+mconnect loop status                # active loop progress
+mconnect loop tail                  # most recent iteration prompt
+mconnect loop list                  # archived loops
+mconnect loop stop --pause          # pause without losing state
+mconnect loop stop                  # archive the active loop
+```
+
+### Hook entrypoints (called by Cursor itself)
+
+```
+lecoder-mconnect hook cursor stop
+lecoder-mconnect hook cursor pretooluse
+lecoder-mconnect hook cursor posttooluse
+lecoder-mconnect hook cursor afteragentresponse
+```
+
+These read JSON from stdin and emit a single line of JSON to stdout, matching Cursor's third-party hook contract. The `stop` entrypoint is the one that drives the loop. The others are no-op stubs you can extend if needed.
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Default |

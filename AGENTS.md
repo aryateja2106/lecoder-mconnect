@@ -32,10 +32,12 @@ lecoder-mconnect/
 ├── packages/
 │   └── cli/                    # Main CLI package (published to npm)
 │       ├── src/
-│       │   ├── cli/commands/   # CLI commands (start, attach, daemon)
+│       │   ├── cli/commands/   # CLI commands (start, attach, daemon, loop, hook)
 │       │   ├── pty/            # PTY management for terminal sessions
 │       │   ├── web/            # Web client serving
 │       │   ├── input/          # Input arbitration & idle detection
+│       │   ├── hooks/          # Universal hook receiver + normalizer
+│       │   ├── loop/           # Cursor infinite agentic loop (Disler-style)
 │       │   ├── tunnel.ts       # Cloudflare tunnel integration
 │       │   ├── session.ts      # Session management
 │       │   └── guardrails.ts   # Command safety filters
@@ -76,6 +78,10 @@ lecoder-mconnect/
 | `packages/cli/src/session.ts` | Core session logic |
 | `packages/cli/src/tunnel.ts` | Cloudflare tunnel setup |
 | `packages/cli/src/guardrails.ts` | Command filtering |
+| `packages/cli/src/loop/orchestrator.ts` | `decideNext` for the Cursor infinite loop |
+| `packages/cli/src/loop/cursor-stop-hook.ts` | Cursor `stop` hook entrypoint |
+| `packages/cli/src/cli/commands/loop.ts` | `mconnect loop install/start/status/...` commands |
+| `packages/cli/src/cli/commands/hook.ts` | `mconnect hook cursor stop/...` entrypoints |
 | `apps/website/src/app/page.tsx` | Landing page |
 
 ## Development Commands
