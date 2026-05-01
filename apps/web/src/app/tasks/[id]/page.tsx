@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   AlertCircle,
@@ -9,6 +9,8 @@ import {
   Circle,
   Loader2,
   MessageSquare,
+  Mic,
+  MicOff,
   RefreshCw,
   Send,
   XCircle,
@@ -136,6 +138,31 @@ function CommentBubble({ comment }: { comment: Comment }) {
   );
 }
 
+// Minimal Web Speech API typing — narrowed to just what we use.
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
+}
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((ev: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((ev: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+  if (typeof window === 'undefined') return null;
+  const win = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  };
+  return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+}
+
 export default function TaskDetailPage() {
   const params = useParams<{ id: string }>();
   const taskId = params?.id ?? '';
@@ -146,6 +173,13 @@ export default function TaskDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [commentBody, setCommentBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    setVoiceSupported(!!getSpeechRecognitionCtor());
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -207,6 +241,55 @@ export default function TaskDetailPage() {
       setSubmitting(false);
     }
   }, [commentBody, hubUrl, hubToken, taskId, refresh]);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setListening(false);
+  }, []);
+
+  const startListening = useCallback(() => {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return;
+    if (recognitionRef.current) {
+      stopListening();
+      return;
+    }
+
+    const rec = new Ctor();
+    rec.lang = navigator.language || 'en-US';
+    rec.interimResults = true;
+    rec.continuous = false;
+
+    rec.onresult = (ev) => {
+      let transcript = '';
+      for (let i = 0; i < ev.results.length; i++) {
+        transcript += ev.results[i][0].transcript;
+      }
+      setCommentBody((prev) => {
+        // Replace any previously-tentative voice input by appending only the
+        // new final transcript. This is a best-effort merge — for v1 it's
+        // good enough to overwrite the field with the latest transcript.
+        return transcript;
+      });
+    };
+    rec.onerror = (ev) => {
+      setError(`Voice input error: ${ev.error}`);
+      stopListening();
+    };
+    rec.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = rec;
+    setError(null);
+    setListening(true);
+    rec.start();
+  }, [stopListening]);
+
+  // Cleanup on unmount.
+  useEffect(() => () => stopListening(), [stopListening]);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -338,10 +421,27 @@ export default function TaskDetailPage() {
                 <textarea
                   value={commentBody}
                   onChange={(e) => setCommentBody(e.target.value)}
-                  placeholder="Add a comment..."
+                  placeholder={listening ? 'Listening...' : 'Add a comment, or @mention an agent...'}
                   rows={2}
-                  className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 resize-none"
+                  className={`flex-1 bg-zinc-900 border rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 resize-none ${
+                    listening ? 'border-purple-500' : 'border-zinc-800'
+                  }`}
                 />
+                {voiceSupported && (
+                  <button
+                    type="button"
+                    onClick={listening ? stopListening : startListening}
+                    className={`px-3 py-2 rounded-lg font-semibold text-sm ${
+                      listening
+                        ? 'bg-purple-500 text-white hover:bg-purple-400'
+                        : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    }`}
+                    aria-label={listening ? 'Stop listening' : 'Start voice dictation'}
+                    title={listening ? 'Stop listening' : 'Dictate (Web Speech API)'}
+                  >
+                    {listening ? <MicOff size={14} /> : <Mic size={14} />}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={sendComment}
@@ -352,6 +452,15 @@ export default function TaskDetailPage() {
                   {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 </button>
               </div>
+              {!voiceSupported && (
+                <p className="text-xs text-zinc-600 mt-2">
+                  Voice dictation requires the Web Speech API. Try Chrome or Safari.
+                </p>
+              )}
+              <p className="text-xs text-zinc-600 mt-2">
+                Comments mentioning <code className="text-cyan-400">@agent</code> are forwarded into
+                the agent&apos;s shell when a runtime is attached.
+              </p>
             </section>
           </>
         )}

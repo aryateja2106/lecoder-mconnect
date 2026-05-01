@@ -92,6 +92,18 @@ export interface HubTaskClient {
   }): Promise<void>;
 }
 
+export interface HubCommentRecord {
+  id: string;
+  body: string;
+  authorKind: 'human' | 'agent' | 'system';
+  createdAt: number;
+}
+
+/** Lightweight comments-API surface used by CommentInjector. */
+export interface HubCommentClient {
+  listComments(taskId: string): Promise<HubCommentRecord[]>;
+}
+
 export type HubClientStatus = 'idle' | 'connecting' | 'registered' | 'error';
 
 /**
@@ -310,6 +322,23 @@ export class HubClient {
       startRun: (input) => this.startRun(input),
       finishRun: (input) => this.finishRun(input),
     };
+  }
+
+  /** Get a `HubCommentClient` view used by CommentInjector. */
+  asCommentClient(): HubCommentClient {
+    return {
+      listComments: (taskId) => this.listComments(taskId),
+    };
+  }
+
+  async listComments(taskId: string): Promise<HubCommentRecord[]> {
+    const response = await this.fetchImpl(`${this.config.hubUrl}/tasks/${taskId}`, {
+      method: 'GET',
+      headers: this.headers(),
+    });
+    if (!response.ok) throw new Error(`listComments failed: ${response.status}`);
+    const body = (await response.json()) as { comments?: HubCommentRecord[] };
+    return body.comments ?? [];
   }
 
   /** Atomically claim the oldest queued task for the given runtime. */
