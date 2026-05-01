@@ -79,14 +79,27 @@ function TaskRow({
   );
 }
 
+interface FleetRuntimeOption {
+  id: string;
+  name: string;
+  status: 'online' | 'stale' | 'offline';
+}
+
 interface CreateModalProps {
   hubUrl: string;
   hubToken: string | null;
+  runtimeOptions: FleetRuntimeOption[];
   onClose: () => void;
   onCreated: () => void;
 }
 
-function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps) {
+function CreateModal({
+  hubUrl,
+  hubToken,
+  runtimeOptions,
+  onClose,
+  onCreated,
+}: CreateModalProps) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [provider, setProvider] = useState('');
@@ -186,15 +199,22 @@ function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps)
             </div>
             <div>
               <label className="block text-xs text-zinc-400 mb-1" htmlFor="runtime">
-                Runtime ID
+                Runtime
               </label>
-              <input
+              <select
                 id="runtime"
                 value={runtime}
                 onChange={(e) => setRuntime(e.target.value)}
-                placeholder="(any)"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-              />
+              >
+                <option value="">Any (unassigned)</option>
+                {runtimeOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                    {opt.status === 'online' ? '' : ` · ${opt.status}`}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -243,6 +263,7 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
   const [showCreate, setShowCreate] = useState(false);
+  const [runtimeOptions, setRuntimeOptions] = useState<FleetRuntimeOption[]>([]);
   const fleet = useFleetMap(hubUrl, hubToken);
 
   useEffect(() => {
@@ -276,6 +297,38 @@ export default function TasksPage() {
     const id = setInterval(refresh, 8_000);
     return () => clearInterval(id);
   }, [hubUrl, refresh]);
+
+  // Pull the runtime list when the create modal is opened so the dropdown
+  // is populated with friendly names instead of forcing UUID entry.
+  useEffect(() => {
+    if (!showCreate || !hubUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${hubUrl}/fleet`, {
+          headers: hubToken ? { Authorization: `Bearer ${hubToken}` } : {},
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { runtimes: FleetRuntimeOption[] };
+        if (!cancelled) {
+          setRuntimeOptions(
+            [...data.runtimes].sort((a, b) => {
+              const order = { online: 0, stale: 1, offline: 2 } as const;
+              if (order[a.status] !== order[b.status]) {
+                return order[a.status] - order[b.status];
+              }
+              return a.name.localeCompare(b.name);
+            })
+          );
+        }
+      } catch {
+        // best-effort; modal still works with empty dropdown.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreate, hubUrl, hubToken]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return tasks;
@@ -369,6 +422,7 @@ export default function TasksPage() {
         <CreateModal
           hubUrl={hubUrl}
           hubToken={hubToken}
+          runtimeOptions={runtimeOptions}
           onClose={() => setShowCreate(false)}
           onCreated={refresh}
         />
