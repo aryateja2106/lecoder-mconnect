@@ -8,6 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
   ClaudeHookEventData,
+  CursorHookEventData,
   GeminiHookEventData,
   HookAction,
   HookEventType,
@@ -195,6 +196,125 @@ function normalizeGeminiEvent(data: GeminiHookEventData): UniversalHookEvent {
 }
 
 /**
+ * Normalize a Cursor hook event.
+ *
+ * Cursor's native lifecycle events (preToolUse/postToolUse/stop) are mostly
+ * informational; the `loop_*` events emitted by `lecoder-mconnect`'s loop
+ * subsystem carry user-facing progress that the mobile UI can show.
+ */
+function normalizeCursorEvent(data: CursorHookEventData): UniversalHookEvent {
+  const id = generateEventId();
+  const timestamp = getTimestamp();
+  const raw = data as unknown as Record<string, unknown>;
+  const eventName = data.event_type;
+
+  switch (eventName) {
+    case 'loop_iteration_complete': {
+      const completed = data.completed ?? 0;
+      const target = data.target ?? 'infinite';
+      const nextIter = data.next_iteration ?? null;
+      const targetText = target === 'infinite' ? 'infinite' : `${target}`;
+      const detail =
+        nextIter !== null
+          ? `Iteration ${completed} done. Starting iteration ${nextIter} of ${targetText}.`
+          : `Iteration ${completed} of ${targetText} done.`;
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'notification',
+        title: `Loop ${data.loop_id || ''}: iteration ${completed}/${targetText}`,
+        details: detail,
+        actionable: true,
+        actions: [
+          { id: 'pause', label: 'Pause loop', variant: 'default' },
+          { id: 'stop', label: 'Stop loop', variant: 'deny' },
+        ],
+        raw,
+      };
+    }
+
+    case 'loop_complete':
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'stopped',
+        title: `Loop ${data.loop_id || ''} complete`,
+        details: data.reason || `Completed ${data.completed ?? 0} iterations.`,
+        actionable: false,
+        raw,
+      };
+
+    case 'loop_error':
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'error',
+        title: `Loop ${data.loop_id || ''} error`,
+        details: data.reason || 'Unknown error',
+        actionable: false,
+        raw,
+      };
+
+    case 'loop_paused':
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'notification',
+        title: `Loop ${data.loop_id || ''} paused`,
+        details: data.reason || 'Loop paused by user.',
+        actionable: true,
+        actions: [
+          { id: 'resume', label: 'Resume loop', variant: 'approve' },
+          { id: 'stop', label: 'Stop loop', variant: 'deny' },
+        ],
+        raw,
+      };
+
+    case 'stop':
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'stopped',
+        title: 'Cursor turn ended',
+        details: data.status ? `Status: ${data.status}` : undefined,
+        actionable: false,
+        raw,
+      };
+
+    case 'pretooluse':
+    case 'posttooluse':
+    case 'afteragentresponse':
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'notification',
+        title: `Cursor: ${eventName}${data.tool_name ? ` (${data.tool_name})` : ''}`,
+        details: data.message,
+        actionable: false,
+        raw,
+      };
+
+    default:
+      return {
+        id,
+        timestamp,
+        source: 'cursor',
+        eventType: 'notification',
+        title: `Cursor: ${eventName}`,
+        details: data.message,
+        actionable: false,
+        raw,
+      };
+  }
+}
+
+/**
  * Normalize a custom/unknown source event
  */
 function normalizeCustomEvent(
@@ -313,6 +433,16 @@ export function normalizeHookEvent(request: IncomingHookRequest): UniversalHookE
       return normalizeGeminiEvent(geminiData);
     }
 
+    case 'cursor': {
+      const cursorData: CursorHookEventData = {
+        event_type: (
+          (data.event_type as string) || event_type
+        ).toLowerCase() as CursorHookEventData['event_type'],
+        ...data,
+      } as CursorHookEventData;
+      return normalizeCursorEvent(cursorData);
+    }
+
     default:
       return normalizeCustomEvent(source, event_type, data);
   }
@@ -337,7 +467,7 @@ export function validateHookRequest(body: unknown): IncomingHookRequest | null {
   }
 
   // Validate source is a known type
-  const validSources: HookSource[] = ['claude', 'gemini', 'copilot', 'aider', 'custom'];
+  const validSources: HookSource[] = ['claude', 'gemini', 'cursor', 'copilot', 'aider', 'custom'];
   if (!validSources.includes(obj.source as HookSource)) {
     return null;
   }

@@ -144,6 +144,28 @@ export interface ServerPongMessage {
   timestamp: number;
 }
 
+/**
+ * Universal hook event broadcast (e.g. Cursor loop progress).
+ *
+ * Mirrors the UniversalHookEvent shape from `hooks/types.ts` so the mobile
+ * UI can render iteration progress, error notifications, and approval
+ * requests originating from external agent hook scripts.
+ */
+export interface ServerHookEventMessage {
+  type: 'hook_event';
+  event: {
+    id: string;
+    timestamp: string;
+    source: string;
+    eventType: string;
+    title: string;
+    details?: string;
+    actionable: boolean;
+    actions?: Array<{ id: string; label: string; variant?: string }>;
+    raw: Record<string, unknown>;
+  };
+}
+
 export type ServerMessage =
   | ServerOutputMessage
   | ServerAgentCreatedMessage
@@ -156,6 +178,7 @@ export type ServerMessage =
   | ServerCommandBlockedMessage
   | ServerApprovalRequestMessage
   | ServerPongMessage
+  | ServerHookEventMessage
   | ServerMessageV2;
 
 // ============================================

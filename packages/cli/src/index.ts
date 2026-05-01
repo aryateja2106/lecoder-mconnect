@@ -56,6 +56,8 @@ import { Command } from 'commander';
 import { AGENT_PRESETS, type AgentConfig, getDefaultShell } from './agents/types.js';
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
+import { createHookCommand } from './cli/commands/hook.js';
+import { createLoopCommand } from './cli/commands/loop.js';
 import { createSessionCommand } from './cli/commands/session.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
@@ -77,6 +79,12 @@ program.addCommand(createDaemonCommand());
 const sessionCmd = createSessionCommand();
 sessionCmd.addCommand(createAttachCommand());
 program.addCommand(sessionCmd);
+
+// Cursor infinite agentic loop (Disler-style)
+program.addCommand(createLoopCommand());
+
+// Cursor hook entrypoints (`lecoder-mconnect hook cursor stop`, etc.)
+program.addCommand(createHookCommand());
 
 program
   .command('start', { isDefault: true })
@@ -302,6 +310,18 @@ program
     console.log('');
     console.log(chalk.cyan('  Daemon:'));
     console.log('    npx lecoder-mconnect daemon start|stop|status|logs');
+    console.log('');
+    console.log(chalk.cyan('  Cursor Infinite Loop:'));
+    console.log('    npx lecoder-mconnect loop install                                # add hooks + rules');
+    console.log('    npx lecoder-mconnect loop start specs/example.md src 5            # 5 iterations');
+    console.log('    npx lecoder-mconnect loop start specs/example.md src 20           # batched');
+    console.log('    npx lecoder-mconnect loop start specs/example.md infinite_src/ infinite');
+    console.log('    npx lecoder-mconnect loop status|stop|list|tail');
+    console.log('');
+    console.log(chalk.cyan('  Cursor Hooks (invoked by Cursor itself):'));
+    console.log('    lecoder-mconnect hook cursor stop');
+    console.log('    lecoder-mconnect hook cursor pretooluse');
+    console.log('    lecoder-mconnect hook cursor posttooluse');
     console.log('');
   });
 

@@ -13,17 +13,18 @@ import qrcode from 'qrcode-terminal';
 import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
+import { HookReceiver } from './hooks/hook-receiver.js';
 import type { InputArbiter } from './input/InputArbiter.js';
-import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
 import { getObservability, initObservabilityFromEnv } from './observability/index.js';
+import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
 import {
   generateSecureToken,
   generateSessionId,
   getPairingCodeManager,
   hashForLogging,
 } from './security.js';
-import { writeSessionFile, removeSessionFile } from './session-file.js';
 import type { SessionManager } from './session/SessionManager.js';
+import { removeSessionFile, writeSessionFile } from './session-file.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
 import { PRODUCT_NAME, VERSION } from './version.js';
@@ -85,6 +86,7 @@ export interface MConnectSession {
   guardrailConfig: GuardrailConfig;
   tunnelUrl: string | null;
   tunnelProcess: ChildProcess | null;
+  hookReceiver: HookReceiver;
   /** Session context for v2 persistent sessions */
   context: SessionContext | null;
   /** Initialization status for each component */
@@ -129,7 +131,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     observability.startSessionTrace(sessionId, {
       workDir: config.workDir,
       guardrailsLevel: config.guardrails,
-      agents: config.agents.map(a => ({ ...a, cwd: config.workDir })),
+      agents: config.agents.map((a) => ({ ...a, cwd: config.workDir })),
       enableTmux: config.enableTmux !== false,
       version: VERSION,
     });
@@ -138,6 +140,16 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Create pairing code
   const pairingManager = getPairingCodeManager();
   const pairingCode = pairingManager.createCode(sessionId, sessionToken);
+
+  // Create hook receiver — declared here so the HTTP handler captures it
+  // by closure. Broadcast wiring happens after WSHub is instantiated below.
+  const hookReceiver = new HookReceiver({
+    token: sessionToken,
+    onEvent: () => {
+      // Replaced after WSHub is created. Until then, hook events are
+      // accepted and stored in history but no clients are broadcast to.
+    },
+  });
 
   // Create HTTP server
   const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -168,13 +180,15 @@ export async function startSession(config: SessionConfig): Promise<void> {
     if (url.pathname === '/health' || url.pathname === '/api/health') {
       setCorsHeaders();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'ok',
-        version: VERSION,
-        sessionId,
-        agents: currentSession?.agentManager?.getAllAgents()?.length ?? 0,
-        timestamp: new Date().toISOString(),
-      }));
+      res.end(
+        JSON.stringify({
+          status: 'ok',
+          version: VERSION,
+          sessionId,
+          agents: currentSession?.agentManager?.getAllAgents()?.length ?? 0,
+          timestamp: new Date().toISOString(),
+        })
+      );
       return;
     }
 
@@ -199,6 +213,45 @@ export async function startSession(config: SessionConfig): Promise<void> {
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ token: result.token, sessionId: result.sessionId }));
+      return;
+    }
+
+    // Hook event ingestion (POST /api/hooks). HookReceiver authenticates
+    // using the session token and emits normalized events to its onEvent
+    // callback (which broadcasts over WebSocket once the hub is up).
+    if (url.pathname === '/api/hooks') {
+      hookReceiver
+        .handleRequest(req, res, '/api/hooks')
+        .then((handled) => {
+          if (!handled) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Not found' }));
+          }
+        })
+        .catch((err) => {
+          console.error('[session] HookReceiver error:', err);
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+          }
+        });
+      return;
+    }
+
+    // Hook history (GET /api/hooks). Returns the most recent normalized
+    // events so a freshly-connected client can render past activity.
+    if (url.pathname === '/api/hooks/history' && req.method === 'GET') {
+      setCorsHeaders();
+      const providedAuth = req.headers.authorization;
+      const headerToken = providedAuth?.startsWith('Bearer ') ? providedAuth.slice(7) : null;
+      const queryToken = url.searchParams.get('token');
+      if (headerToken !== sessionToken && queryToken !== sessionToken) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ events: hookReceiver.getHistory() }));
       return;
     }
 
@@ -234,7 +287,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     httpServer: { success: true }, // Already started at this point
     opik: {
       success: opikEnabled || obsEnabled,
-      error: (opikEnabled || obsEnabled) ? undefined : 'OPIK_API_KEY not set',
+      error: opikEnabled || obsEnabled ? undefined : 'OPIK_API_KEY not set',
     },
   };
 
@@ -247,6 +300,15 @@ export async function startSession(config: SessionConfig): Promise<void> {
   });
   wsHub.setGuardrails(guardrailConfig);
   initStatus.websocket = { success: true };
+
+  // Now that WSHub exists, replace the hook receiver's broadcaster so
+  // every accepted hook event reaches connected mobile clients.
+  hookReceiver.setBroadcaster((event) => {
+    wsHub.broadcast({
+      type: 'hook_event',
+      event,
+    });
+  });
 
   // Create agent manager (T009 - graceful fallback)
   spinner.message('Initializing PTY manager...');
@@ -340,6 +402,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     guardrailConfig,
     tunnelUrl,
     tunnelProcess: tunnelResult?.process || null,
+    hookReceiver,
     context: {
       sessionManager: null, // Will be initialized in Phase 6 (US4)
       inputArbiter: null, // Will be initialized in Phase 7 (US5)
@@ -491,13 +554,16 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const timeoutMinutes = config.timeout ?? 60;
   let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
   if (timeoutMinutes > 0) {
-    timeoutTimer = setTimeout(async () => {
-      if (!quiet) {
-        p.log.warning(`Session timed out after ${timeoutMinutes} minutes. Shutting down.`);
-      }
-      await cleanup();
-      process.exit(0);
-    }, timeoutMinutes * 60 * 1000);
+    timeoutTimer = setTimeout(
+      async () => {
+        if (!quiet) {
+          p.log.warning(`Session timed out after ${timeoutMinutes} minutes. Shutting down.`);
+        }
+        await cleanup();
+        process.exit(0);
+      },
+      timeoutMinutes * 60 * 1000
+    );
     timeoutTimer.unref();
   }
 
