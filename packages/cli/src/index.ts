@@ -58,6 +58,7 @@ import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createFleetCommand } from './cli/commands/fleet.js';
 import { createSessionCommand } from './cli/commands/session.js';
+import { createTaskCommand } from './cli/commands/task.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
@@ -74,6 +75,7 @@ program
 // Add subcommand groups
 program.addCommand(createDaemonCommand());
 program.addCommand(createFleetCommand());
+program.addCommand(createTaskCommand());
 
 // Add session commands
 const sessionCmd = createSessionCommand();
