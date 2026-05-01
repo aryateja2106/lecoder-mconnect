@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react';
+import { useFleetMap } from '@/hooks/useFleetMap';
 
 interface Autopilot {
   id: string;
@@ -47,19 +48,33 @@ function formatRel(ts: number): string {
   return future ? `in ${d}d` : `${d}d ago`;
 }
 
+interface FleetRuntimeOption {
+  id: string;
+  name: string;
+  status: 'online' | 'stale' | 'offline';
+}
+
 interface CreateModalProps {
   hubUrl: string;
   hubToken: string | null;
+  runtimeOptions: FleetRuntimeOption[];
   onClose: () => void;
   onCreated: () => void;
 }
 
-function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps) {
+function CreateModal({
+  hubUrl,
+  hubToken,
+  runtimeOptions,
+  onClose,
+  onCreated,
+}: CreateModalProps) {
   const [name, setName] = useState('');
   const [schedule, setSchedule] = useState('every 1h');
   const [taskTitle, setTaskTitle] = useState('');
   const [taskBody, setTaskBody] = useState('');
   const [provider, setProvider] = useState('');
+  const [runtime, setRuntime] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,6 +99,7 @@ function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps)
             title: taskTitle.trim(),
             body: taskBody.trim() || undefined,
             provider: provider.trim() || undefined,
+            assigneeRuntimeId: runtime.trim() || undefined,
           },
         }),
       });
@@ -98,7 +114,18 @@ function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps)
     } finally {
       setSubmitting(false);
     }
-  }, [name, schedule, taskTitle, taskBody, provider, hubUrl, hubToken, onClose, onCreated]);
+  }, [
+    name,
+    schedule,
+    taskTitle,
+    taskBody,
+    provider,
+    runtime,
+    hubUrl,
+    hubToken,
+    onClose,
+    onCreated,
+  ]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -168,17 +195,38 @@ function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps)
             />
           </div>
 
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1" htmlFor="ap-provider">
-              Provider (optional)
-            </label>
-            <input
-              id="ap-provider"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-              placeholder="claude"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1" htmlFor="ap-provider">
+                Provider (optional)
+              </label>
+              <input
+                id="ap-provider"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                placeholder="claude"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1" htmlFor="ap-runtime">
+                Runtime
+              </label>
+              <select
+                id="ap-runtime"
+                value={runtime}
+                onChange={(e) => setRuntime(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
+              >
+                <option value="">Any (unassigned)</option>
+                {runtimeOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                    {opt.status === 'online' ? '' : ` · ${opt.status}`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {error && (
@@ -220,10 +268,12 @@ function CreateModal({ hubUrl, hubToken, onClose, onCreated }: CreateModalProps)
 
 function AutopilotCard({
   ap,
+  runtimeName,
   onToggle,
   onDelete,
 }: {
   ap: Autopilot;
+  runtimeName: string;
   onToggle: () => void;
   onDelete: () => void;
 }) {
@@ -265,6 +315,7 @@ function AutopilotCard({
 
       <div className="flex items-center gap-3 mt-3 text-xs text-zinc-500">
         {ap.task.provider && <span>{ap.task.provider}</span>}
+        {ap.task.assigneeRuntimeId && <span>· runtime {runtimeName}</span>}
         <span className="ml-auto">next: {formatRel(ap.nextRunAt)}</span>
       </div>
     </div>
@@ -278,6 +329,8 @@ export default function AutopilotsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [runtimeOptions, setRuntimeOptions] = useState<FleetRuntimeOption[]>([]);
+  const fleet = useFleetMap(hubUrl, hubToken);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -310,6 +363,38 @@ export default function AutopilotsPage() {
     const id = setInterval(refresh, 10_000);
     return () => clearInterval(id);
   }, [hubUrl, refresh]);
+
+  // Pull the runtime list when the create modal opens so the dropdown is
+  // populated with friendly names instead of forcing UUID entry.
+  useEffect(() => {
+    if (!showCreate || !hubUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${hubUrl}/fleet`, {
+          headers: hubToken ? { Authorization: `Bearer ${hubToken}` } : {},
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { runtimes: FleetRuntimeOption[] };
+        if (!cancelled) {
+          setRuntimeOptions(
+            [...data.runtimes].sort((a, b) => {
+              const order = { online: 0, stale: 1, offline: 2 } as const;
+              if (order[a.status] !== order[b.status]) {
+                return order[a.status] - order[b.status];
+              }
+              return a.name.localeCompare(b.name);
+            })
+          );
+        }
+      } catch {
+        // best-effort.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreate, hubUrl, hubToken]);
 
   const toggle = useCallback(
     async (ap: Autopilot) => {
@@ -399,6 +484,7 @@ export default function AutopilotsPage() {
               <AutopilotCard
                 key={ap.id}
                 ap={ap}
+                runtimeName={fleet.nameFor(ap.task.assigneeRuntimeId)}
                 onToggle={() => toggle(ap)}
                 onDelete={() => remove(ap)}
               />
@@ -411,6 +497,7 @@ export default function AutopilotsPage() {
         <CreateModal
           hubUrl={hubUrl}
           hubToken={hubToken}
+          runtimeOptions={runtimeOptions}
           onClose={() => setShowCreate(false)}
           onCreated={refresh}
         />
