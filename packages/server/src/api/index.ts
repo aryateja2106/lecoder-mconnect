@@ -26,3 +26,14 @@ export {
   handleRemoveToken,
   handleDeviceRoutes,
 } from './devices.js';
+
+export {
+  handleFleetRoutes,
+  handleListFleet,
+  handleGetRuntime,
+  handleEnqueueTask,
+  handleRegisterRuntime,
+  handleHeartbeat,
+  handleTasksNext,
+  handleDeregister,
+} from './fleet.js';

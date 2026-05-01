@@ -56,6 +56,7 @@ import { Command } from 'commander';
 import { AGENT_PRESETS, type AgentConfig, getDefaultShell } from './agents/types.js';
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
+import { createFleetCommand } from './cli/commands/fleet.js';
 import { createSessionCommand } from './cli/commands/session.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
@@ -72,6 +73,7 @@ program
 
 // Add subcommand groups
 program.addCommand(createDaemonCommand());
+program.addCommand(createFleetCommand());
 
 // Add session commands
 const sessionCmd = createSessionCommand();

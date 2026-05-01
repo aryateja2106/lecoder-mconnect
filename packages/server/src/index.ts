@@ -8,7 +8,12 @@
 import type { ServerWebSocket } from 'bun';
 import { initializeAuth, handleAuthRoutes } from './auth/index.js';
 import { getWSHub, type WebSocketData } from './ws/WSHub.js';
-import { handleSessionRoutes, handlePresetRoutes, handleDeviceRoutes } from './api/index.js';
+import {
+  handleSessionRoutes,
+  handlePresetRoutes,
+  handleDeviceRoutes,
+  handleFleetRoutes,
+} from './api/index.js';
 import { initializePushService } from './notifications/PushService.js';
 import { initializeNotificationBridge } from './notifications/NotificationBridge.js';
 
@@ -75,7 +80,7 @@ const server = Bun.serve<WebSocketData>({
     // API version info
     if (url.pathname === '/') {
       return Response.json({
-        name: 'MConnect V2 Server',
+        name: 'LeSearch Hub (MConnect V2 Server)',
         version: '0.1.0',
         endpoints: {
           health: '/health',
@@ -85,6 +90,7 @@ const server = Bun.serve<WebSocketData>({
           presets: '/presets/*',
           agents: '/agents/*',
           devices: '/devices/*',
+          fleet: '/fleet/*',
         },
       });
     }
@@ -118,6 +124,14 @@ const server = Bun.serve<WebSocketData>({
       const deviceResponse = await handleDeviceRoutes(request, url.pathname);
       if (deviceResponse) {
         return deviceResponse;
+      }
+    }
+
+    // Fleet routes (runtime registry, fleet view)
+    if (url.pathname.startsWith('/fleet')) {
+      const fleetResponse = await handleFleetRoutes(request, url.pathname);
+      if (fleetResponse) {
+        return fleetResponse;
       }
     }
 
