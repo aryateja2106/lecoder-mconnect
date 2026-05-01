@@ -351,6 +351,74 @@ mconnect session export abc12345 --output session.log
 
 ---
 
+## Programmable Cursor SDK Agent (`mconnect agent`)
+
+Spawn Cursor agents from any terminal, script, or other coding agent — using `@cursor/sdk` and your own `CURSOR_API_KEY`. Designed for agent-to-agent invocation: layered `--help`, copy-pasteable examples, JSON output, stdin support, idempotent ids, `--dry-run`, and automatic git worktree isolation.
+
+### Setup
+
+```bash
+npm install -g lecoder-mconnect @cursor/sdk
+export CURSOR_API_KEY="crsr_..."     # https://cursor.com/settings/integrations
+mconnect agent doctor                 # validates key, git, SDK
+```
+
+### One-shot prompt
+
+```bash
+mconnect agent run --task "fix the failing test in src/foo.ts"
+mconnect agent run --task brief.md --branch new
+echo "Add JSDoc everywhere" | mconnect agent run
+mconnect agent run --resume sess_abc123 --task "now write the tests"
+mconnect agent run --execution cloud --task "open a PR adding /health endpoint"
+mconnect agent run --dry-run --task "preview only, no SDK call"
+mconnect agent run --task "do thing" --json | jq 'select(.type=="result")'
+```
+
+By default the agent runs in a fresh git worktree at `<repo>/.lecoder/worktrees/<id>/` on a new `agent/<id>` branch. Pass `--no-worktree` (with `--allow-dirty` if needed) to run in place.
+
+### Long-running multi-turn tasks
+
+```bash
+# Run a long task across up to 20 iterations:
+mconnect agent loop --task TASK.md --max-iterations 20
+
+# Continue forever until the agent writes LECODER_LOOP_DONE:
+mconnect agent loop --task brief.md --max-iterations 1000
+
+# Gate progress on tests via a post-hook:
+mconnect agent loop --task brief.md \
+  --post-hook 'cd "$LECODER_AGENT_WORKTREE" && npm test --silent || exit 1'
+```
+
+### Inspect / cleanup
+
+```bash
+mconnect agent ls
+mconnect agent show sess_abc123 --tail 50
+mconnect agent context sess_abc123 > brief.md   # paste-ready markdown for other agents
+mconnect agent rm sess_abc123                    # remove session + worktree
+mconnect agent worktree ls -d .                  # list worktrees in current repo
+```
+
+### Subcommands
+
+| Command | Description |
+|---|---|
+| `mconnect agent run` | Send a one-shot prompt to a Cursor SDK agent (with worktree isolation) |
+| `mconnect agent loop` | Drive an agent across N iterations with optional post/stop hooks |
+| `mconnect agent ls` | List active and recent sessions |
+| `mconnect agent show <id>` | Show transcript and metadata |
+| `mconnect agent context <id>` | Print paste-ready markdown context for other agents |
+| `mconnect agent cancel <id>` | Mark a session finished (no-op going forward) |
+| `mconnect agent rm <id>` | Remove a session and its worktree |
+| `mconnect agent worktree ls/remove` | Inspect and manage per-session git worktrees |
+| `mconnect agent doctor` | Diagnose API key, git, SDK installation |
+
+Run any subcommand with `--help` for full options and copy-pasteable examples.
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -360,6 +428,10 @@ mconnect session export abc12345 --output session.log
 | `MCONNECT_LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
 | `MCONNECT_MAX_SESSIONS` | Maximum concurrent sessions | `5` |
 | `MCONNECT_NO_TUNNEL` | Disable Cloudflare tunnel | `false` |
+| `CURSOR_API_KEY` | Required for `mconnect agent`. Get one at https://cursor.com/settings/integrations | (none) |
+| `CURSOR_MODEL` | Default model id used by `mconnect agent` | `composer-2` |
+| `LECODER_AGENT_DIR` | Override agent session storage location | `~/.lecoder/agent` |
+| `LECODER_AGENT_SESSION_TTL_DAYS` | Auto-prune sessions older than N days | `30` |
 
 ---
 

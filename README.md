@@ -149,6 +149,148 @@ mconnect start          # Same as above (start is the default command)
 mconnect start --preset shell-only --guardrails default  # Skip the wizard
 mconnect doctor         # Run diagnostics (checks node-pty, Docker, cloudflared)
 mconnect presets        # List available agent presets
+mconnect agent          # Programmable Cursor SDK agent (see below)
+```
+
+---
+
+## Programmable Cursor SDK Agent
+
+> Built on top of [`@cursor/sdk`](https://www.npmjs.com/package/@cursor/sdk). Lets you spawn Cursor agents from any terminal, script, or other coding agent — using your own Cursor tokens. Designed for agent-to-agent invocation: layered `--help`, copy-pasteable examples, JSON output, stdin support, idempotent ids, and `--dry-run` for previews.
+
+### Why
+
+Cursor's IDE agent is great, but you sometimes want to:
+
+- Invoke a Cursor agent **from another agent** (Claude Code, an open-source CLI, a CI job, ...).
+- Run a long task in the **background** while keeping your IDE for other work.
+- Sandbox the run in a **git worktree** so the agent can't touch your working tree.
+- Drive the agent **for many turns automatically** (long-running tasks).
+
+`mconnect agent` does all four. One global install, and any agent that can run shell commands can invoke a Cursor SDK agent with proper context isolation.
+
+### One-time setup
+
+```bash
+npm install -g lecoder-mconnect @cursor/sdk
+export CURSOR_API_KEY="crsr_..."         # https://cursor.com/settings/integrations
+mconnect agent doctor                     # confirms key, git, SDK
+```
+
+### One-shot prompt (with worktree isolation)
+
+When run inside a git repo, the CLI **automatically creates a worktree** at `<repo>/.lecoder/worktrees/<id>/` on a fresh `agent/<id>` branch. The agent works there. Your working tree is never touched.
+
+```bash
+# 1. Inline task:
+mconnect agent run --task "fix the failing test in src/foo.ts"
+
+# 2. Brief from a markdown file:
+mconnect agent run --task brief.md --branch new --branch-name agent/refactor-auth
+
+# 3. Pipe from stdin:
+echo "Add JSDoc to every public function in src/utils/" | mconnect agent run
+
+# 4. JSON event stream (for chaining into other agents):
+mconnect agent run --task "do thing" --json | jq 'select(.type=="result")'
+
+# 5. Cloud execution (requires GitHub remote):
+mconnect agent run --execution cloud --task "open a PR adding /health endpoint"
+
+# 6. Preview the plan without invoking the SDK:
+mconnect agent run --dry-run --task "refactor X"
+```
+
+After the run, the worktree is preserved so you can review:
+
+```bash
+cd .lecoder/worktrees/<id>
+git diff main                              # see what the agent changed
+git log --oneline                          # see the agent's commits
+# merge it back, or just toss the worktree:
+mconnect agent worktree remove <id>
+```
+
+### Long-running multi-turn tasks (loop mode)
+
+`mconnect agent loop` drives a single Cursor SDK agent across many `send()` calls — the SDK preserves conversation context server-side, so each iteration sees the previous one. Perfect for "keep going until done" workflows.
+
+```bash
+# Run the task for up to 20 iterations, isolated in a worktree:
+mconnect agent loop --task TASK.md --max-iterations 20
+
+# Continue forever until the agent writes LECODER_LOOP_DONE in its response:
+mconnect agent loop --task brief.md --max-iterations 1000
+
+# Custom continuation prompt (default: "make next chunk of progress"):
+mconnect agent loop --task brief.md --continue-prompt "Run tests, fix one failure, commit."
+
+# Post-hook fired after every iteration (receives session JSON on stdin).
+# Non-zero exit pauses the loop — gate progress on tests/lint/typecheck:
+mconnect agent loop --task brief.md \
+  --post-hook 'cd "$LECODER_AGENT_WORKTREE" && npm test --silent || exit 1'
+
+# Stop-hook fired once when the loop ends:
+mconnect agent loop --task brief.md \
+  --stop-hook 'cd "$LECODER_AGENT_WORKTREE" && git push origin HEAD'
+```
+
+The loop terminates when **any** of these happen:
+
+| Trigger | Behaviour |
+|---|---|
+| Agent writes `LECODER_LOOP_DONE` in a response | Done — early stop |
+| `--max-iterations` reached | Done — capped |
+| `--post-hook` exits non-zero | Paused — fix and resume |
+| Iteration ends with status ≠ `FINISHED` | Failed — investigate |
+
+### Sessions and context
+
+Every run is recorded at `~/.lecoder/agent/sessions/<id>.json`:
+
+```bash
+mconnect agent ls                           # active sessions
+mconnect agent ls --all                     # include finished/failed
+mconnect agent ls --tag loop:loop_abc123    # find tagged sessions
+mconnect agent ls --json | jq '.[].id'      # extract ids for scripting
+
+mconnect agent show sess_abc123             # transcript + metadata
+mconnect agent show sess_abc123 --tail 50
+
+mconnect agent context sess_abc123 > brief.md   # paste-ready markdown summary
+mconnect agent context sess_abc123 | pbcopy
+```
+
+The `context` command produces a markdown block other agents can paste into their own chats to inherit the work — perfect for handing off between agents.
+
+### Resume a previous conversation
+
+```bash
+mconnect agent run --resume sess_abc123 --task "now write tests for the new function"
+```
+
+Resuming reuses the existing worktree and tags, so the second prompt operates on the same files the first one was editing.
+
+### Cleanup
+
+```bash
+mconnect agent rm sess_abc123                # remove session + worktree
+mconnect agent rm sess_abc123 --keep-worktree   # keep worktree for review
+mconnect agent rm sess_abc123 --force            # force-remove dirty worktree
+mconnect agent worktree ls -d .                 # list worktrees in current repo
+```
+
+Sessions older than `LECODER_AGENT_SESSION_TTL_DAYS` (default: 30) are pruned automatically on the next `agent ls` call.
+
+### `--help` is real
+
+Every subcommand has a layered `--help` with copy-pasteable examples. So when an agent invokes the CLI, it can self-discover capabilities without you preloading docs:
+
+```bash
+mconnect agent --help
+mconnect agent run --help
+mconnect agent loop --help
+mconnect agent doctor --help
 ```
 
 | Flag | What it does |
