@@ -15,6 +15,7 @@ import {
   Send,
   XCircle,
 } from 'lucide-react';
+import { useFleetMap } from '@/hooks/useFleetMap';
 
 type TaskStatus = 'queued' | 'dispatched' | 'running' | 'completed' | 'failed' | 'cancelled';
 type RunStatus = 'running' | 'completed' | 'failed' | 'cancelled';
@@ -176,6 +177,7 @@ export default function TaskDetailPage() {
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const fleet = useFleetMap(hubUrl, hubToken);
 
   useEffect(() => {
     setVoiceSupported(!!getSpeechRecognitionCtor());
@@ -345,7 +347,34 @@ export default function TaskDetailPage() {
                 {data.task.assigneeRuntimeId && (
                   <>
                     <dt className="text-zinc-500">Runtime</dt>
-                    <dd className="text-zinc-300 font-mono">{data.task.assigneeRuntimeId}</dd>
+                    <dd className="text-zinc-300 flex items-center gap-2 min-w-0">
+                      {(() => {
+                        const status = fleet.statusFor(data.task.assigneeRuntimeId);
+                        const dot =
+                          status === 'online'
+                            ? 'bg-green-500'
+                            : status === 'stale'
+                              ? 'bg-yellow-500'
+                              : status === 'offline'
+                                ? 'bg-red-500'
+                                : 'bg-zinc-600';
+                        return (
+                          <span
+                            className={`w-2 h-2 rounded-full ${dot} shrink-0`}
+                            aria-label={status ?? 'unknown'}
+                          />
+                        );
+                      })()}
+                      <span className="font-medium">
+                        {fleet.nameFor(data.task.assigneeRuntimeId)}
+                      </span>
+                      <code
+                        className="text-zinc-500 text-[10px] truncate"
+                        title={data.task.assigneeRuntimeId}
+                      >
+                        {data.task.assigneeRuntimeId.slice(0, 8)}
+                      </code>
+                    </dd>
                   </>
                 )}
                 {data.task.workingDirectory && (

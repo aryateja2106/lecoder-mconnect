@@ -12,6 +12,7 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react';
+import { useFleetMap } from '@/hooks/useFleetMap';
 
 type TaskStatus = 'queued' | 'dispatched' | 'running' | 'completed' | 'failed' | 'cancelled';
 
@@ -50,7 +51,13 @@ function StatusIcon({ status }: { status: TaskStatus }) {
   return <Circle size={14} className="text-zinc-500" />;
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({
+  task,
+  runtimeName,
+}: {
+  task: Task;
+  runtimeName: string;
+}) {
   return (
     <a
       href={`/tasks/${task.id}`}
@@ -63,7 +70,7 @@ function TaskRow({ task }: { task: Task }) {
           <code className="text-zinc-400">{task.id.slice(0, 8)}</code>
           {task.provider && <span className="ml-2">· {task.provider}</span>}
           {task.assigneeRuntimeId && (
-            <span className="ml-2">· runtime {task.assigneeRuntimeId.slice(0, 8)}</span>
+            <span className="ml-2">· runtime {runtimeName}</span>
           )}
         </div>
       </div>
@@ -236,6 +243,7 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
   const [showCreate, setShowCreate] = useState(false);
+  const fleet = useFleetMap(hubUrl, hubToken);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -347,7 +355,11 @@ export default function TasksPage() {
         {filtered.length > 0 && (
           <div className="space-y-2">
             {filtered.map((t) => (
-              <TaskRow key={t.id} task={t} />
+              <TaskRow
+                key={t.id}
+                task={t}
+                runtimeName={fleet.nameFor(t.assigneeRuntimeId)}
+              />
             ))}
           </div>
         )}
