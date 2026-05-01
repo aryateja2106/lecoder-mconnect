@@ -14,7 +14,9 @@ import {
   handleDeviceRoutes,
   handleFleetRoutes,
   handleTaskRoutes,
+  handleAutopilotRoutes,
 } from './api/index.js';
+import { getAutopilotScheduler } from './scheduler/Autopilot.js';
 import { initializePushService } from './notifications/PushService.js';
 import { initializeNotificationBridge } from './notifications/NotificationBridge.js';
 
@@ -27,6 +29,9 @@ initializePushService().then(() => {
 }).catch((error) => {
   console.warn('Push notification initialization failed:', error);
 });
+
+// Boot the autopilot scheduler so saved schedules fire on time.
+getAutopilotScheduler().start();
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const HOST = process.env.HOST ?? '0.0.0.0';
@@ -93,6 +98,7 @@ const server = Bun.serve<WebSocketData>({
           devices: '/devices/*',
           fleet: '/fleet/*',
           tasks: '/tasks/*',
+          autopilots: '/autopilots/*',
         },
       });
     }
@@ -142,6 +148,14 @@ const server = Bun.serve<WebSocketData>({
       const taskResponse = await handleTaskRoutes(request, url.pathname);
       if (taskResponse) {
         return taskResponse;
+      }
+    }
+
+    // Autopilot routes (recurring task schedules)
+    if (url.pathname.startsWith('/autopilots')) {
+      const apResponse = await handleAutopilotRoutes(request, url.pathname);
+      if (apResponse) {
+        return apResponse;
       }
     }
 

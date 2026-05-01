@@ -50,3 +50,12 @@ export {
   handleStartRun,
   handleUpdateRun,
 } from './tasks.js';
+
+export {
+  handleAutopilotRoutes,
+  handleCreateAutopilot,
+  handleListAutopilots,
+  handleGetAutopilot,
+  handleUpdateAutopilot,
+  handleDeleteAutopilot,
+} from './autopilots.js';
