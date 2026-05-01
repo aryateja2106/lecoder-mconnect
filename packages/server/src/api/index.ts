@@ -37,3 +37,16 @@ export {
   handleTasksNext,
   handleDeregister,
 } from './fleet.js';
+
+export {
+  handleTaskRoutes,
+  handleCreateTask,
+  handleListTasks,
+  handleGetTask,
+  handleUpdateTask,
+  handleCancelTask,
+  handleAddComment,
+  handleClaimNextTask,
+  handleStartRun,
+  handleUpdateRun,
+} from './tasks.js';

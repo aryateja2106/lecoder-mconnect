@@ -13,6 +13,7 @@ import {
   handlePresetRoutes,
   handleDeviceRoutes,
   handleFleetRoutes,
+  handleTaskRoutes,
 } from './api/index.js';
 import { initializePushService } from './notifications/PushService.js';
 import { initializeNotificationBridge } from './notifications/NotificationBridge.js';
@@ -91,6 +92,7 @@ const server = Bun.serve<WebSocketData>({
           agents: '/agents/*',
           devices: '/devices/*',
           fleet: '/fleet/*',
+          tasks: '/tasks/*',
         },
       });
     }
@@ -132,6 +134,14 @@ const server = Bun.serve<WebSocketData>({
       const fleetResponse = await handleFleetRoutes(request, url.pathname);
       if (fleetResponse) {
         return fleetResponse;
+      }
+    }
+
+    // Task routes (work units, runs, comments)
+    if (url.pathname.startsWith('/tasks') || url.pathname.startsWith('/runtimes/')) {
+      const taskResponse = await handleTaskRoutes(request, url.pathname);
+      if (taskResponse) {
+        return taskResponse;
       }
     }
 
