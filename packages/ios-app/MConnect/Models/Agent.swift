@@ -38,7 +38,7 @@ struct Agent: Identifiable, Hashable, Codable {
 
 // MARK: - AgentStatus UI Extensions
 
-extension AgentStatus: CaseIterable {
+extension AgentStatus {
     var displayName: String {
         switch self {
         case .creating: return "Creating"

@@ -173,9 +173,12 @@ class AgentDashboardViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(wsClient: WSClient = WSClient()) {
-        self.wsClient = wsClient
-        wsClient.delegate = self
+    // Default arg is nil so WSClient() is constructed inside the main-actor-isolated
+    // init body rather than at the call site (where the actor context is unknown).
+    init(wsClient: WSClient? = nil) {
+        let client = wsClient ?? WSClient()
+        self.wsClient = client
+        client.delegate = self
         observeConnectionState()
     }
 

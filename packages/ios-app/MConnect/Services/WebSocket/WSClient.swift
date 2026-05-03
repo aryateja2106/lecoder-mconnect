@@ -28,7 +28,7 @@ protocol WSClientDelegate: AnyObject {
     func wsClient(_ client: WSClient, didReceiveControlResponse response: ControlResponse)
     func wsClient(_ client: WSClient, didReceiveInputRejection response: InputRejectedResponse)
     func wsClient(_ client: WSClient, didReceiveScrollback response: ScrollbackResponse)
-    func wsClient(_ client: WSClient, clientJoined client: ClientInfo)
+    func wsClient(_ client: WSClient, clientJoined clientInfo: ClientInfo)
     func wsClient(_ client: WSClient, clientLeft clientId: String)
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse)
 }
@@ -45,7 +45,7 @@ extension WSClientDelegate {
     func wsClient(_ client: WSClient, didReceiveControlResponse response: ControlResponse) {}
     func wsClient(_ client: WSClient, didReceiveInputRejection response: InputRejectedResponse) {}
     func wsClient(_ client: WSClient, didReceiveScrollback response: ScrollbackResponse) {}
-    func wsClient(_ client: WSClient, clientJoined client: ClientInfo) {}
+    func wsClient(_ client: WSClient, clientJoined clientInfo: ClientInfo) {}
     func wsClient(_ client: WSClient, clientLeft clientId: String) {}
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse) {}
 }

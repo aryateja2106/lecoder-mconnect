@@ -7,7 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2FBCC8D9CC0E8D212450DAAE /* TerminalBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B221562390EDAD09D57E5DC /* TerminalBuffer.swift */; };
+		40E64E5CE3DF0A61F17860A1 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE0E992705BDD736D14D338 /* NetworkMonitor.swift */; };
 		4CD00F76AEC8F559657E4274 /* RoyalVNCKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0C7C550FB7EF2FB83D2438F /* RoyalVNCKit */; };
+		572E3C03F62AE89A75F88731 /* ScreenViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B92EB46E2941D2DB203C4B0 /* ScreenViewModel.swift */; };
+		9F0770884DF71EA24D29A5C9 /* SwiftTermBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E7E68810A7C17AE0C824C9 /* SwiftTermBridge.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* MConnectApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A2 /* MConnectApp.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A3 /* AppDelegate.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F4 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A4 /* Router.swift */; };
@@ -36,6 +40,8 @@
 		A1B2C3D4E5F6A7B8C9D0E2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BB /* Assets.xcassets */; };
 		A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */; };
 		D1C72020966203C4212EFE47 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = EF937A2CAA02E693785749D4 /* SwiftTerm */; };
+		E735828F2B70D6ACD214CDF4 /* VNCBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6938287CE997EBA78055E890 /* VNCBridge.swift */; };
+		FAEB90826440C1A3F557835D /* ScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B282CEE0347370E56ABA612 /* ScreenView.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D1E0 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D2A0 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */; };
@@ -54,6 +60,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		19E7E68810A7C17AE0C824C9 /* SwiftTermBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftTermBridge.swift; sourceTree = "<group>"; };
+		4B221562390EDAD09D57E5DC /* TerminalBuffer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TerminalBuffer.swift; sourceTree = "<group>"; };
+		6938287CE997EBA78055E890 /* VNCBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VNCBridge.swift; sourceTree = "<group>"; };
+		6B92EB46E2941D2DB203C4B0 /* ScreenViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScreenViewModel.swift; sourceTree = "<group>"; };
+		8B282CEE0347370E56ABA612 /* ScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScreenView.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1A0 /* MConnect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MConnect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1C2D3E4F5A6B7C8D9E0F1A2 /* MConnectApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MConnectApp.swift; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1A3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -84,6 +95,7 @@
 		B1C2D3E4F5A6B7C8D9E0F1BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1BD /* MConnect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MConnect.entitlements; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionManager.swift; sourceTree = "<group>"; };
+		BAE0E992705BDD736D14D338 /* NetworkMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E5 /* MConnectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MConnectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -112,6 +124,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		71970C0A6ED2E8AD9F9DFC7B /* Screen */ = {
+			isa = PBXGroup;
+			children = (
+				8B282CEE0347370E56ABA612 /* ScreenView.swift */,
+				6B92EB46E2941D2DB203C4B0 /* ScreenViewModel.swift */,
+				6938287CE997EBA78055E890 /* VNCBridge.swift */,
+			);
+			name = Screen;
+			path = Screen;
+			sourceTree = "<group>";
+		};
 		D1E2F3A4B5C6D7E8F9A0B1C2 = {
 			isa = PBXGroup;
 			children = (
@@ -160,6 +183,7 @@
 				D1E2F3A4B5C6D7E8F9A0B1CB /* Hosts */,
 				D1E2F3A4B5C6D7E8F9A0B1CC /* Agents */,
 				D1E2F3A4B5C6D7E8F9A0B1CD /* Vault */,
+				71970C0A6ED2E8AD9F9DFC7B /* Screen */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -172,6 +196,7 @@
 				D1E2F3A4B5C6D7E8F9A0B1D0 /* Auth */,
 				D1E2F3A4B5C6D7E8F9A0B1D1 /* Notifications */,
 				D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */,
+				E8701121FD949C77B2A1C2A4 /* Network */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -202,6 +227,8 @@
 				B1C2D3E4F5A6B7C8D9E0F1A5 /* TerminalView.swift */,
 				B1C2D3E4F5A6B7C8D9E0F1A6 /* TerminalEmulatorView.swift */,
 				B1C2D3E4F5A6B7C8D9E0F1A7 /* KeyboardBarView.swift */,
+				4B221562390EDAD09D57E5DC /* TerminalBuffer.swift */,
+				19E7E68810A7C17AE0C824C9 /* SwiftTermBridge.swift */,
 			);
 			path = Terminal;
 			sourceTree = "<group>";
@@ -276,6 +303,15 @@
 				B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */,
 			);
 			path = Background;
+			sourceTree = "<group>";
+		};
+		E8701121FD949C77B2A1C2A4 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				BAE0E992705BDD736D14D338 /* NetworkMonitor.swift */,
+			);
+			name = Network;
+			path = Network;
 			sourceTree = "<group>";
 		};
 		T1A2B3C4D5E6F7A8B9C0D1E7 /* MConnectTests */ = {
@@ -423,6 +459,12 @@
 				A1B2C3D4E5F6A7B8C9D0E2F9 /* Agent.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E2FA /* VaultItem.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */,
+				2FBCC8D9CC0E8D212450DAAE /* TerminalBuffer.swift in Sources */,
+				9F0770884DF71EA24D29A5C9 /* SwiftTermBridge.swift in Sources */,
+				FAEB90826440C1A3F557835D /* ScreenView.swift in Sources */,
+				572E3C03F62AE89A75F88731 /* ScreenViewModel.swift in Sources */,
+				E735828F2B70D6ACD214CDF4 /* VNCBridge.swift in Sources */,
+				40E64E5CE3DF0A61F17860A1 /* NetworkMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

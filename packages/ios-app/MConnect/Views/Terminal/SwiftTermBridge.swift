@@ -1,11 +1,15 @@
 import SwiftUI
+import UIKit
 
 #if canImport(SwiftTerm)
 import SwiftTerm
 
-/// UIViewRepresentable bridge that hosts SwiftTerm's TerminalView.
+/// UIViewRepresentable bridge that hosts SwiftTerm's TerminalView (UIKit class).
 ///
-/// Feeds raw PTY bytes from TerminalBuffer to SwiftTerm's VT100/xterm emulator,
+/// Use `SwiftTerm.TerminalView` everywhere — `TerminalView` (unqualified) collides with
+/// MConnect's existing SwiftUI `TerminalView` struct.
+///
+/// Feeds raw PTY bytes from `TerminalBuffer` to SwiftTerm's VT100/xterm emulator,
 /// reports user keyboard input back via the view model, and forwards terminal
 /// size changes so the server can resize the PTY.
 struct SwiftTermBridge: UIViewRepresentable {
@@ -15,12 +19,14 @@ struct SwiftTermBridge: UIViewRepresentable {
         Coordinator(viewModel: viewModel)
     }
 
-    func makeUIView(context: Context) -> TerminalView {
-        let tv = TerminalView(frame: .zero)
+    func makeUIView(context: Context) -> SwiftTerm.TerminalView {
+        // SwiftTerm's TerminalView requires an explicit font parameter
+        let font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let tv = SwiftTerm.TerminalView(frame: .zero, font: font)
         tv.terminalDelegate = context.coordinator
-        tv.backgroundColor = .black
+        tv.backgroundColor = UIColor.black
 
-        // Report initial terminal dimensions once the view is set up
+        // Report initial terminal dimensions to the view model
         let cols = tv.getTerminal().cols
         let rows = tv.getTerminal().rows
         viewModel.handleTerminalSizeChange(cols: cols, rows: rows)
@@ -28,40 +34,41 @@ struct SwiftTermBridge: UIViewRepresentable {
         return tv
     }
 
-    func updateUIView(_ uiView: TerminalView, context: Context) {
+    func updateUIView(_ uiView: SwiftTerm.TerminalView, context: Context) {
         guard let agentId = viewModel.activeAgent?.id else { return }
 
         let raw = viewModel.terminalBuffer.rawOutput(forAgent: agentId)
         let last = context.coordinator.lastFedOutput
 
-        // Only feed bytes that haven't been fed yet
-        guard raw.count > last.count else {
-            // Agent switched or buffer cleared — reset and re-feed everything
-            if raw != last {
-                context.coordinator.lastFedOutput = ""
-                if !raw.isEmpty, let data = raw.data(using: .utf8) {
-                    data.withUnsafeBytes { raw in
-                        let buf = raw.bindMemory(to: UInt8.self)
-                        uiView.feed(byteArray: ArraySlice(buf))
-                    }
-                    context.coordinator.lastFedOutput = raw
-                }
-            }
+        // Agent switched or buffer cleared → reset and re-feed everything
+        if raw.count < last.count || (raw.count == last.count && raw != last) {
+            context.coordinator.lastFedOutput = ""
+            feed(raw, into: uiView, coordinator: context.coordinator)
             return
         }
 
-        let newChunk = String(raw.dropFirst(last.count))
-        if !newChunk.isEmpty, let data = newChunk.data(using: .utf8) {
-            data.withUnsafeBytes { rawBuf in
-                let buf = rawBuf.bindMemory(to: UInt8.self)
-                uiView.feed(byteArray: ArraySlice(buf))
-            }
-            context.coordinator.lastFedOutput = raw
+        // Append-only: feed only the new tail
+        if raw.count > last.count {
+            let newChunk = String(raw.dropFirst(last.count))
+            feed(newChunk, into: uiView, coordinator: context.coordinator, fullRaw: raw)
         }
     }
 
-    // MARK: - Coordinator
+    private func feed(_ chunk: String, into uiView: SwiftTerm.TerminalView, coordinator: Coordinator, fullRaw: String? = nil) {
+        guard !chunk.isEmpty, let data = chunk.data(using: .utf8) else { return }
+        data.withUnsafeBytes { raw in
+            let buf = raw.bindMemory(to: UInt8.self)
+            uiView.feed(byteArray: ArraySlice(buf))
+        }
+        coordinator.lastFedOutput = fullRaw ?? chunk
+    }
 
+    // MARK: - Coordinator
+    //
+    // Marked @MainActor so calls to main-actor-isolated TerminalViewModel methods
+    // are valid. SwiftTerm fires delegate callbacks on the main thread already.
+
+    @MainActor
     final class Coordinator: NSObject, TerminalViewDelegate {
         let viewModel: TerminalViewModel
         /// Tracks how much of the raw buffer has already been fed to SwiftTerm.
@@ -73,27 +80,31 @@ struct SwiftTermBridge: UIViewRepresentable {
 
         // MARK: TerminalViewDelegate
 
-        func send(source: TerminalView, data: ArraySlice<UInt8>) {
+        func send(source: SwiftTerm.TerminalView, data: ArraySlice<UInt8>) {
             viewModel.sendInputBytes(Data(data))
         }
 
-        func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {
+        func sizeChanged(source: SwiftTerm.TerminalView, newCols: Int, newRows: Int) {
             viewModel.handleTerminalSizeChange(cols: newCols, rows: newRows)
         }
 
-        func setTerminalTitle(source: TerminalView, title: String) {}
+        func setTerminalTitle(source: SwiftTerm.TerminalView, title: String) {}
 
-        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
+        func hostCurrentDirectoryUpdate(source: SwiftTerm.TerminalView, directory: String?) {}
 
-        func scrolled(source: TerminalView, position: Double) {}
+        func scrolled(source: SwiftTerm.TerminalView, position: Double) {}
 
-        func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
+        func rangeChanged(source: SwiftTerm.TerminalView, startY: Int, endY: Int) {}
 
-        func clipboardCopy(source: TerminalView, content: Data) {
+        func bell(source: SwiftTerm.TerminalView) {}
+
+        func iTermContent(source: SwiftTerm.TerminalView, content: ArraySlice<UInt8>) {}
+
+        func clipboardCopy(source: SwiftTerm.TerminalView, content: Data) {
             UIPasteboard.general.string = String(data: content, encoding: .utf8)
         }
 
-        func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {
+        func requestOpenLink(source: SwiftTerm.TerminalView, link: String, params: [String: String]) {
             if let url = URL(string: link) {
                 UIApplication.shared.open(url)
             }

@@ -7,7 +7,11 @@ import UIKit
 // The app compiles and runs without the package; a placeholder is shown instead.
 // Add the package via Xcode → File → Add Package Dependencies (see docs/VNC-INTEGRATION.md).
 
-#if canImport(RoyalVNCKit)
+// Disabled until VNCBridge is rewritten against actual RoyalVNCKit @main API.
+// The original `#if canImport(RoyalVNCKit)` block targets API names that drifted
+// (VNCConnectionSettings, didCreateFramebuffer, sendPointerEvent). Stub is shown
+// in the Screen tab in the meantime. Re-enable by switching back to canImport.
+#if false
 import RoyalVNCKit
 
 // MARK: - FramebufferHostVC
