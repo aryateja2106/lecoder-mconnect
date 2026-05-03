@@ -19,6 +19,7 @@ struct ScreenView: View {
             .navigationTitle("Screen")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .tint(.primary)
     }
 
     // MARK: - Connection form (empty / error state)
@@ -37,7 +38,7 @@ struct ScreenView: View {
             VStack(spacing: 12) {
                 Image(systemName: "rectangle.fill.on.rectangle.fill")
                     .font(.system(size: 48))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(.primary)
                 Text("Connect to a Mac")
                     .font(.title2.weight(.semibold))
                 Text("Share your Mac's screen using Screen Sharing or Remote Desktop.")
@@ -81,8 +82,8 @@ struct ScreenView: View {
 
             if case .failed(let msg) = viewModel.connectionState {
                 Label(msg, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-                    .font(.footnote)
+                    .foregroundStyle(.primary)
+                    .font(.footnote.weight(.semibold))
             }
         }
     }
