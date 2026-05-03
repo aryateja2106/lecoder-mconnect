@@ -1062,16 +1062,24 @@ export class WSHub {
         reasonContext: { agentProvider: 'mconnect', lastUserMessage: lastUser },
       });
       if (outcome.kind === 'block') {
-        // Vault was requested, command needs it, lockshell binary is
-        // missing. Refuse — exec'ing the raw command would either leak a
-        // `{{...}}` literal into the agent's session (confusing) or, if
-        // a tool happens to expand it differently, leak the wrong thing.
+        // Two block kinds:
+        //   - binary_missing: lockshell isn't installed. Operator must
+        //     install or drop --vault.
+        //   - policy_violation: command shape is unsafe for vault
+        //     resolution (shell metacharacters that could exfiltrate
+        //     the secret around lockshell's redactor). Operator can
+        //     rewrite the command or, if explicitly safe, run with
+        //     --vault-permissive.
+        const blockReason =
+          outcome.reason === 'binary_missing'
+            ? `lockshell required to resolve ${outcome.placeholders.join(', ')}; install with the lockshell installer or run with --vault none`
+            : `Vault strict mode blocked: ${outcome.blockedPattern}. ${outcome.explanation}`;
         getOpikTracer().commandExecute(sessionId, {
           agentId,
           command: sanitized,
           source: clientType,
           blocked: true,
-          blockReason: `Vault required (${outcome.placeholders.join(', ')}) but lockshell binary not found`,
+          blockReason,
           requiresApproval: false,
           timestamp: Date.now(),
         });
@@ -1079,7 +1087,7 @@ export class WSHub {
           type: 'command_blocked',
           agentId,
           command: sanitized,
-          reason: `lockshell required to resolve ${outcome.placeholders.join(', ')}; install with the lockshell installer or run with --vault none`,
+          reason: blockReason,
           timestamp: Date.now(),
         });
         return;

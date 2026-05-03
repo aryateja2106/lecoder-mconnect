@@ -54,6 +54,13 @@ export interface SessionConfig {
    * to `'none'` for backwards compatibility.
    */
   vault?: 'lockshell' | 'none';
+  /**
+   * Vault template-allowlist mode. `'strict'` (default) blocks shell
+   * composition metacharacters in placeholder-bearing commands;
+   * `'permissive'` allows them. Strict mode closes the auditor's
+   * "agent-controlled bash composition" hole.
+   */
+  vaultStrictness?: 'strict' | 'permissive';
 }
 
 /**
@@ -261,6 +268,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     const { discoverLockshell, MIN_LOCKSHELL_VERSION, versionAtLeast } = await import(
       './vault/discover.js'
     );
+    const strictness = config.vaultStrictness ?? 'strict';
     const found = discoverLockshell();
     if (!found.binary) {
       p.log.warning(
@@ -268,16 +276,23 @@ export async function startSession(config: SessionConfig): Promise<void> {
           found.failure ?? 'unknown'
         }). Vault features disabled until the binary is installed.`
       );
-      wsHub.setVaultMode({ provider: 'lockshell', binary: null });
+      wsHub.setVaultMode({ provider: 'lockshell', binary: null, strictness });
     } else if (found.version && !versionAtLeast(found.version, MIN_LOCKSHELL_VERSION)) {
       p.log.warning(
         `lockshell ${found.version} is older than the minimum supported ${MIN_LOCKSHELL_VERSION}. Vault may misbehave.`
       );
-      wsHub.setVaultMode({ provider: 'lockshell', binary: found.binary });
+      wsHub.setVaultMode({ provider: 'lockshell', binary: found.binary, strictness });
     } else {
-      wsHub.setVaultMode({ provider: 'lockshell', binary: found.binary });
+      wsHub.setVaultMode({ provider: 'lockshell', binary: found.binary, strictness });
       if (!quiet) {
-        p.log.info(`Vault: lockshell ${found.version ?? '(version unknown)'} at ${found.binary}`);
+        p.log.info(
+          `Vault: lockshell ${found.version ?? '(version unknown)'} at ${found.binary} (${strictness})`
+        );
+        if (strictness === 'permissive') {
+          p.log.warning(
+            'vault-permissive mode is active — shell metacharacters in templates are NOT blocked. Use only when you trust the operator and agent stack.'
+          );
+        }
       }
     }
   } else {

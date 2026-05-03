@@ -21,10 +21,12 @@
 export { detectPlaceholders, hasPlaceholders } from './detect.js';
 export { wrapWithLockshell, shellSingleQuote } from './wrap.js';
 export { inferReason } from './reason.js';
+export { checkTemplate, DEFAULT_STRICTNESS, type VaultStrictness } from './policy.js';
 
 import { detectPlaceholders } from './detect.js';
 import { wrapWithLockshell } from './wrap.js';
 import { inferReason, type ReasonContext } from './reason.js';
+import { checkTemplate, DEFAULT_STRICTNESS, type VaultStrictness } from './policy.js';
 
 export type VaultProvider = 'lockshell' | 'none';
 
@@ -37,6 +39,13 @@ export interface VaultMode {
    * agent-controlled `$PATH` mutation cannot redirect us to a fake.
    */
   binary: string | null;
+  /**
+   * Template-allowlist strictness. `'strict'` (default) blocks any
+   * placeholder-bearing command that contains shell composition
+   * metacharacters (`;`, `&&`, `>`, `$(...)`, backticks, pipe-to-net).
+   * `'permissive'` accepts everything. See `./policy.ts`.
+   */
+  strictness?: VaultStrictness;
 }
 
 export interface RewriteRequest {
@@ -47,6 +56,13 @@ export interface RewriteRequest {
 export type RewriteOutcome =
   | { kind: 'noop'; reason: 'disabled' | 'no_placeholders' }
   | { kind: 'block'; reason: 'binary_missing'; placeholders: string[] }
+  | {
+      kind: 'block';
+      reason: 'policy_violation';
+      placeholders: string[];
+      blockedPattern: string;
+      explanation: string;
+    }
   | {
       kind: 'rewritten';
       command: string;
@@ -69,6 +85,22 @@ export function rewriteCommand(mode: VaultMode, req: RewriteRequest): RewriteOut
     // placeholder pattern (or, worse, an unexpanded literal) into the
     // agent's session.
     return { kind: 'block', reason: 'binary_missing', placeholders: detect.names };
+  }
+  // Template-allowlist policy: refuse commands with shell composition
+  // metacharacters when running in strict mode. Closes MAJOR #1 from
+  // the lockshell production audit (bash redirection / command sub
+  // / compound commands could exfiltrate the resolved secret around
+  // lockshell's stdout redactor).
+  const strictness = mode.strictness ?? DEFAULT_STRICTNESS;
+  const verdict = checkTemplate(req.command, strictness);
+  if (!verdict.allowed) {
+    return {
+      kind: 'block',
+      reason: 'policy_violation',
+      placeholders: detect.names,
+      blockedPattern: verdict.blockedPattern ?? 'unknown',
+      explanation: verdict.reason ?? 'vault strict mode rejected the template shape',
+    };
   }
   const reason = inferReason(req.reasonContext);
   return {
