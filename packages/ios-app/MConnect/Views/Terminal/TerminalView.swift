@@ -326,6 +326,12 @@ class TerminalViewModel: ObservableObject {
         sendInput(key)
     }
 
+    /// Send raw bytes from SwiftTerm's keyboard input to the active agent.
+    func sendInputBytes(_ data: Data) {
+        guard let text = String(data: data, encoding: .utf8) else { return }
+        sendInput(text)
+    }
+
     // MARK: - Approval
 
     func approveCommand() {
