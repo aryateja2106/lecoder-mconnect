@@ -56,7 +56,10 @@ import { Command } from 'commander';
 import { AGENT_PRESETS, type AgentConfig, getDefaultShell } from './agents/types.js';
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
+import { createFleetCommand } from './cli/commands/fleet.js';
 import { createSessionCommand } from './cli/commands/session.js';
+import { createSkillsCommand } from './cli/commands/skills.js';
+import { createTaskCommand } from './cli/commands/task.js';
 import { getContainerManager } from './container/index.js';
 import { getNodePtyError, isNodePtyAvailable, printDiagnostics, runDiagnostics } from './doctor.js';
 import { startSession } from './session.js';
@@ -72,6 +75,9 @@ program
 
 // Add subcommand groups
 program.addCommand(createDaemonCommand());
+program.addCommand(createFleetCommand());
+program.addCommand(createTaskCommand());
+program.addCommand(createSkillsCommand());
 
 // Add session commands
 const sessionCmd = createSessionCommand();
@@ -302,6 +308,19 @@ program
     console.log('');
     console.log(chalk.cyan('  Daemon:'));
     console.log('    npx lecoder-mconnect daemon start|stop|status|logs');
+    console.log('');
+    console.log(chalk.cyan('  Fleet (LeSearch hub, set LECODER_HUB_URL):'));
+    console.log('    npx lecoder-mconnect fleet ls');
+    console.log('    npx lecoder-mconnect fleet send <runtimeId> "task title"');
+    console.log('');
+    console.log(chalk.cyan('  Tasks:'));
+    console.log('    npx lecoder-mconnect task new "fix flaky test"');
+    console.log('    npx lecoder-mconnect task ls --status running');
+    console.log('    npx lecoder-mconnect task view <task-id>');
+    console.log('');
+    console.log(chalk.cyan('  Skills:'));
+    console.log('    npx lecoder-mconnect skills add getpaseo/paseo');
+    console.log('    npx lecoder-mconnect skills ls');
     console.log('');
   });
 
