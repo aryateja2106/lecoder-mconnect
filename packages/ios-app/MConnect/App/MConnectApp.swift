@@ -62,6 +62,12 @@ struct ContentView: View {
                     Label("Vault", systemImage: "lock.shield")
                 }
                 .tag(Router.Tab.vault)
+
+            LazyView { ScreenView() }
+                .tabItem {
+                    Label("Screen", systemImage: "rectangle.fill.on.rectangle.fill")
+                }
+                .tag(Router.Tab.screen)
         }
         .onAppear {
             let launchDuration = ProcessInfo.processInfo.systemUptime - Self.processStartTime
