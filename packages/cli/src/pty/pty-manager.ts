@@ -65,9 +65,11 @@ function fixSpawnHelperPermissions(): void {
     join(__dirname, '..', '..', '..', '..', 'node-pty', 'prebuilds'),
     join(__dirname, '..', '..', '..', '..', '..', 'node-pty', 'prebuilds'),
     // npx cache paths (macOS/Linux)
-    ...(process.env.HOME ? [
-      join(process.env.HOME, '.npm', '_npx'),  // npx cache root
-    ] : []),
+    ...(process.env.HOME
+      ? [
+          join(process.env.HOME, '.npm', '_npx'), // npx cache root
+        ]
+      : []),
   ];
 
   for (const prebuildsPath of possiblePaths) {
@@ -78,7 +80,9 @@ function fixSpawnHelperPermissions(): void {
   }
 
   if (!fixed) {
-    console.warn('[PTY] Could not find spawn-helper to fix permissions. If PTY spawn fails, try: npm rebuild node-pty');
+    console.warn(
+      '[PTY] Could not find spawn-helper to fix permissions. If PTY spawn fails, try: npm rebuild node-pty'
+    );
   }
 }
 
@@ -94,7 +98,10 @@ function fixPermissionsInDir(dir: string, includeNodeFiles = false): void {
 
       if (entry.isDirectory()) {
         fixPermissionsInDir(fullPath, includeNodeFiles);
-      } else if (entry.name === 'spawn-helper' || (includeNodeFiles && entry.name.endsWith('.node'))) {
+      } else if (
+        entry.name === 'spawn-helper' ||
+        (includeNodeFiles && entry.name.endsWith('.node'))
+      ) {
         try {
           const stats = statSync(fullPath);
           const hasExec = (stats.mode & 0o111) !== 0;
@@ -417,10 +424,12 @@ export class PTYManager {
 
         if (attempt < maxRetries && errMsg.includes('posix_spawnp')) {
           // posix_spawnp failure is often a permissions issue - retry after fixing
-          console.warn(`[PTY] Spawn attempt ${attempt + 1} failed (posix_spawnp), fixing permissions and retrying...`);
+          console.warn(
+            `[PTY] Spawn attempt ${attempt + 1} failed (posix_spawnp), fixing permissions and retrying...`
+          );
           fixSpawnHelperPermissions();
           // Small delay before retry
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
           continue;
         }
 
@@ -432,9 +441,9 @@ export class PTYManager {
         if (errMsg.includes('posix_spawnp')) {
           throw new Error(
             `Failed to spawn PTY: ${errMsg}\nCommand: ${options.command}\nCWD: ${cwd}\n\n` +
-            `This is usually a node-pty spawn-helper permissions issue.\n` +
-            `Try running: npm rebuild node-pty\n` +
-            `Or: chmod +x $(find node_modules/node-pty -name spawn-helper)`
+              `This is usually a node-pty spawn-helper permissions issue.\n` +
+              `Try running: npm rebuild node-pty\n` +
+              `Or: chmod +x $(find node_modules/node-pty -name spawn-helper)`
           );
         }
         throw new Error(`Failed to spawn PTY: ${errMsg}\nCommand: ${options.command}\nCWD: ${cwd}`);
@@ -442,7 +451,9 @@ export class PTYManager {
     }
 
     if (!ptyProcess) {
-      throw new Error(`Failed to spawn PTY after ${maxRetries + 1} attempts\nCommand: ${options.command}\nCWD: ${cwd}`);
+      throw new Error(
+        `Failed to spawn PTY after ${maxRetries + 1} attempts\nCommand: ${options.command}\nCWD: ${cwd}`
+      );
     }
 
     const instance = new PTYInstanceImpl(id, ptyProcess);

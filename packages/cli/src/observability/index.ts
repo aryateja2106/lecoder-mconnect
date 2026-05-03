@@ -3,24 +3,23 @@
  */
 
 export {
-  MConnectObservability,
-  getObservability,
-  initObservabilityFromEnv,
-  type OpikConfig,
-  type SessionTraceConfig,
-  type MConnectMetrics,
-} from './opik.js';
-
-export {
-  CommandSafetyMetric,
-  AgentToolSelectionMetric,
-  SessionHealthMetric,
   AgentCoordinationMetric,
-  createMetrics,
-  type CommandSafetyScore,
-  type AgentToolSelectionScore,
-  type SessionHealthScore,
   type AgentCoordinationScore,
+  AgentToolSelectionMetric,
+  type AgentToolSelectionScore,
+  CommandSafetyMetric,
+  type CommandSafetyScore,
+  createMetrics,
   type HealthComponent,
   type MetricSet,
+  SessionHealthMetric,
+  type SessionHealthScore,
 } from './metrics.js';
+export {
+  getObservability,
+  initObservabilityFromEnv,
+  type MConnectMetrics,
+  MConnectObservability,
+  type OpikConfig,
+  type SessionTraceConfig,
+} from './opik.js';
