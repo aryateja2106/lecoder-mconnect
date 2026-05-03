@@ -87,6 +87,11 @@ program
     'Agent preset (single, research-spec-test, dev-review, shell-only, container-dev)'
   )
   .option('-g, --guardrails <level>', 'Guardrails level (default, strict, permissive, none)')
+  .option(
+    '--vault <provider>',
+    'Secret vault provider (lockshell, none). When `lockshell`, commands containing {{PLACEHOLDER}} patterns are routed through `lockshell run` so secret values never reach the agent or the tunnel.',
+    'none'
+  )
   .option('--port <number>', 'Server port (default: 8765)')
   .option('--no-tmux', 'Disable tmux visualization')
   .option('-y, --yes', 'Skip interactive wizard, use defaults (preset: shell-only, guardrails: default)')
@@ -308,6 +313,8 @@ program
 interface WizardOptions {
   preset?: string;
   guardrails?: string;
+  /** Secret vault provider: `'lockshell'` to enable, `'none'` (default) to disable. */
+  vault?: 'lockshell' | 'none' | string;
   dir?: string;
   tmux?: boolean;
   port?: string;
@@ -316,6 +323,14 @@ interface WizardOptions {
   yes?: boolean;
   json?: boolean;
   timeout?: string;
+}
+
+/**
+ * Normalise the `--vault` flag to the SessionConfig literal type.
+ * Anything other than the documented values falls back to `'none'`.
+ */
+function resolveVault(input: string | undefined): 'lockshell' | 'none' {
+  return input === 'lockshell' ? 'lockshell' : 'none';
 }
 
 async function quickStart(options: WizardOptions): Promise<void> {
@@ -355,6 +370,7 @@ async function quickStart(options: WizardOptions): Promise<void> {
       webUrl: options.webUrl,
       jsonOutput,
       timeout: parseInt(options.timeout || '60', 10),
+      vault: resolveVault(options.vault),
     });
   } catch (error) {
     if (jsonOutput) {
@@ -570,6 +586,7 @@ async function runWizard(options: WizardOptions): Promise<void> {
       port: options.port ? parseInt(options.port, 10) : undefined,
       webUrl: options.webUrl,
       timeout: parseInt(options.timeout || '60', 10),
+      vault: resolveVault(options.vault),
     });
   } catch (error) {
     p.log.error(error instanceof Error ? error.message : 'Unknown error');

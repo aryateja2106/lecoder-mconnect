@@ -47,6 +47,13 @@ export interface SessionConfig {
   jsonOutput?: boolean;
   /** Session timeout in minutes (default: 60). 0 = no timeout. */
   timeout?: number;
+  /**
+   * Secret-vault provider. When `'lockshell'`, commands containing
+   * `{{PLACEHOLDER}}` patterns are routed through `lockshell run` so
+   * the secret value never reaches the agent or the tunnel. Defaults
+   * to `'none'` for backwards compatibility.
+   */
+  vault?: 'lockshell' | 'none';
 }
 
 /**
@@ -246,6 +253,36 @@ export async function startSession(config: SessionConfig): Promise<void> {
     rateLimitWindow: 60000,
   });
   wsHub.setGuardrails(guardrailConfig);
+
+  // Configure secret vault. Default is `'none'` (no rewrite). When the
+  // operator opted into `--vault lockshell`, discover the binary at
+  // startup so we never trust an agent-controlled $PATH at write time.
+  if (config.vault === 'lockshell') {
+    const { discoverLockshell, MIN_LOCKSHELL_VERSION, versionAtLeast } = await import(
+      './vault/discover.js'
+    );
+    const found = discoverLockshell();
+    if (!found.binary) {
+      p.log.warning(
+        `--vault lockshell requested but lockshell binary not found (${
+          found.failure ?? 'unknown'
+        }). Vault features disabled until the binary is installed.`
+      );
+      wsHub.setVaultMode({ provider: 'lockshell', binary: null });
+    } else if (found.version && !versionAtLeast(found.version, MIN_LOCKSHELL_VERSION)) {
+      p.log.warning(
+        `lockshell ${found.version} is older than the minimum supported ${MIN_LOCKSHELL_VERSION}. Vault may misbehave.`
+      );
+      wsHub.setVaultMode({ provider: 'lockshell', binary: found.binary });
+    } else {
+      wsHub.setVaultMode({ provider: 'lockshell', binary: found.binary });
+      if (!quiet) {
+        p.log.info(`Vault: lockshell ${found.version ?? '(version unknown)'} at ${found.binary}`);
+      }
+    }
+  } else {
+    wsHub.setVaultMode({ provider: 'none', binary: null });
+  }
   initStatus.websocket = { success: true };
 
   // Create agent manager (T009 - graceful fallback)

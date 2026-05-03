@@ -15,6 +15,7 @@ import { InputArbiter } from '../input/InputArbiter.js';
 import { getOpikTracer } from '../opik/index.js';
 import { getObservability } from '../observability/index.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
+import { rewriteCommand, type VaultMode } from '../vault/index.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { ClientType, ControlState, Priority } from '../session/types.js';
 import type {
@@ -111,6 +112,8 @@ export class WSHub {
   private sessionManager: SessionManager | null = null;
   private isReadOnly: boolean = false;
   private guardrailConfig: GuardrailConfig | null = null;
+  private vaultMode: VaultMode = { provider: 'none', binary: null };
+  private lastUserMessage: Map<string, string> = new Map(); // sessionId -> last operator message
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private sessionArbiters: Map<string, InputArbiter> = new Map();
   private controlRequestRateLimiter: Map<string, number> = new Map(); // clientId -> last request time
@@ -180,6 +183,17 @@ export class WSHub {
    */
   setGuardrails(config: GuardrailConfig): void {
     this.guardrailConfig = config;
+  }
+
+  /**
+   * Configure the vault rewrite middleware. When the provider is
+   * `'lockshell'` and a binary path is set, every command that passes
+   * the guardrail check is screened for `{{PLACEHOLDER}}` patterns and
+   * rewritten through `lockshell run` before reaching the agent's PTY.
+   * See `src/vault/` for the policy.
+   */
+  setVaultMode(mode: VaultMode): void {
+    this.vaultMode = mode;
   }
 
   /**
@@ -1032,20 +1046,77 @@ export class WSHub {
       }
     }
 
+    // Vault rewrite: if `--vault lockshell` is enabled, screen the
+    // (already-guardrail-allowed) command for `{{PLACEHOLDER}}` patterns
+    // and route it through `lockshell run`. Original placeholder template
+    // never reaches the agent's argv; resolved values are injected by
+    // lockshell as env vars and never appear on the WebSocket frame.
+    let toWrite = sanitized;
+    let vaultEngaged = false;
+    let vaultPlaceholders: string[] = [];
+    let vaultAuditReason: string | undefined;
+    if (isCommand) {
+      const lastUser = this.lastUserMessage.get(sessionId);
+      const outcome = rewriteCommand(this.vaultMode, {
+        command: sanitized,
+        reasonContext: { agentProvider: 'mconnect', lastUserMessage: lastUser },
+      });
+      if (outcome.kind === 'block') {
+        // Vault was requested, command needs it, lockshell binary is
+        // missing. Refuse — exec'ing the raw command would either leak a
+        // `{{...}}` literal into the agent's session (confusing) or, if
+        // a tool happens to expand it differently, leak the wrong thing.
+        getOpikTracer().commandExecute(sessionId, {
+          agentId,
+          command: sanitized,
+          source: clientType,
+          blocked: true,
+          blockReason: `Vault required (${outcome.placeholders.join(', ')}) but lockshell binary not found`,
+          requiresApproval: false,
+          timestamp: Date.now(),
+        });
+        this.broadcast({
+          type: 'command_blocked',
+          agentId,
+          command: sanitized,
+          reason: `lockshell required to resolve ${outcome.placeholders.join(', ')}; install with the lockshell installer or run with --vault none`,
+          timestamp: Date.now(),
+        });
+        return;
+      }
+      if (outcome.kind === 'rewritten') {
+        toWrite = outcome.command;
+        vaultEngaged = true;
+        vaultPlaceholders = outcome.placeholders;
+        vaultAuditReason = outcome.auditReason;
+      }
+    }
+
     // Track executed command with Opik (only for actual commands, not just keystrokes)
     if (isCommand) {
       getOpikTracer().commandExecute(sessionId, {
         agentId,
+        // Trace the ORIGINAL placeholder-bearing command, not the rewritten
+        // line, so the trace shows what the operator/agent intended.
+        // Vault metadata flags engagement separately.
         command: sanitized,
         source: clientType,
         blocked: false,
         requiresApproval: false,
         timestamp: Date.now(),
-      });
+        // Optional vault metadata; consumers that don't expect these
+        // fields will ignore them (Opik traceevent payload is
+        // schemaless beyond required keys).
+        ...(vaultEngaged && {
+          vaultEngaged: true,
+          vaultPlaceholders,
+          vaultAuditReason,
+        }),
+      } as Parameters<ReturnType<typeof getOpikTracer>['commandExecute']>[1]);
     }
 
-    // Send to agent
-    const success = this.agentManager.writeToAgent(agentId, sanitized);
+    // Send to agent (rewritten line if vault engaged, original otherwise)
+    const success = this.agentManager.writeToAgent(agentId, toWrite);
     if (!success) {
       this.sendToClient(ws, {
         type: 'error',

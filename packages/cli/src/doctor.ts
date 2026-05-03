@@ -499,7 +499,51 @@ export async function runDiagnostics(): Promise<DiagnosticResult[]> {
   results.push(checkIpcSocket());
   results.push(checkDatabase());
 
+  // Optional: lockshell vault. Informational unless `--vault lockshell`
+  // is selected at session start (the session bootstrap surfaces a
+  // separate warning in that case).
+  results.push(checkLockshell());
+
   return results;
+}
+
+/**
+ * Check whether the lockshell secret broker is installed and usable as
+ * an MConnect vault provider. The check is always informational here;
+ * `--vault lockshell` makes it required at runtime.
+ */
+function checkLockshell(): DiagnosticResult {
+  if (!commandExists('lockshell')) {
+    return {
+      name: 'lockshell',
+      status: 'ok',
+      message: 'not installed (vault disabled)',
+      fix: 'Optional: install lockshell to enable secret-vault routing. See https://github.com/aryateja2106/lockshell',
+    };
+  }
+  const version = getVersion('lockshell');
+  if (!version) {
+    return {
+      name: 'lockshell',
+      status: 'warning',
+      message: 'lockshell present but version probe failed',
+      fix: 'Run: lockshell --version  (then file an issue if output is unexpected)',
+    };
+  }
+  // Version comes back like: `lockshell 0.1.4 (...)`. Extract the bare number.
+  const m = version.match(/\b(\d+\.\d+\.\d+(?:[-+][\w.]+)?)\b/);
+  if (!m) {
+    return {
+      name: 'lockshell',
+      status: 'warning',
+      message: `installed (${version}) — version unreadable`,
+    };
+  }
+  return {
+    name: 'lockshell',
+    status: 'ok',
+    message: `installed (${m[1]})`,
+  };
 }
 
 /**
