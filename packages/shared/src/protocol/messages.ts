@@ -70,6 +70,31 @@ export interface AuthMessage extends BaseMessage {
   protocolVersion: typeof PROTOCOL_VERSION;
   /** Client device type */
   clientType: ClientType;
+  /** v3.1: capabilities the client supports (e.g. 'desktop:session_list', 'worktree:lifecycle') */
+  clientCapabilities?: string[];
+}
+
+/**
+ * v3.1 Local pairing auth message — CLI-only direct-attach auth path.
+ *
+ * Used by desktop/iOS clients pairing directly to a CLI instance via QR/pairing token,
+ * bypassing the Bun server's JWT auth. The CLI validates pairingToken against its local
+ * registry (packages/cli/src/security.ts).
+ *
+ * IMPORTANT: The Bun server REJECTS this message type with an `unsupported_capability`
+ * error. JWT remains the only auth path for the server. Endpoint scoping prevents JWT
+ * bypass: this message MUST only be honored by the CLI's WebSocket hub.
+ */
+export interface LocalPairingAuthMessage extends BaseMessage {
+  type: 'local_pairing_auth';
+  /** Local pairing token issued by the CLI (NOT a JWT) */
+  pairingToken: string;
+  /** Protocol version */
+  protocolVersion: typeof PROTOCOL_VERSION;
+  /** Client device type */
+  clientType: ClientType;
+  /** v3.1: capabilities the client supports */
+  clientCapabilities?: string[];
 }
 
 /**
@@ -177,6 +202,7 @@ export interface DeviceTokenRegisterMessage extends BaseMessage {
  */
 export type ClientMessage =
   | AuthMessage
+  | LocalPairingAuthMessage
   | SessionAttachMessage
   | SessionDetachMessage
   | TerminalInputMessage
@@ -205,6 +231,28 @@ export interface AuthSuccessMessage extends BaseMessage {
   clientType: ClientType;
   /** Authenticated user ID */
   userId: string;
+  /** Server timestamp */
+  timestamp: number;
+  /** v3.1: union of client+server capabilities for this connection */
+  serverCapabilities?: string[];
+}
+
+/**
+ * v3.1 Unsupported capability error.
+ *
+ * Sent when a client requests a message family the server does not support, or
+ * when a client (e.g. iOS) connects to the Bun server using `local_pairing_auth`
+ * (which is CLI-only). Replaces the previous silent `console.warn` drop at
+ * packages/cli/src/ws/ws-hub.ts:524-525.
+ */
+export interface UnsupportedCapabilityMessage extends BaseMessage {
+  type: 'unsupported_capability';
+  /** The capability or message type that is not supported */
+  capability: string;
+  /** Optional: the original message type that triggered the error */
+  requestedMessageType?: string;
+  /** Human-readable reason */
+  reason?: string;
   /** Server timestamp */
   timestamp: number;
 }
@@ -492,6 +540,7 @@ export interface PushNotificationPayload {
 export type ServerMessage =
   | AuthSuccessMessage
   | AuthFailedMessage
+  | UnsupportedCapabilityMessage
   | SessionListMessage
   | SessionStateMessage
   | TerminalOutputMessage
@@ -518,6 +567,7 @@ export type ServerMessage =
 export function isClientMessage(msg: BaseMessage): msg is ClientMessage {
   return [
     'auth',
+    'local_pairing_auth',
     'session_attach',
     'session_detach',
     'terminal_input',
@@ -538,6 +588,7 @@ export function isServerMessage(msg: BaseMessage): msg is ServerMessage {
   return [
     'auth_success',
     'auth_failed',
+    'unsupported_capability',
     'session_list',
     'session_state',
     'terminal_output',

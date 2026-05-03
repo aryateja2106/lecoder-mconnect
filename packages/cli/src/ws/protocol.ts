@@ -256,6 +256,6 @@ export const RATE_LIMITS = {
 // Protocol Constants
 // ============================================
 
-export const PROTOCOL_VERSION = '2.0';
+export const PROTOCOL_VERSION = '3.0';
 export const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
 export const MAX_SCROLLBACK_REQUEST = 1000; // Max lines per request
