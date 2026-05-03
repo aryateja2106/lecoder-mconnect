@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4CD00F76AEC8F559657E4274 /* RoyalVNCKit in Frameworks */ = {isa = PBXBuildFile; productRef = C0C7C550FB7EF2FB83D2438F /* RoyalVNCKit */; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* MConnectApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A2 /* MConnectApp.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A3 /* AppDelegate.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E1F4 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1A4 /* Router.swift */; };
@@ -34,7 +35,7 @@
 		A1B2C3D4E5F6A7B8C9D0E2FA /* VaultItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BA /* VaultItem.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BB /* Assets.xcassets */; };
 		A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */; };
-		/* Test target build files */
+		D1C72020966203C4212EFE47 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = EF937A2CAA02E693785749D4 /* SwiftTerm */; };
 		T1A2B3C4D5E6F7A8B9C0D1E0 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D2A0 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */; };
@@ -83,13 +84,12 @@
 		B1C2D3E4F5A6B7C8D9E0F1BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1BD /* MConnect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MConnect.entitlements; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionManager.swift; sourceTree = "<group>"; };
-		/* Test target file references */
 		T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthTests.swift; sourceTree = "<group>"; };
+		T1A2B3C4D5E6F7A8B9C0D1E5 /* MConnectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MConnectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		T1A2B3C4D5E6F7A8B9C0D2A1 /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D2A3 /* TokenManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenManagerTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D2A5 /* BackgroundSessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionManagerTests.swift; sourceTree = "<group>"; };
-		T1A2B3C4D5E6F7A8B9C0D1E5 /* MConnectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MConnectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +97,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1C72020966203C4212EFE47 /* SwiftTerm in Frameworks */,
+				4CD00F76AEC8F559657E4274 /* RoyalVNCKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -172,14 +174,6 @@
 				D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */,
 			);
 			path = Services;
-			sourceTree = "<group>";
-		};
-		D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */ = {
-			isa = PBXGroup;
-			children = (
-				B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */,
-			);
-			path = Background;
 			sourceTree = "<group>";
 		};
 		D1E2F3A4B5C6D7E8F9A0B1C8 /* Models */ = {
@@ -276,6 +270,14 @@
 			path = Notifications;
 			sourceTree = "<group>";
 		};
+		D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */ = {
+			isa = PBXGroup;
+			children = (
+				B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */,
+			);
+			path = Background;
+			sourceTree = "<group>";
+		};
 		T1A2B3C4D5E6F7A8B9C0D1E7 /* MConnectTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -304,6 +306,10 @@
 			dependencies = (
 			);
 			name = MConnect;
+			packageProductDependencies = (
+				EF937A2CAA02E693785749D4 /* SwiftTerm */,
+				C0C7C550FB7EF2FB83D2438F /* RoyalVNCKit */,
+			);
 			productName = MConnect;
 			productReference = B1C2D3E4F5A6B7C8D9E0F1A0 /* MConnect.app */;
 			productType = "com.apple.product-type.application";
@@ -354,6 +360,10 @@
 				Base,
 			);
 			mainGroup = D1E2F3A4B5C6D7E8F9A0B1C2;
+			packageReferences = (
+				822B20007451095F22A8D491 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+				B73718E9785DAEA85F8D8010 /* XCRemoteSwiftPackageReference "royalvnc" */,
+			);
 			productRefGroup = D1E2F3A4B5C6D7E8F9A0B1C4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -624,7 +634,6 @@
 			};
 			name = Release;
 		};
-		/* MConnectTests Debug */
 		T1A2B3C4D5E6F7A8B9C0D1ED /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -644,7 +653,6 @@
 			};
 			name = Debug;
 		};
-		/* MConnectTests Release */
 		T1A2B3C4D5E6F7A8B9C0D1EE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -695,6 +703,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		822B20007451095F22A8D491 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.13.0;
+			};
+		};
+		B73718E9785DAEA85F8D8010 /* XCRemoteSwiftPackageReference "royalvnc" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/royalapplications/royalvnc.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C0C7C550FB7EF2FB83D2438F /* RoyalVNCKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B73718E9785DAEA85F8D8010 /* XCRemoteSwiftPackageReference "royalvnc" */;
+			productName = RoyalVNCKit;
+		};
+		EF937A2CAA02E693785749D4 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 822B20007451095F22A8D491 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F1A2B3C4D5E6F7A8B9C0D1E2 /* Project object */;
 }
