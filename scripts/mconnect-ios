@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# mconnect-ios — single-entry CLI for iOS app build/install/test cycle.
+# Wraps xcodebuild + simctl + xcodeproj-gem scripts so agents (and humans)
+# do the whole loop with ONE command and no token-burn on debugging.
+#
+# Usage:
+#   mconnect-ios setup        # add SPM packages + register .swift files in xcodeproj
+#   mconnect-ios build        # xcodebuild for iPhone 17 Pro / iOS 26.4
+#   mconnect-ios install      # install .app on booted sim
+#   mconnect-ios launch       # launch + return PID
+#   mconnect-ios shot [name]  # screenshot to /tmp/mconnect-<name>.png (default: latest)
+#   mconnect-ios cycle        # terminate + reinstall + launch + screenshot
+#   mconnect-ios all          # setup + build + install + launch + shot
+#   mconnect-ios logs         # tail device console for our bundle
+#   mconnect-ios clean        # rm DerivedData for MConnect
+#
+# Exit codes: 0 success, 1 build failed, 2 install failed, 3 launch failed.
+
+set -uo pipefail
+
+REPO_ROOT="${REPO_ROOT:-/Users/aryateja/.superset/worktrees/mconnect/Arya-Teja-Rudraraju/check-what-work-is-done-1}"
+IOS_DIR="$REPO_ROOT/packages/ios-app"
+XCPROJ="$IOS_DIR/MConnect.xcodeproj"
+DEVICE="${MCONNECT_SIM:-iPhone 17 Pro}"
+BUNDLE_ID="com.lecoder.mconnect"
+SCHEME="MConnect"
+LOG=/tmp/mconnect-build.log
+
+color() { printf '\033[%sm%s\033[0m\n' "$1" "$2"; }
+ok()    { color "32" "✓ $*"; }
+err()   { color "31" "✗ $*" >&2; }
+info()  { color "36" "→ $*"; }
+
+cmd_setup() {
+  info "Adding SPM packages + syncing source files…"
+  ruby "$REPO_ROOT/.omc/add-spm-packages.rb"  || { err "spm add failed"; exit 1; }
+  ruby "$REPO_ROOT/.omc/sync-source-files.rb" || { err "source sync failed"; exit 1; }
+  ok "Project sync complete"
+}
+
+cmd_build() {
+  info "Building $SCHEME for $DEVICE…"
+  cd "$IOS_DIR" || exit 1
+  xcodebuild -project MConnect.xcodeproj -scheme "$SCHEME" \
+    -destination "platform=iOS Simulator,name=$DEVICE,OS=latest" \
+    -configuration Debug build > "$LOG" 2>&1
+  local ec=$?
+  if [ $ec -ne 0 ] || ! grep -q "BUILD SUCCEEDED" "$LOG"; then
+    err "BUILD FAILED — first 5 errors:"
+    grep -E "\.swift:[0-9]+.*error:" "$LOG" | head -5 >&2
+    err "Full log: $LOG"
+    return 1
+  fi
+  ok "BUILD SUCCEEDED"
+}
+
+cmd_install() {
+  local app
+  app=$(find ~/Library/Developer/Xcode/DerivedData -path "*MConnect*/Build/Products/Debug-iphonesimulator/MConnect.app" -type d 2>/dev/null | head -1)
+  [ -z "$app" ] && { err "No .app bundle found — run 'mconnect-ios build' first"; return 2; }
+  info "Installing $app on $DEVICE…"
+  xcrun simctl boot "$DEVICE" 2>/dev/null
+  xcrun simctl install "$DEVICE" "$app" || { err "install failed"; return 2; }
+  ok "Installed"
+}
+
+cmd_launch() {
+  info "Launching $BUNDLE_ID on $DEVICE…"
+  open -a Simulator >/dev/null 2>&1
+  local out
+  out=$(xcrun simctl launch "$DEVICE" "$BUNDLE_ID" 2>&1)
+  if [ $? -ne 0 ]; then err "launch failed: $out"; return 3; fi
+  ok "Launched: $out"
+}
+
+cmd_shot() {
+  local name="${1:-latest}"
+  local path="/tmp/mconnect-${name}.png"
+  sleep 1  # let UI settle
+  xcrun simctl io "$DEVICE" screenshot "$path" 2>&1 | tail -1
+  ok "Screenshot: $path"
+  echo "$path"
+}
+
+cmd_cycle() {
+  xcrun simctl terminate "$DEVICE" "$BUNDLE_ID" 2>/dev/null
+  xcrun simctl uninstall "$DEVICE" "$BUNDLE_ID" 2>/dev/null
+  cmd_install || return $?
+  cmd_launch  || return $?
+  cmd_shot "${1:-latest}"
+}
+
+cmd_all() {
+  cmd_setup   || exit 1
+  cmd_build   || exit 1
+  cmd_cycle "${1:-all}"
+}
+
+cmd_logs() {
+  info "Tailing console for $BUNDLE_ID (Ctrl-C to stop)…"
+  xcrun simctl spawn "$DEVICE" log stream --predicate "subsystem == \"com.lecoder.mconnect\"" --level debug
+}
+
+cmd_clean() {
+  local dd
+  dd=$(find ~/Library/Developer/Xcode/DerivedData -name "MConnect-*" -type d -maxdepth 1 2>/dev/null | head -3)
+  [ -z "$dd" ] && { ok "Nothing to clean"; return 0; }
+  echo "Will remove:" >&2
+  echo "$dd" >&2
+  read -p "Confirm? (y/N) " -n 1 -r
+  echo
+  [[ $REPLY =~ ^[Yy]$ ]] && rm -rf $dd && ok "Cleaned"
+}
+
+case "${1:-help}" in
+  setup)    cmd_setup ;;
+  build)    cmd_build ;;
+  install)  cmd_install ;;
+  launch)   cmd_launch ;;
+  shot)     cmd_shot "${2:-latest}" ;;
+  cycle)    cmd_cycle "${2:-cycle}" ;;
+  all)      cmd_all "${2:-all}" ;;
+  logs)     cmd_logs ;;
+  clean)    cmd_clean ;;
+  help|*)
+    sed -n '2,/^# Exit/p' "$0" | sed 's/^# \?//'
+    ;;
+esac
