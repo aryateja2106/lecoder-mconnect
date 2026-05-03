@@ -69,6 +69,7 @@ struct ContentView: View {
                 }
                 .tag(Router.Tab.screen)
         }
+        .tint(.primary)
         .onAppear {
             let launchDuration = ProcessInfo.processInfo.systemUptime - Self.processStartTime
             Logger(subsystem: "com.lecoder.mconnect", category: "LaunchTime")
