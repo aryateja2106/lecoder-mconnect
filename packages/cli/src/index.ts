@@ -14,10 +14,7 @@ import { join, resolve } from 'node:path';
 // Simple .env loader (no external dependency needed)
 function loadEnvFile(): void {
   // Check multiple locations: CWD, then package root
-  const candidates = [
-    join(process.cwd(), '.env'),
-    join(process.cwd(), 'packages', 'cli', '.env'),
-  ];
+  const candidates = [join(process.cwd(), '.env'), join(process.cwd(), 'packages', 'cli', '.env')];
 
   for (const envPath of candidates) {
     if (existsSync(envPath)) {
@@ -32,8 +29,10 @@ function loadEnvFile(): void {
           const key = trimmed.slice(0, eqIdx).trim();
           let value = trimmed.slice(eqIdx + 1).trim();
           // Strip surrounding quotes (single or double)
-          if ((value.startsWith("'") && value.endsWith("'")) ||
-              (value.startsWith('"') && value.endsWith('"'))) {
+          if (
+            (value.startsWith("'") && value.endsWith("'")) ||
+            (value.startsWith('"') && value.endsWith('"'))
+          ) {
             value = value.slice(1, -1);
           }
           // Only set if not already defined (system env takes priority)
@@ -50,6 +49,7 @@ function loadEnvFile(): void {
 }
 
 loadEnvFile();
+
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -97,7 +97,10 @@ program
   .option('-g, --guardrails <level>', 'Guardrails level (default, strict, permissive, none)')
   .option('--port <number>', 'Server port (default: 8765)')
   .option('--no-tmux', 'Disable tmux visualization')
-  .option('-y, --yes', 'Skip interactive wizard, use defaults (preset: shell-only, guardrails: default)')
+  .option(
+    '-y, --yes',
+    'Skip interactive wizard, use defaults (preset: shell-only, guardrails: default)'
+  )
   .option('--json', 'Output session connection info as JSON (implies --yes)')
   .option('-c, --code', '(Deprecated) Pairing code is now always shown')
   .option('--web-url <url>', 'Web app URL (e.g. http://localhost:3000)')
@@ -188,16 +191,22 @@ program
 
       console.log(`\n${chalk.bold('MConnect Session Info')} ${statusBadge}\n`);
       console.log(`  ${chalk.bold('Session ID:')}   ${data.sessionId}`);
-      console.log(`  ${chalk.bold('Pairing Code:')} ${chalk.bgCyan.black.bold(` ${data.pairingCode} `)}`);
+      console.log(
+        `  ${chalk.bold('Pairing Code:')} ${chalk.bgCyan.black.bold(` ${data.pairingCode} `)}`
+      );
       console.log(`  ${chalk.bold('URL:')}          ${chalk.green(data.url)}`);
-      console.log(`  ${chalk.bold('Token:')}        ${options.showToken ? data.token : chalk.dim(`${data.token.substring(0, 8)}... (use --show-token)`)}`);
+      console.log(
+        `  ${chalk.bold('Token:')}        ${options.showToken ? data.token : chalk.dim(`${data.token.substring(0, 8)}... (use --show-token)`)}`
+      );
       console.log(`  ${chalk.bold('Started:')}      ${data.startedAt}`);
       console.log(`  ${chalk.bold('PID:')}          ${data.pid}`);
       console.log(`  ${chalk.bold('Port:')}         ${data.port}`);
       console.log('');
 
       if (!isAlive) {
-        console.log(chalk.yellow('  ⚠  Session process is dead. Run `mconnect stop` to clean up.\n'));
+        console.log(
+          chalk.yellow('  ⚠  Session process is dead. Run `mconnect stop` to clean up.\n')
+        );
       } else if (data.pairingCode) {
         console.log(chalk.dim('  Quick connect: Open the URL above, enter the pairing code'));
         console.log(chalk.dim(`  Stop session:  mconnect stop -d ${options.dir || '.'}`));
@@ -237,7 +246,9 @@ program
       }
 
       if (!isAlive) {
-        console.log(chalk.yellow(`\n  Session ${data.sessionId} is already dead (PID ${data.pid}).`));
+        console.log(
+          chalk.yellow(`\n  Session ${data.sessionId} is already dead (PID ${data.pid}).`)
+        );
         console.log(chalk.dim('  Cleaning up stale session file...\n'));
         unlinkSync(sessionFile);
         console.log(chalk.green('  ✓ Session file removed.\n'));
@@ -246,14 +257,16 @@ program
 
       // Send signal to stop the session
       const signal = options.force ? 'SIGKILL' : 'SIGTERM';
-      console.log(chalk.dim(`\n  Sending ${signal} to session ${data.sessionId} (PID ${data.pid})...`));
+      console.log(
+        chalk.dim(`\n  Sending ${signal} to session ${data.sessionId} (PID ${data.pid})...`)
+      );
 
       try {
         process.kill(data.pid, signal);
         console.log(chalk.green(`  ✓ Session ${data.sessionId} stopped.`));
 
         // Wait briefly then clean up file if process exited
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         try {
           process.kill(data.pid, 0);
           // Still alive after SIGTERM — inform user
@@ -262,11 +275,17 @@ program
           }
         } catch {
           // Process died — clean up
-          try { unlinkSync(sessionFile); } catch { /* already gone */ }
+          try {
+            unlinkSync(sessionFile);
+          } catch {
+            /* already gone */
+          }
           console.log(chalk.green('  ✓ Session file cleaned up.'));
         }
       } catch (err) {
-        console.log(chalk.red(`  Failed to stop: ${err instanceof Error ? err.message : 'Unknown error'}`));
+        console.log(
+          chalk.red(`  Failed to stop: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        );
         process.exit(1);
       }
       console.log('');
@@ -312,8 +331,12 @@ program
     console.log('    npx lecoder-mconnect daemon start|stop|status|logs');
     console.log('');
     console.log(chalk.cyan('  Cursor Infinite Loop:'));
-    console.log('    npx lecoder-mconnect loop install                                # add hooks + rules');
-    console.log('    npx lecoder-mconnect loop start specs/example.md src 5            # 5 iterations');
+    console.log(
+      '    npx lecoder-mconnect loop install                                # add hooks + rules'
+    );
+    console.log(
+      '    npx lecoder-mconnect loop start specs/example.md src 5            # 5 iterations'
+    );
     console.log('    npx lecoder-mconnect loop start specs/example.md src 20           # batched');
     console.log('    npx lecoder-mconnect loop start specs/example.md infinite_src/ infinite');
     console.log('    npx lecoder-mconnect loop status|stop|list|tail');
@@ -378,7 +401,9 @@ async function quickStart(options: WizardOptions): Promise<void> {
     });
   } catch (error) {
     if (jsonOutput) {
-      console.log(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }));
+      console.log(
+        JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' })
+      );
     } else {
       p.log.error(error instanceof Error ? error.message : 'Unknown error');
     }

@@ -72,7 +72,11 @@ function findDockerPath(): string {
 
   // Fall back to 'command -v docker' (POSIX compliant)
   try {
-    const result = execSync('command -v docker', { encoding: 'utf-8', timeout: 5000, shell: '/bin/sh' });
+    const result = execSync('command -v docker', {
+      encoding: 'utf-8',
+      timeout: 5000,
+      shell: '/bin/sh',
+    });
     const path = result.trim();
     if (path && existsSync(path)) {
       cachedDockerPath = path;
@@ -84,7 +88,9 @@ function findDockerPath(): string {
 
   // Last resort: just return 'docker' and hope it's in PATH
   // Note: PTY validateShell() has special handling for container runtimes
-  console.warn('[Container] Docker binary not found in standard paths. Ensure docker is installed and in PATH.');
+  console.warn(
+    '[Container] Docker binary not found in standard paths. Ensure docker is installed and in PATH.'
+  );
   return 'docker';
 }
 
