@@ -1,115 +1,113 @@
 import SwiftUI
 import os
 
+// MARK: - TerminalView
+
 struct TerminalView: View {
     @StateObject private var viewModel: TerminalViewModel
-    @State private var showKeyboard = false
-    @State private var inputText = ""
-    @FocusState private var inputFocused: Bool
 
-    init(host: Host, wsClient: WSClient) {
+    /// Caller-injected FAB overlay. Typed as AnyView to avoid coupling.
+    let fab: () -> AnyView
+
+    private let logger = Logger(subsystem: "com.lecoder.mconnect", category: "TerminalView")
+    private let signposter = OSSignposter(
+        subsystem: "com.lecoder.mconnect",
+        category: "TerminalView"
+    )
+
+    // Convenience init without FAB (defaults to empty overlay)
+    init(host: Host, wsClient: WSClient, fab: @escaping () -> AnyView = { AnyView(EmptyView()) }) {
         _viewModel = StateObject(wrappedValue: TerminalViewModel(host: host, wsClient: wsClient))
+        self.fab = fab
     }
 
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                // Terminal emulator area
-                TerminalEmulatorView(viewModel: viewModel, onTapped: {
-                    showKeyboard.toggle()
-                    if showKeyboard { inputFocused = true }
-                })
+            // Terminal fills the content area; SwiftTermBridge (W2) handles keyboard via UITextInput
+            TerminalEmulatorView(viewModel: viewModel, onTapped: {})
 
-                // Input rejection banner
-                if let rejection = viewModel.inputRejectionMessage {
+            // Input rejection banner
+            if let rejection = viewModel.inputRejectionMessage {
+                VStack {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.yellow)
+                            .foregroundStyle(.yellow)
                         Text(rejection)
                             .font(.caption)
-                            .foregroundColor(.yellow)
+                            .foregroundStyle(.yellow)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity)
                     .background(Color.yellow.opacity(0.15))
-                }
 
-                // Approval banner (guardrail)
-                if case .pendingApproval(let command) = viewModel.inputState {
+                    Spacer()
+                }
+            }
+
+            // Approval banner (guardrail)
+            if case .pendingApproval(let command) = viewModel.inputState {
+                VStack {
+                    Spacer()
                     ApprovalBannerView(
                         command: command,
                         onApprove: viewModel.approveCommand,
                         onReject: viewModel.rejectCommand
                     )
                 }
-
-                // Command input bar
-                if showKeyboard {
-                    VStack(spacing: 0) {
-                        KeyboardBarView(onKey: viewModel.sendKey)
-
-                        HStack(spacing: 8) {
-                            TextField("Command...", text: $inputText)
-                                .font(.system(.body, design: .monospaced))
-                                .textFieldStyle(.plain)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                                .focused($inputFocused)
-                                .onSubmit { submitInput() }
-
-                            Button(action: submitInput) {
-                                Image(systemName: "return")
-                                    .font(.body.weight(.semibold))
-                            }
-                            .disabled(inputText.isEmpty)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color(.systemGray6))
-                    }
-                }
             }
 
-            // Connection status overlay
+            // FAB overlay injected by caller (e.g. modifier key bar from W1)
+            fab()
+
+            // Connection status overlay when not connected
             if viewModel.connectionState != .connected {
-                ConnectionStatusOverlay(state: viewModel.connectionState)
+                ConnectionStatusOverlay(
+                    state: viewModel.connectionState,
+                    onReconnect: viewModel.connect
+                )
             }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            InputHintBanner(hostId: viewModel.host.id)
+                .onAppear { /* banner manages its own appear */ }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
                 AgentPicker(agents: viewModel.agents, selected: $viewModel.activeAgent)
+                    .overlay(noAgentHint, alignment: .bottom)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                connectionStatusIcon
+                ConnectionBadge(
+                    state: viewModel.connectionState,
+                    onReconnect: viewModel.connect,
+                    onDisconnect: viewModel.disconnect
+                )
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { viewModel.connect() }
-        .onDisappear { viewModel.disconnect() }
+        .onAppear {
+            let state = signposter.beginInterval("view.appear")
+            viewModel.connect()
+            signposter.endInterval("view.appear", state)
+        }
+        .onDisappear {
+            let state = signposter.beginInterval("view.disappear")
+            viewModel.disconnect()
+            signposter.endInterval("view.disappear", state)
+        }
     }
 
-    private func submitInput() {
-        guard !inputText.isEmpty else { return }
-        viewModel.sendInput(inputText + "\n")
-        inputText = ""
-    }
-
+    /// Inline hint shown in agent picker area when connected but no agents available.
     @ViewBuilder
-    private var connectionStatusIcon: some View {
-        // Small colored circle showing connection state
-        Circle()
-            .fill(connectionColor)
-            .frame(width: 8, height: 8)
-    }
-
-    private var connectionColor: Color {
-        switch viewModel.connectionState {
-        case .connected: return .green
-        case .connecting, .authenticating: return .yellow
-        case .reconnecting: return .orange
-        case .waitingForNetwork: return .orange
-        case .disconnected: return .red
+    private var noAgentHint: some View {
+        if viewModel.agents.isEmpty && viewModel.connectionState == .connected {
+            Text("Waiting for agent — start a session via `mconnect start` on the host")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .offset(y: 18)
         }
     }
 }
@@ -154,61 +152,6 @@ struct AgentPicker: View {
     }
 }
 
-// MARK: - Connection Status Overlay
-
-struct ConnectionStatusOverlay: View {
-    let state: ConnectionState
-
-    var body: some View {
-        VStack(spacing: 12) {
-            if state == .waitingForNetwork {
-                Image(systemName: "wifi.slash")
-                    .font(.title2)
-                    .foregroundColor(.white)
-            } else {
-                ProgressView()
-                    .tint(.white)
-            }
-
-            Text(statusText)
-                .font(.subheadline)
-                .foregroundColor(.white)
-
-            if let subtitle = statusSubtitle {
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-            }
-        }
-        .padding(24)
-        .background(.ultraThinMaterial.opacity(0.9))
-        .background(Color.black.opacity(0.5))
-        .cornerRadius(16)
-    }
-
-    private var statusText: String {
-        switch state {
-        case .disconnected: return "Disconnected"
-        case .connecting: return "Connecting..."
-        case .authenticating: return "Authenticating..."
-        case .connected: return "Connected"
-        case .reconnecting(let attempt): return "Reconnecting (\(attempt))..."
-        case .waitingForNetwork: return "No Network"
-        }
-    }
-
-    private var statusSubtitle: String? {
-        switch state {
-        case .waitingForNetwork:
-            return "Will reconnect when network is available"
-        case .reconnecting:
-            return "Session will be restored automatically"
-        default:
-            return nil
-        }
-    }
-}
-
 // MARK: - Approval Banner
 
 struct ApprovalBannerView: View {
@@ -220,16 +163,16 @@ struct ApprovalBannerView: View {
         VStack(spacing: 8) {
             HStack {
                 Image(systemName: "shield.lefthalf.filled")
-                    .foregroundColor(.orange)
+                    .foregroundStyle(.orange)
                 Text("Approval Required")
                     .font(.caption.bold())
-                    .foregroundColor(.orange)
+                    .foregroundStyle(.orange)
                 Spacer()
             }
 
             Text(command)
                 .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8)
                 .background(Color(.systemGray5))
@@ -270,7 +213,7 @@ class TerminalViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let host: Host
+    let host: Host
     private let wsClient: WSClient
     private let inputArbiter: InputArbiter
     let terminalBuffer: TerminalBuffer

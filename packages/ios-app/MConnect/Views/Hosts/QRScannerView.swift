@@ -1,12 +1,25 @@
 import SwiftUI
 import AVFoundation
+import os.log
 
+/// QR scanner sheet. Wraps AVCaptureSession + QRScannerOverlay.
+///
+/// Integration note: HostListView already presents this view as a full-screen sheet
+/// from the '+' menu 'Scan QR Code' action (viewModel.showScanner). On scan, decode
+/// via QRCodec.decode(_:), then populate HostDetailView with the resulting PairingPayload.
 struct QRScannerView: View {
     @Environment(\.dismiss) private var dismiss
+    /// Called with the raw scanned string on first successful decode.
     let onScan: (String) -> Void
 
     @State private var cameraStatus: CameraStatus = .checking
     @State private var scannedCode: String?
+    @State private var scanSucceeded = false
+
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.lecoder.mconnect",
+        category: "QRPairing"
+    )
 
     private enum CameraStatus {
         case checking
@@ -22,20 +35,33 @@ struct QRScannerView: View {
                     ProgressView("Requesting camera access...")
                 case .authorized:
                     QRCameraView { code in
-                        guard scannedCode == nil else { return }
-                        scannedCode = code
-                        onScan(code)
-                        dismiss()
+                        handleScan(code)
                     }
+                    .ignoresSafeArea()
                     .overlay {
-                        ScannerOverlay()
+                        QRScannerOverlay(
+                            scanSucceeded: scanSucceeded,
+                            onClose: { dismiss() },
+                            onManualEntry: { dismiss() }
+                        )
                     }
                 case .denied:
-                    ContentUnavailableView(
-                        "Camera Access Required",
-                        systemImage: "camera.fill",
-                        description: Text("Enable camera access in Settings to scan QR codes.")
-                    )
+                    VStack(spacing: 24) {
+                        ContentUnavailableView(
+                            "Camera Access Required",
+                            systemImage: "camera.fill",
+                            description: Text("Enable camera access in Settings to scan QR codes.")
+                        )
+                        Button("Open Settings") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        Button("Enter Token Manually") { dismiss() }
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
                 }
             }
             .navigationTitle("Scan QR Code")
@@ -51,6 +77,19 @@ struct QRScannerView: View {
         }
     }
 
+    private func handleScan(_ code: String) {
+        guard scannedCode == nil else { return }
+        scannedCode = code
+        Self.logger.info("QR scan succeeded, forwarding payload")
+        scanSucceeded = true
+        // 200 ms green flash, then deliver
+        Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            onScan(code)
+            dismiss()
+        }
+    }
+
     private func checkCameraPermission() async {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -61,36 +100,6 @@ struct QRScannerView: View {
         default:
             cameraStatus = .denied
         }
-    }
-}
-
-/// Visual overlay for the scanner with a cutout viewfinder.
-private struct ScannerOverlay: View {
-    var body: some View {
-        GeometryReader { geometry in
-            let size = min(geometry.size.width, geometry.size.height) * 0.65
-            ZStack {
-                Color.black.opacity(0.4)
-                    .ignoresSafeArea()
-
-                RoundedRectangle(cornerRadius: 16)
-                    .frame(width: size, height: size)
-                    .blendMode(.destinationOut)
-            }
-            .compositingGroup()
-            .overlay {
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(.white, lineWidth: 2)
-                    .frame(width: size, height: size)
-            }
-            .overlay(alignment: .bottom) {
-                Text("Point camera at QR code")
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-                    .padding(.bottom, 40)
-            }
-        }
-        .allowsHitTesting(false)
     }
 }
 

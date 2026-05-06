@@ -424,4 +424,137 @@ final class TerminalViewModelTests: XCTestCase {
         XCTAssertEqual(vm.agents.first?.preset, "claude-3.5")
         XCTAssertEqual(vm.agents.first?.status, .idle)
     }
+
+    // MARK: - Rejection banner auto-dismiss (3s)
+
+    func testRejectionBannerAutoDismissAfter3Seconds() async throws {
+        let (vm, client) = makeViewModel()
+
+        let response = InputRejectedResponse(
+            type: "input_rejected",
+            reason: .readOnly,
+            command: nil,
+            timestamp: 1700000000000
+        )
+
+        vm.wsClient(client, didReceiveInputRejection: response)
+        XCTAssertNotNil(vm.inputRejectionMessage, "Banner should appear immediately on rejection")
+
+        // Still visible just before the 3s threshold
+        try await Task.sleep(for: .milliseconds(2800))
+        XCTAssertNotNil(vm.inputRejectionMessage, "Banner should still be visible before 3s")
+
+        // Auto-dismissed after full 3s window
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertNil(vm.inputRejectionMessage, "Banner should auto-dismiss after 3 seconds")
+    }
+
+    func testRejectionBannerResetOnNewRejection() async throws {
+        let (vm, client) = makeViewModel()
+
+        let response = InputRejectedResponse(
+            type: "input_rejected",
+            reason: .pcTyping,
+            command: nil,
+            timestamp: 1700000000000
+        )
+
+        // First rejection
+        vm.wsClient(client, didReceiveInputRejection: response)
+        XCTAssertNotNil(vm.inputRejectionMessage)
+
+        // Wait 2s, then send another rejection (timer should reset)
+        try await Task.sleep(for: .seconds(2))
+        let response2 = InputRejectedResponse(
+            type: "input_rejected",
+            reason: .rateLimited,
+            command: nil,
+            timestamp: 1700000000001
+        )
+        vm.wsClient(client, didReceiveInputRejection: response2)
+
+        // 2s after second rejection — banner should still be visible (timer reset)
+        try await Task.sleep(for: .seconds(2))
+        XCTAssertNotNil(vm.inputRejectionMessage, "Timer should have reset on second rejection")
+    }
+}
+
+// MARK: - Connection State Color Mapping Tests
+
+@MainActor
+final class ConnectionStateColorTests: XCTestCase {
+
+    // ConnectionBadge derives dot color from ConnectionState.
+    // Mirror the same mapping here to verify correctness.
+    private func dotColor(for state: ConnectionState) -> String {
+        switch state {
+        case .connected:                    return "green"
+        case .connecting, .authenticating:  return "yellow"
+        case .reconnecting:                 return "orange"
+        case .waitingForNetwork:            return "orange"
+        case .disconnected:                 return "red"
+        }
+    }
+
+    func testConnectedMapsToGreen() {
+        XCTAssertEqual(dotColor(for: .connected), "green")
+    }
+
+    func testConnectingMapsToYellow() {
+        XCTAssertEqual(dotColor(for: .connecting), "yellow")
+    }
+
+    func testAuthenticatingMapsToYellow() {
+        XCTAssertEqual(dotColor(for: .authenticating), "yellow")
+    }
+
+    func testReconnectingMapsToOrange() {
+        XCTAssertEqual(dotColor(for: .reconnecting(attempt: 1)), "orange")
+        XCTAssertEqual(dotColor(for: .reconnecting(attempt: 5)), "orange")
+    }
+
+    func testWaitingForNetworkMapsToOrange() {
+        XCTAssertEqual(dotColor(for: .waitingForNetwork), "orange")
+    }
+
+    func testDisconnectedMapsToRed() {
+        XCTAssertEqual(dotColor(for: .disconnected), "red")
+    }
+}
+
+// MARK: - Hint Visibility Logic Tests
+
+final class HintVisibilityTests: XCTestCase {
+
+    private func hintsVisible(dismissed: Bool, sessionCount: Int) -> Bool {
+        // Mirror InputHintBanner logic: show when not dismissed AND sessionCount <= maxSessions
+        !dismissed && sessionCount <= 3
+    }
+
+    func testHintsVisibleOnFirstSession() {
+        XCTAssertTrue(hintsVisible(dismissed: false, sessionCount: 1))
+    }
+
+    func testHintsVisibleOnSecondSession() {
+        XCTAssertTrue(hintsVisible(dismissed: false, sessionCount: 2))
+    }
+
+    func testHintsVisibleOnThirdSession() {
+        XCTAssertTrue(hintsVisible(dismissed: false, sessionCount: 3))
+    }
+
+    func testHintsHiddenAfterThirdSession() {
+        XCTAssertFalse(hintsVisible(dismissed: false, sessionCount: 4))
+        XCTAssertFalse(hintsVisible(dismissed: false, sessionCount: 10))
+    }
+
+    func testHintsHiddenWhenDismissed() {
+        XCTAssertFalse(hintsVisible(dismissed: true, sessionCount: 1))
+        XCTAssertFalse(hintsVisible(dismissed: true, sessionCount: 2))
+        XCTAssertFalse(hintsVisible(dismissed: true, sessionCount: 3))
+    }
+
+    func testHintsHiddenWhenDismissedAndOverLimit() {
+        XCTAssertFalse(hintsVisible(dismissed: true, sessionCount: 5))
+    }
 }

@@ -1,114 +1,207 @@
-import SwiftUI
-import UIKit
-
 #if canImport(SwiftTerm)
+import SwiftUI
 import SwiftTerm
+import UIKit
+import os
 
-/// UIViewRepresentable bridge that hosts SwiftTerm's TerminalView (UIKit class).
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let terminalSelectionCopy = Notification.Name("com.lecoder.mconnect.terminal.selectionCopy")
+    static let terminalPasteRequest  = Notification.Name("com.lecoder.mconnect.terminal.pasteRequest")
+}
+
+// MARK: - SwiftTermBridge
+
+/// UIViewRepresentable wrapper for SwiftTerm's SwiftTerm.TerminalView.
 ///
-/// Use `SwiftTerm.TerminalView` everywhere — `TerminalView` (unqualified) collides with
-/// MConnect's existing SwiftUI `TerminalView` struct.
-///
-/// Feeds raw PTY bytes from `TerminalBuffer` to SwiftTerm's VT100/xterm emulator,
-/// reports user keyboard input back via the view model, and forwards terminal
-/// size changes so the server can resize the PTY.
+/// Features:
+/// - Auto-focus via invisible tap recognizer overlay (more reliable than SwiftUI .onTapGesture)
+/// - Input accessory view injection via `accessoryViewProvider` closure
+/// - Hardware keyboard commands: Cmd+C, Cmd+V, Cmd+K, Cmd+L
+/// - os.Logger + os.signpost instrumentation
+/// - Selection bridge: `coordinator.getSelectedText()`
 struct SwiftTermBridge: UIViewRepresentable {
     @ObservedObject var viewModel: TerminalViewModel
+
+    /// Optional factory for the input accessory view shown above the iOS keyboard.
+    /// Lead/W1 will supply the ModifierAccessoryBar UIView here at integration time.
+    var accessoryViewProvider: (() -> UIView)? = nil
+
+    // MARK: makeUIView
+
+    func makeUIView(context: Context) -> SwiftTerm.TerminalView {
+        let tv = SwiftTerm.TerminalView(frame: .zero)
+        tv.terminalDelegate = context.coordinator
+        tv.backgroundColor = .black
+
+        // Inject accessory view if provided
+        if let provider = accessoryViewProvider {
+            tv.inputAccessoryView = provider()
+        }
+
+        // Report initial terminal size
+        let term = tv.getTerminal()
+        viewModel.handleTerminalSizeChange(cols: term.cols, rows: term.rows)
+
+        // Overlay tap recognizer — more reliable than SwiftUI .onTapGesture for first-responder
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tap.cancelsTouchesInView = false
+        tv.addGestureRecognizer(tap)
+
+        // Hardware keyboard: SwiftTerm.TerminalView is a UIResponder/UITextInput
+        // and routes key events through its built-in handlers. Cmd+C/V/A
+        // bindings are exposed via UIEditMenuInteraction in SelectionMenu.swift.
+
+        context.coordinator.terminalView = tv
+        return tv
+    }
+
+    // MARK: updateUIView
+
+    func updateUIView(_ tv: SwiftTerm.TerminalView, context: Context) {
+        guard let agentId = viewModel.activeAgent?.id else { return }
+
+        let raw = viewModel.terminalBuffer.rawOutput(forAgent: agentId)
+        let coord = context.coordinator
+
+        guard raw != coord.lastFedOutput else { return }
+
+        let newData = String(raw.dropFirst(coord.lastFedOutput.count))
+        coord.lastFedOutput = raw
+
+        if let bytes = newData.data(using: .utf8) {
+            let signposter = OSSignposter(logger: coord.log)
+            let state = signposter.beginInterval("output.feed")
+            tv.feed(byteArray: ArraySlice<UInt8>(bytes))
+            signposter.endInterval("output.feed", state)
+        }
+    }
+
+    // MARK: makeCoordinator
 
     func makeCoordinator() -> Coordinator {
         Coordinator(viewModel: viewModel)
     }
 
-    func makeUIView(context: Context) -> SwiftTerm.TerminalView {
-        // SwiftTerm's TerminalView requires an explicit font parameter
-        let font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let tv = SwiftTerm.TerminalView(frame: .zero, font: font)
-        tv.terminalDelegate = context.coordinator
-        tv.backgroundColor = UIColor.black
-
-        // Report initial terminal dimensions to the view model
-        let cols = tv.getTerminal().cols
-        let rows = tv.getTerminal().rows
-        viewModel.handleTerminalSizeChange(cols: cols, rows: rows)
-
-        return tv
-    }
-
-    func updateUIView(_ uiView: SwiftTerm.TerminalView, context: Context) {
-        guard let agentId = viewModel.activeAgent?.id else { return }
-
-        let raw = viewModel.terminalBuffer.rawOutput(forAgent: agentId)
-        let last = context.coordinator.lastFedOutput
-
-        // Agent switched or buffer cleared → reset and re-feed everything
-        if raw.count < last.count || (raw.count == last.count && raw != last) {
-            context.coordinator.lastFedOutput = ""
-            feed(raw, into: uiView, coordinator: context.coordinator)
-            return
-        }
-
-        // Append-only: feed only the new tail
-        if raw.count > last.count {
-            let newChunk = String(raw.dropFirst(last.count))
-            feed(newChunk, into: uiView, coordinator: context.coordinator, fullRaw: raw)
-        }
-    }
-
-    private func feed(_ chunk: String, into uiView: SwiftTerm.TerminalView, coordinator: Coordinator, fullRaw: String? = nil) {
-        guard !chunk.isEmpty, let data = chunk.data(using: .utf8) else { return }
-        data.withUnsafeBytes { raw in
-            let buf = raw.bindMemory(to: UInt8.self)
-            uiView.feed(byteArray: ArraySlice(buf))
-        }
-        coordinator.lastFedOutput = fullRaw ?? chunk
-    }
-
     // MARK: - Coordinator
-    //
-    // Marked @MainActor so calls to main-actor-isolated TerminalViewModel methods
-    // are valid. SwiftTerm fires delegate callbacks on the main thread already.
 
     @MainActor
     final class Coordinator: NSObject, TerminalViewDelegate {
         let viewModel: TerminalViewModel
-        /// Tracks how much of the raw buffer has already been fed to SwiftTerm.
         var lastFedOutput: String = ""
+        var isFocused: Bool = false
+        weak var terminalView: SwiftTerm.TerminalView?
+
+        let log = Logger(subsystem: "com.lecoder.mconnect", category: "SwiftTermBridge")
+        private let signposter: OSSignposter
 
         init(viewModel: TerminalViewModel) {
             self.viewModel = viewModel
+            self.signposter = OSSignposter(logger: Logger(subsystem: "com.lecoder.mconnect", category: "SwiftTermBridge"))
+        }
+
+        // MARK: Focus
+
+        /// Programmatically focus the terminal view and pop the keyboard.
+        func focus(animated: Bool) {
+            guard let tv = terminalView else { return }
+            let state = signposter.beginInterval("terminal.firstResponder.acquired")
+            _ = tv.becomeFirstResponder()
+            signposter.endInterval("terminal.firstResponder.acquired", state)
+            isFocused = true
+            log.debug("focus(animated:\(animated)) -> becomeFirstResponder")
+        }
+
+        @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+            focus(animated: true)
+        }
+
+        // MARK: Hardware Keyboard Commands
+
+        @objc func hwCmdC() {
+            log.debug("hw-kb: Cmd+C — posting selectionCopy")
+            NotificationCenter.default.post(name: .terminalSelectionCopy, object: terminalView)
+        }
+
+        @objc func hwCmdV() {
+            log.debug("hw-kb: Cmd+V — posting pasteRequest")
+            NotificationCenter.default.post(name: .terminalPasteRequest, object: terminalView)
+        }
+
+        @objc func hwCmdK(_ sender: UIKeyCommand) {
+            // Cmd+K: clear screen via Ctrl+L (0x0C)
+            log.debug("hw-kb: Cmd+K — sending clear screen")
+            viewModel.sendKey("\u{0C}")
+        }
+
+        @objc func hwCmdL(_ sender: UIKeyCommand) {
+            // Cmd+L: Ctrl+L clear screen
+            log.debug("hw-kb: Cmd+L — sending Ctrl+L")
+            viewModel.sendKey("\u{0C}")
+        }
+
+        // MARK: Selection Bridge
+
+        /// Returns selected text if a selection is active, nil otherwise.
+        func getSelectedText() -> String? {
+            guard let tv = terminalView else { return nil }
+            let selected = tv.getSelection()
+            return (selected?.isEmpty ?? true) ? nil : selected
         }
 
         // MARK: TerminalViewDelegate
 
         func send(source: SwiftTerm.TerminalView, data: ArraySlice<UInt8>) {
-            viewModel.sendInputBytes(Data(data))
+            let state = signposter.beginInterval("input.send")
+            let text = String(bytes: data, encoding: .utf8) ?? ""
+            viewModel.sendInput(text)
+            signposter.endInterval("input.send", state)
+            log.debug("send: \(data.count) bytes")
         }
 
         func sizeChanged(source: SwiftTerm.TerminalView, newCols: Int, newRows: Int) {
             viewModel.handleTerminalSizeChange(cols: newCols, rows: newRows)
+            log.debug("sizeChanged: \(newCols)x\(newRows)")
         }
 
-        func setTerminalTitle(source: SwiftTerm.TerminalView, title: String) {}
+        func setTerminalTitle(source: SwiftTerm.TerminalView, title: String) {
+            log.debug("setTerminalTitle: \(title)")
+        }
 
-        func hostCurrentDirectoryUpdate(source: SwiftTerm.TerminalView, directory: String?) {}
+        func hostCurrentDirectoryUpdate(source: SwiftTerm.TerminalView, directory: String?) {
+            log.debug("hostCurrentDirectoryUpdate: \(directory ?? "<nil>")")
+        }
 
-        func scrolled(source: SwiftTerm.TerminalView, position: Double) {}
-
-        func rangeChanged(source: SwiftTerm.TerminalView, startY: Int, endY: Int) {}
-
-        func bell(source: SwiftTerm.TerminalView) {}
-
-        func iTermContent(source: SwiftTerm.TerminalView, content: ArraySlice<UInt8>) {}
-
-        func clipboardCopy(source: SwiftTerm.TerminalView, content: Data) {
-            UIPasteboard.general.string = String(data: content, encoding: .utf8)
+        func scrolled(source: SwiftTerm.TerminalView, position: Double) {
+            // no-op — scroll position tracking not needed
         }
 
         func requestOpenLink(source: SwiftTerm.TerminalView, link: String, params: [String: String]) {
-            if let url = URL(string: link) {
-                UIApplication.shared.open(url)
+            log.info("requestOpenLink: \(link)")
+            guard let url = URL(string: link) else { return }
+            UIApplication.shared.open(url)
+        }
+
+        func bell(source: SwiftTerm.TerminalView) {
+            // no-op — bell handling deferred to later
+        }
+
+        func clipboardCopy(source: SwiftTerm.TerminalView, content: Data) {
+            if let str = String(data: content, encoding: .utf8) {
+                UIPasteboard.general.string = str
+                log.debug("clipboardCopy: \(str.count) chars")
             }
+        }
+
+        func iTermContent(source: SwiftTerm.TerminalView, content: ArraySlice<UInt8>) {
+            // no-op — iTerm2 OSC 1337 not handled
+        }
+
+        func rangeChanged(source: SwiftTerm.TerminalView, startY: Int, endY: Int) {
+            // no-op — range change notifications not needed
         }
     }
 }
-#endif
+
+#endif // canImport(SwiftTerm)
