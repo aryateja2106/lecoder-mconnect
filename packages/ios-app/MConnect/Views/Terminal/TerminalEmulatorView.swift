@@ -11,12 +11,32 @@ struct TerminalEmulatorView: View {
 
     var body: some View {
         #if canImport(SwiftTerm)
-        SwiftTermBridge(viewModel: viewModel)
+        SwiftTermBridge(viewModel: viewModel, accessoryViewProvider: makeAccessoryView)
             .onTapGesture { onTapped() }
         #else
         TerminalTextView(viewModel: viewModel, onTapped: onTapped)
         #endif
     }
+
+    #if canImport(SwiftTerm)
+    /// Builds the ModifierAccessoryBar host view to override SwiftTerm's default keyboard accessory.
+    private func makeAccessoryView() -> UIView {
+        let viewModel = self.viewModel
+        let bar = ModifierAccessoryBar { data in
+            Task { @MainActor in
+                viewModel.sendInputBytes(data)
+            }
+        }
+        let host = UIHostingController(rootView: bar)
+        host.view.backgroundColor = .clear
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        // SwiftTerm sizes inputAccessoryView via intrinsicContentSize; our bar
+        // measures itself via SwiftUI layout so set a reasonable height.
+        host.sizeThatFits(in: CGSize(width: UIScreen.main.bounds.width, height: 120))
+        host.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 96)
+        return host.view
+    }
+    #endif
 }
 
 // MARK: - Fallback Text View
