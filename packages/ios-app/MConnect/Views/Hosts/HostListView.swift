@@ -31,7 +31,17 @@ struct HostListView: View {
                 case .hostDetail(let host):
                     HostDetailView(host: host, onSave: viewModel.updateHost, onDelete: viewModel.removeHost)
                 case .terminal(let host):
-                    TerminalView(host: host, wsClient: wsClient)
+                    TerminalView(host: host, wsClient: wsClient, fab: {
+                        AnyView(
+                            FloatingActionBar(items: [
+                                FloatingActionItem(kind: .pin, action: {}),
+                                FloatingActionItem(kind: .keyboard, action: {}),
+                                FloatingActionItem(kind: .info, action: {}),
+                                FloatingActionItem(kind: .help, action: {}),
+                                FloatingActionItem(kind: .disconnect, action: { wsClient.disconnect() })
+                            ])
+                        )
+                    })
                 case .qrScanner:
                     QRScannerView { url in
                         viewModel.handleQRCode(url)
