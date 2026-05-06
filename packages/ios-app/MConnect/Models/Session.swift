@@ -36,7 +36,7 @@ struct Session: Identifiable, Hashable, Codable {
         self.status = info.state
         self.createdAt = Date(timeIntervalSince1970: info.createdAt)
         self.lastActiveAt = Date(timeIntervalSince1970: info.lastActivity)
-        self.agentCount = info.agentCount
+        self.agentCount = info.agentCount ?? 0
     }
 }
 

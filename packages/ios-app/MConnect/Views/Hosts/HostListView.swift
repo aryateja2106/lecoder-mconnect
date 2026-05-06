@@ -3,6 +3,7 @@ import SwiftUI
 struct HostListView: View {
     @EnvironmentObject private var router: Router
     @StateObject private var viewModel = HostListViewModel()
+    @StateObject private var wsClient = WSClient()
 
     var body: some View {
         NavigationStack(path: $router.hostPath) {
@@ -29,9 +30,8 @@ struct HostListView: View {
                 switch destination {
                 case .hostDetail(let host):
                     HostDetailView(host: host, onSave: viewModel.updateHost, onDelete: viewModel.removeHost)
-                case .terminal:
-                    // Terminal view will be implemented in a later phase
-                    Text("Terminal")
+                case .terminal(let host):
+                    TerminalView(host: host, wsClient: wsClient)
                 case .qrScanner:
                     QRScannerView { url in
                         viewModel.handleQRCode(url)

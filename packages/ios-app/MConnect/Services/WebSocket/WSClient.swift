@@ -285,12 +285,24 @@ class WSClient: ObservableObject {
 
     private func performConnect(host: Host) {
         let scheme = host.useTLS ? "wss" : "ws"
-        guard let url = URL(string: "\(scheme)://\(host.hostname):\(host.port)/ws") else {
+
+        // CLI-session mode: token in URL query, v2 protocol, no auth message.
+        // Bun-server mode: /ws path + body auth.
+        let urlString: String
+        let cliSessionMode: Bool
+        if let inlineToken = host.accessToken, !inlineToken.isEmpty {
+            urlString = "\(scheme)://\(host.hostname):\(host.port)/?token=\(inlineToken)&v=2.0&clientType=mobile"
+            cliSessionMode = true
+        } else {
+            urlString = "\(scheme)://\(host.hostname):\(host.port)/ws"
+            cliSessionMode = false
+        }
+
+        guard let url = URL(string: urlString) else {
             logger.error("Invalid WebSocket URL for host \(host.name)")
             return
         }
 
-        // Check network before attempting connection
         if !networkMonitor.isReachable {
             logger.info("Network unavailable — waiting for connectivity")
             setConnectionState(.waitingForNetwork)
@@ -306,11 +318,16 @@ class WSClient: ObservableObject {
         self.urlSession = session
 
         let task = session.webSocketTask(with: url)
+        task.maximumMessageSize = 16 * 1024 * 1024
         self.webSocket = task
         task.resume()
 
         setConnectionState(.authenticating)
-        sendAuthMessage()
+        if !cliSessionMode {
+            sendAuthMessage()
+        }
+        // CLI session mode: server already authenticated us via URL token and
+        // will push auth_success automatically (since v=2.0).
         startReceiveLoop()
     }
 
@@ -455,6 +472,10 @@ class WSClient: ObservableObject {
         setConnectionState(.connected)
         startHeartbeatTimer()
         logger.info("Authenticated as client \(response.clientId)")
+
+        // Ask the server for its current agent list — the CLI WSHub does not
+        // push agent_list automatically on v2 auth, so we pull it ourselves.
+        send(["type": "list_agents"])
 
         // Register push notification device token if available
         if let deviceToken = PushService.shared.deviceToken {

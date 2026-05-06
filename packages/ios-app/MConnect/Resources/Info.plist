@@ -68,5 +68,14 @@
 	<string>MConnect uses Face ID to protect your credentials and host connections.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>MConnect uses the camera to scan QR codes for quick host connection setup.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>MConnect connects to the MConnect CLI session running on your Mac to stream a real terminal.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

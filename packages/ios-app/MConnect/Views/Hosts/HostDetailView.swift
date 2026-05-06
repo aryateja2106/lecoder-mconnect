@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HostDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var router: Router
     @StateObject private var viewModel: HostDetailViewModel
 
     init(host: Host?, onSave: ((Host) -> Void)?, onDelete: ((Host) -> Void)?) {
@@ -34,11 +35,22 @@ struct HostDetailView: View {
                 }
             }
 
+            Section("Access Token") {
+                TextField("Pairing token (CLI session)", text: $viewModel.accessToken)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(.caption, design: .monospaced))
+                Text("Paste the token from `mconnect info --json`. Leave empty for body-auth servers.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             if viewModel.isEditing {
                 Section {
                     Button("Connect", systemImage: "play.fill") {
-                        viewModel.save()
-                        dismiss()
+                        if let saved = viewModel.save() {
+                            router.hostPath.append(Router.Destination.terminal(saved))
+                        }
                     }
                     .disabled(!viewModel.isValid)
                 }
@@ -87,8 +99,9 @@ class HostDetailViewModel: ObservableObject {
     @Published var name = ""
     @Published var hostname = ""
     @Published var port = "8080"
-    @Published var useTLS = true
+    @Published var useTLS = false
     @Published var requireBiometric = false
+    @Published var accessToken = ""
     @Published var showDeleteConfirmation = false
 
     let isEditing: Bool
@@ -107,6 +120,7 @@ class HostDetailViewModel: ObservableObject {
             self.port = String(host.port)
             self.useTLS = host.useTLS
             self.requireBiometric = host.requireBiometric
+            self.accessToken = host.accessToken ?? ""
         }
     }
 
@@ -118,8 +132,10 @@ class HostDetailViewModel: ObservableObject {
             && (Int(port) ?? 0) <= 65535
     }
 
-    func save() {
-        guard isValid else { return }
+    @discardableResult
+    func save() -> Host? {
+        guard isValid else { return nil }
+        let trimmedToken = accessToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let host = Host(
             id: existingHost?.id ?? UUID().uuidString,
             name: name.trimmingCharacters(in: .whitespaces),
@@ -127,9 +143,11 @@ class HostDetailViewModel: ObservableObject {
             port: Int(port) ?? 8080,
             useTLS: useTLS,
             requireBiometric: requireBiometric,
-            isConnected: existingHost?.isConnected ?? false
+            isConnected: existingHost?.isConnected ?? false,
+            accessToken: trimmedToken.isEmpty ? nil : trimmedToken
         )
         onSave?(host)
+        return host
     }
 
     func delete() {

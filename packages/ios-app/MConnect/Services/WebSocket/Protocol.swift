@@ -89,17 +89,65 @@ struct SessionInfo: Codable, Identifiable, Equatable {
     let id: String
     let name: String?
     let state: SessionState
-    let agentCount: Int
+    let agentCount: Int?
     let createdAt: Double
     let lastActivity: Double
 }
 
 /// Minimal agent info returned in agent lists.
+/// Minimal agent info returned in agent lists.
+/// CLI server emits `config: { name, type, command }` instead of flat
+/// `name`/`preset`; we accept either shape.
 struct AgentInfo: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let preset: String
     let status: AgentStatus
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, preset, status, config
+    }
+
+    private struct AgentConfigShape: Codable, Equatable {
+        let name: String?
+        let type: String?
+        let command: String?
+    }
+
+    init(id: String, name: String, preset: String, status: AgentStatus) {
+        self.id = id
+        self.name = name
+        self.preset = preset
+        self.status = status
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        status = try c.decode(AgentStatus.self, forKey: .status)
+        if let flatName = try c.decodeIfPresent(String.self, forKey: .name) {
+            name = flatName
+        } else if let cfg = try? c.decode(AgentConfigShape.self, forKey: .config) {
+            name = cfg.name ?? cfg.command ?? id
+        } else {
+            name = id
+        }
+        if let flatPreset = try c.decodeIfPresent(String.self, forKey: .preset) {
+            preset = flatPreset
+        } else if let cfg = try? c.decode(AgentConfigShape.self, forKey: .config) {
+            preset = cfg.type ?? "shell"
+        } else {
+            preset = "shell"
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(preset, forKey: .preset)
+        try c.encode(status, forKey: .status)
+    }
 }
 
 /// Minimal client info for presence notifications.
@@ -236,13 +284,15 @@ struct DeviceTokenRegisterMessage: Codable {
 // MARK: - Server → Client Messages
 
 /// Authentication success response.
+/// `userId` and `timestamp` are present on the production Bun server but
+/// optional in CLI-session mode (the CLI WSHub omits them).
 struct AuthSuccessResponse: Codable, Equatable {
     let type: String
     let clientId: String
     let protocolVersion: String
     let clientType: ClientType
-    let userId: String
-    let timestamp: Double
+    let userId: String?
+    let timestamp: Double?
 }
 
 /// Authentication failure response.
@@ -257,7 +307,7 @@ struct AuthFailedResponse: Codable, Equatable {
 struct SessionListResponse: Codable, Equatable {
     let type: String
     let sessions: [SessionInfo]
-    let timestamp: Double
+    let timestamp: Double?
 }
 
 /// Session state update.
@@ -270,11 +320,12 @@ struct SessionStateResponse: Codable, Equatable {
 }
 
 /// Terminal output from an agent.
+/// Server may emit either `terminal_output` (v2) or `output` (v1 / CLI).
 struct TerminalOutputResponse: Codable, Equatable {
     let type: String
     let agentId: String
     let data: String
-    let timestamp: Double
+    let timestamp: Double?
 }
 
 /// Agent status update.
@@ -411,7 +462,7 @@ enum ServerMessage: Equatable {
         case "session_state":
             guard let msg = try? decoder.decode(SessionStateResponse.self, from: data) else { return nil }
             return .sessionState(msg)
-        case "terminal_output":
+        case "terminal_output", "output":
             guard let msg = try? decoder.decode(TerminalOutputResponse.self, from: data) else { return nil }
             return .terminalOutput(msg)
         case "agent_status":
