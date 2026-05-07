@@ -26,6 +26,7 @@ import { agentRepository, type CreateAgentInput } from '../db/repositories/agent
 import { getOpikService, type TraceContext } from '../observability/OpikService.js';
 import { getTracingMiddleware } from '../observability/TracingMiddleware.js';
 import { type MCPBridge, createMCPBridge, removeMCPBridge } from '../mcp/MCPBridge.js';
+import { type SessionScrollback, getSessionScrollback } from './SessionScrollback.js';
 
 // ============================================================================
 // Types
@@ -104,10 +105,37 @@ interface AgentRuntime {
 export class AgentManager extends EventEmitter {
   private containerRuntime: ContainerRuntime;
   private agents: Map<string, AgentRuntime> = new Map();
+  /**
+   * Per-agent terminal scrollback. Buffers output bytes so a reattaching
+   * client can replay history. Agents survive WS disconnect (tmux-style);
+   * the buffer is not cleared until the agent itself is removed.
+   */
+  private scrollback: SessionScrollback;
 
-  constructor(containerRuntime?: ContainerRuntime) {
+  constructor(containerRuntime?: ContainerRuntime, scrollback?: SessionScrollback) {
     super();
     this.containerRuntime = containerRuntime ?? new ContainerRuntime();
+    this.scrollback = scrollback ?? getSessionScrollback();
+  }
+
+  /**
+   * Read buffered terminal scrollback for an agent.
+   *
+   * Returns empty string if none. Note: agents are NOT killed on client
+   * disconnect — this buffer accumulates while no clients are attached so
+   * a reattaching client can replay history (tmux-style detach).
+   */
+  getScrollback(agentId: string, fromByteOffset = 0): string {
+    return fromByteOffset > 0
+      ? this.scrollback.readFromOffset(agentId, fromByteOffset)
+      : this.scrollback.readAll(agentId);
+  }
+
+  /**
+   * Bytes currently buffered for an agent.
+   */
+  getScrollbackSize(agentId: string): number {
+    return this.scrollback.size(agentId);
   }
 
   // ==========================================================================
@@ -377,6 +405,9 @@ export class AgentManager extends EventEmitter {
       runtime.outputCallbacks.clear();
       runtime.statusCallbacks.clear();
       runtime.mcpTools.clear();
+
+      // Drop scrollback buffer — agent is gone, history no longer recoverable.
+      this.scrollback.dropAgent(agentId);
 
       // Remove from map
       this.agents.delete(agentId);
@@ -855,6 +886,11 @@ export class AgentManager extends EventEmitter {
       return;
     }
 
+    // Buffer output for tmux-style scrollback replay on reattach.
+    // The agent stays alive across client disconnects, so this buffer
+    // accumulates while no client is listening and is replayed on reattach.
+    this.scrollback.append(agentId, data);
+
     // Process output for token usage detection
     const tracing = getTracingMiddleware();
     tracing.processAgentOutput(agentId, data);
@@ -916,12 +952,15 @@ export function getAgentManager(): AgentManager {
 /**
  * Initialize the AgentManager with a custom container runtime
  */
-export function initializeAgentManager(containerRuntime?: ContainerRuntime): AgentManager {
+export function initializeAgentManager(
+  containerRuntime?: ContainerRuntime,
+  scrollback?: SessionScrollback
+): AgentManager {
   if (managerInstance) {
     // Cleanup existing instance
     managerInstance.cleanup();
   }
-  managerInstance = new AgentManager(containerRuntime);
+  managerInstance = new AgentManager(containerRuntime, scrollback);
   return managerInstance;
 }
 

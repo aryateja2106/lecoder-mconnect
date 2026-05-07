@@ -41,6 +41,9 @@ import type {
   MCPForwardMessage,
   MCPResponseMessage,
   DeviceTokenRegisterMessage,
+  TerminalOutputMessage,
+  ScrollbackRequestMessage,
+  ScrollbackResponseMessage,
 } from '@lecoder/shared/protocol';
 import { InputArbiter, type InputResult } from './InputArbiter.js';
 import { getJWTService } from '../auth/jwt.js';
@@ -120,6 +123,27 @@ export type InputHandler = (agentId: string, data: string) => void;
  */
 export type MCPHandler = (agentId: string, message: MCPMessage) => Promise<MCPMessage>;
 
+/**
+ * Buffered scrollback entry returned by a {@link ScrollbackProvider}.
+ */
+export interface ScrollbackEntry {
+  /** Source agent ID */
+  agentId: string;
+  /** Buffered output text */
+  data: string;
+  /** Approximate byte length (UTF-8) of {@link data} */
+  bytes: number;
+}
+
+/**
+ * Scrollback provider callback. Returns the buffered output for either a
+ * single agent (if `agentId` is given) or every agent that belongs to the
+ * session. Used to support tmux-style reattach: on `session_attach` the hub
+ * asks the registered provider for any history that accumulated while no
+ * client was listening, then replays it to the freshly-attached client.
+ */
+export type ScrollbackProvider = (sessionId: string, agentId?: string) => ScrollbackEntry[];
+
 // ============================================================================
 // WSHub Class
 // ============================================================================
@@ -137,6 +161,7 @@ export class WSHub {
   /** Event handlers */
   private inputHandlers: Map<string, InputHandler> = new Map(); // sessionId -> handler
   private mcpHandlers: Map<string, MCPHandler> = new Map(); // sessionId -> handler
+  private scrollbackProviders: Map<string, ScrollbackProvider> = new Map(); // sessionId -> provider
 
   /** Guardrail configs per session */
   private sessionGuardrails: Map<string, GuardrailConfig> = new Map(); // sessionId -> config
@@ -286,7 +311,13 @@ export class WSHub {
   }
 
   /**
-   * Disconnect a client
+   * Disconnect a client.
+   *
+   * Tmux-style detach: this only removes the client's WS state and detaches
+   * it from the session arbiter. The agents owned by the session keep
+   * running, and their output continues to accumulate in the per-agent
+   * scrollback buffer (see SessionScrollback) so a future `session_attach`
+   * from the same or a different client can replay the history.
    */
   disconnect(clientId: string): void {
     const client = this.clients.get(clientId);
@@ -480,6 +511,23 @@ export class WSHub {
   }
 
   /**
+   * Register a scrollback provider for a session.
+   *
+   * The provider is queried on `session_attach` (to replay history to the
+   * reattaching client) and on `scrollback_request`.
+   */
+  registerScrollbackProvider(sessionId: string, provider: ScrollbackProvider): void {
+    this.scrollbackProviders.set(sessionId, provider);
+  }
+
+  /**
+   * Unregister scrollback provider for a session.
+   */
+  unregisterScrollbackProvider(sessionId: string): void {
+    this.scrollbackProviders.delete(sessionId);
+  }
+
+  /**
    * Set the guardrail level for a session
    */
   setSessionGuardrails(sessionId: string, level: GuardrailLevel): void {
@@ -546,6 +594,12 @@ export class WSHub {
 
     // Send control status to client
     this.sendControlStatus(clientId, arbiter);
+
+    // Tmux-style reattach: replay any buffered scrollback for this session's
+    // agents to the freshly-attached client. Agents are NOT killed on WS
+    // disconnect, so output keeps flowing into the per-agent ring buffer
+    // while no client is listening.
+    this.replayScrollback(clientId, sessionId);
 
     return true;
   }
@@ -712,7 +766,7 @@ export class WSHub {
         break;
 
       case 'scrollback_request':
-        // Forward to session manager (not implemented in this step)
+        this.handleScrollbackRequest(clientId, message as ScrollbackRequestMessage);
         break;
 
       case 'mcp_forward':
@@ -848,6 +902,90 @@ export class WSHub {
 
       this.sendToClient(clientId, errorResponse);
     }
+  }
+
+  /**
+   * Replay buffered scrollback for every agent in `sessionId` to `clientId`.
+   *
+   * Each chunk is sent as a `terminal_output` frame so the existing iOS
+   * decoder path applies it to the terminal verbatim (no protocol change).
+   * Replay is bracketed by `scrollback_response` markers so clients that
+   * want to distinguish history from live output can.
+   */
+  private replayScrollback(clientId: string, sessionId: string): void {
+    const provider = this.scrollbackProviders.get(sessionId);
+    if (!provider) return;
+
+    let entries: ScrollbackEntry[];
+    try {
+      entries = provider(sessionId);
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.data) continue;
+
+      // Marker: history begins.
+      const startMarker: ScrollbackResponseMessage = {
+        type: 'scrollback_response',
+        sessionId,
+        lines: [],
+        fromLine: 0,
+        totalLines: entry.bytes,
+        timestamp: Date.now(),
+      };
+      this.sendToClient(clientId, startMarker);
+
+      const outMessage: TerminalOutputMessage = {
+        type: 'terminal_output',
+        agentId: entry.agentId,
+        data: entry.data,
+        timestamp: Date.now(),
+      };
+      this.sendToClient(clientId, outMessage);
+    }
+  }
+
+  /**
+   * Handle scrollback_request — reply with whatever the registered provider
+   * has buffered for the given session/agent. Returns an empty response if
+   * no provider is registered or the agent has no history.
+   */
+  private handleScrollbackRequest(clientId: string, message: ScrollbackRequestMessage): void {
+    const client = this.clients.get(clientId);
+    if (!client || client.sessionId !== message.sessionId) {
+      return;
+    }
+
+    const provider = this.scrollbackProviders.get(message.sessionId);
+    let combined = '';
+    let totalBytes = 0;
+    if (provider) {
+      try {
+        for (const entry of provider(message.sessionId)) {
+          combined += entry.data;
+          totalBytes += entry.bytes;
+        }
+      } catch {
+        // Provider failure: fall through to empty response.
+      }
+    }
+
+    // Wire format expects `lines: string[]` — split on newline. iOS treats
+    // any non-empty array as history payload.
+    const lines = combined.length > 0 ? combined.split('\n') : [];
+
+    const response: ScrollbackResponseMessage = {
+      type: 'scrollback_response',
+      sessionId: message.sessionId,
+      lines,
+      fromLine: message.fromLine,
+      totalLines: totalBytes,
+      timestamp: Date.now(),
+    };
+
+    this.sendToClient(clientId, response);
   }
 
   /**
