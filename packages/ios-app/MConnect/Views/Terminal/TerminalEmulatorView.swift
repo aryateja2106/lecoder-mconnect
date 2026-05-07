@@ -9,6 +9,13 @@ struct TerminalEmulatorView: View {
     @ObservedObject var viewModel: TerminalViewModel
     let onTapped: () -> Void
 
+    #if canImport(SwiftTerm)
+    /// Retains the accessory bar's UIHostingController across SwiftUI re-renders so
+    /// SwiftTerm's `inputAccessoryView` keeps a live SwiftUI host (the controller is
+    /// not retained by `inputAccessoryView`, which only holds the view).
+    @State private var accessoryHost = AccessoryHostHolder()
+    #endif
+
     var body: some View {
         #if canImport(SwiftTerm)
         SwiftTermBridge(viewModel: viewModel, accessoryViewProvider: makeAccessoryView)
@@ -19,25 +26,37 @@ struct TerminalEmulatorView: View {
     }
 
     #if canImport(SwiftTerm)
-    /// Builds the ModifierAccessoryBar host view to override SwiftTerm's default keyboard accessory.
+    /// Returns the cached ModifierAccessoryBar host view; builds it on first call.
+    /// Stored on `accessoryHost` (`@State`) so the controller outlives `body` re-renders.
     private func makeAccessoryView() -> UIView {
-        let viewModel = self.viewModel
-        let bar = ModifierAccessoryBar { data in
-            Task { @MainActor in
-                viewModel.sendInputBytes(data)
-            }
-        }
-        let host = UIHostingController(rootView: bar)
-        host.view.backgroundColor = .clear
-        host.view.translatesAutoresizingMaskIntoConstraints = false
-        // SwiftTerm sizes inputAccessoryView via intrinsicContentSize; our bar
-        // measures itself via SwiftUI layout so set a reasonable height.
-        host.sizeThatFits(in: CGSize(width: UIScreen.main.bounds.width, height: 120))
-        host.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 96)
-        return host.view
+        accessoryHost.view(viewModel: viewModel)
     }
     #endif
 }
+
+#if canImport(SwiftTerm)
+/// Reference holder for the ModifierAccessoryBar UIHostingController. Lives in
+/// `@State` to survive SwiftUI body re-renders without rebuilding the host.
+private final class AccessoryHostHolder {
+    private var host: UIHostingController<ModifierAccessoryBar>?
+
+    func view(viewModel: TerminalViewModel) -> UIView {
+        if let existing = host { return existing.view }
+        let bar = ModifierAccessoryBar { [weak viewModel] data in
+            Task { @MainActor in
+                viewModel?.sendInputBytes(data)
+            }
+        }
+        let h = UIHostingController(rootView: bar)
+        h.view.backgroundColor = .clear
+        h.view.translatesAutoresizingMaskIntoConstraints = false
+        h.sizeThatFits(in: CGSize(width: UIScreen.main.bounds.width, height: 120))
+        h.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 96)
+        host = h
+        return h.view
+    }
+}
+#endif
 
 // MARK: - Fallback Text View
 

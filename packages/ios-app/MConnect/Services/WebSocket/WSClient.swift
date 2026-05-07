@@ -117,6 +117,14 @@ class WSClient: ObservableObject {
     private var isIntentionalDisconnect = false
     private var cancellables = Set<AnyCancellable>()
 
+    // MARK: - Inbound Message Batching
+
+    /// Lock-protected inbox of parsed messages. Receive callbacks (which run on
+    /// URLSession's delegate queue) parse + push here, and a single MainActor
+    /// drain task processes them in ~16ms batches to avoid flooding the main
+    /// actor under TUI redraw bursts (50+ frames/sec).
+    private nonisolated let inbox = MessageInbox()
+
     // MARK: - Session Restoration State
 
     /// The session ID to re-attach to after a successful reconnection.
@@ -387,13 +395,24 @@ class WSClient: ObservableObject {
 
     private func startReceiveLoop() {
         webSocket?.receive { [weak self] result in
-            Task { @MainActor in
-                guard let self else { return }
-                switch result {
-                case .success(let message):
-                    self.handleRawMessage(message)
-                    self.startReceiveLoop()
-                case .failure(let error):
+            guard let self else { return }
+            switch result {
+            case .success(let raw):
+                // Parse + enqueue on URLSession's delegate queue (no MainActor hop).
+                // Drain happens in 16ms batches via drainInbox().
+                let needsFlush = self.inbox.parseAndPush(raw)
+                // Re-arm receive immediately so we don't throttle WS throughput.
+                Task { @MainActor [weak self] in self?.startReceiveLoop() }
+                if needsFlush {
+                    Task { @MainActor [weak self] in
+                        // ~60fps frame budget: coalesce all inbound messages that
+                        // arrive within this window into a single MainActor drain.
+                        try? await Task.sleep(for: .milliseconds(16))
+                        self?.drainInbox()
+                    }
+                }
+            case .failure(let error):
+                Task { @MainActor in
                     self.logger.error("Receive error: \(error.localizedDescription)")
                     self.handleConnectionLost()
                 }
@@ -401,27 +420,16 @@ class WSClient: ObservableObject {
         }
     }
 
-    // MARK: - Message Handling
-
-    private func handleRawMessage(_ raw: URLSessionWebSocketTask.Message) {
-        let data: Data
-        switch raw {
-        case .string(let text):
-            guard let d = text.data(using: .utf8) else { return }
-            data = d
-        case .data(let d):
-            data = d
-        @unknown default:
-            return
+    /// Process all messages buffered in the inbox in one MainActor cycle.
+    @MainActor
+    private func drainInbox() {
+        let batch = inbox.drain()
+        for message in batch {
+            handleServerMessage(message)
         }
-
-        guard let message = ServerMessage.parse(from: data) else {
-            logger.warning("Failed to parse server message")
-            return
-        }
-
-        handleServerMessage(message)
     }
+
+    // MARK: - Message Handling
 
     private func handleServerMessage(_ message: ServerMessage) {
         switch message {
@@ -634,5 +642,51 @@ class WSClient: ObservableObject {
         let clamped = min(exponential, maxReconnectDelay)
         let jitter = Double.random(in: 0...0.5)
         return clamped + jitter
+    }
+}
+
+// MARK: - MessageInbox
+
+/// Lock-protected inbox for inbound WS messages. Receive callbacks parse on
+/// URLSession's delegate queue and push into the inbox; a single MainActor drain
+/// task processes the batch. Returns `true` from `parseAndPush` exactly when the
+/// caller is responsible for scheduling the drain (i.e., the inbox transitioned
+/// from idle → has-pending), guaranteeing one drain per ~16ms batch.
+private final class MessageInbox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var queue: [ServerMessage] = []
+    private var flushScheduled = false
+
+    /// Parses a raw WS message and pushes it into the queue. Returns `true` if
+    /// the caller must schedule a drain (no flush is currently in flight).
+    func parseAndPush(_ raw: URLSessionWebSocketTask.Message) -> Bool {
+        let data: Data
+        switch raw {
+        case .string(let text):
+            guard let d = text.data(using: .utf8) else { return false }
+            data = d
+        case .data(let d):
+            data = d
+        @unknown default:
+            return false
+        }
+        guard let message = ServerMessage.parse(from: data) else { return false }
+
+        lock.lock()
+        queue.append(message)
+        let needsSchedule = !flushScheduled
+        if needsSchedule { flushScheduled = true }
+        lock.unlock()
+        return needsSchedule
+    }
+
+    /// Atomically takes all pending messages and clears the schedule flag.
+    func drain() -> [ServerMessage] {
+        lock.lock()
+        let batch = queue
+        queue.removeAll(keepingCapacity: true)
+        flushScheduled = false
+        lock.unlock()
+        return batch
     }
 }

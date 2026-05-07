@@ -23,6 +23,11 @@ final class TerminalBuffer {
     /// Per-agent raw output (preserves ANSI for SwiftTerm).
     private var rawBuffers: [String: String] = [:]
 
+    /// Per-agent total UTF-8 bytes ever appended (monotonic counter for SwiftTerm dedupe).
+    /// SwiftTermBridge feeds bytes incrementally using this counter; trimming the front
+    /// of `rawBuffers` does not decrement this — the counter only goes up.
+    private var totalBytesAppended: [String: Int] = [:]
+
     /// Cached display text per agent to avoid rejoining all lines.
     private var displayTextCache: [String: String] = [:]
 
@@ -47,6 +52,7 @@ final class TerminalBuffer {
         // Update raw buffer (preserves ANSI)
         let currentRaw = rawBuffers[agentId, default: ""]
         rawBuffers[agentId] = currentRaw + data
+        totalBytesAppended[agentId, default: 0] += data.utf8.count
 
         // Split by newlines and append to line buffer (ANSI stripped)
         let stripped = stripANSI(data)
@@ -123,6 +129,26 @@ final class TerminalBuffer {
         return rawBuffers[agentId] ?? ""
     }
 
+    /// Returns UTF-8 bytes appended since the given offset, plus the new offset.
+    /// If `offset` is behind the live raw buffer (because old bytes were trimmed),
+    /// returns the entire current raw buffer so the caller catches up.
+    func newBytes(forAgent agentId: String, since offset: Int) -> (bytes: [UInt8], newOffset: Int) {
+        let total = totalBytesAppended[agentId] ?? 0
+        guard offset < total, let raw = rawBuffers[agentId] else {
+            return ([], total)
+        }
+        let liveStart = total - raw.utf8.count
+        if offset >= liveStart {
+            // The slice we want is still in the buffer.
+            let dropCount = offset - liveStart
+            let slice = raw.utf8.dropFirst(dropCount)
+            return (Array(slice), total)
+        } else {
+            // Caller fell behind a trim — feed entire current raw buffer.
+            return (Array(raw.utf8), total)
+        }
+    }
+
     /// Get line count for an agent.
     func lineCount(forAgent agentId: String) -> Int {
         return buffers[agentId]?.count ?? 0
@@ -132,6 +158,7 @@ final class TerminalBuffer {
     func clear(forAgent agentId: String) {
         buffers.removeValue(forKey: agentId)
         rawBuffers.removeValue(forKey: agentId)
+        totalBytesAppended.removeValue(forKey: agentId)
         displayTextCache.removeValue(forKey: agentId)
         cachedLineCount.removeValue(forKey: agentId)
         logger.info("Cleared buffer for agent \(agentId)")
@@ -141,6 +168,7 @@ final class TerminalBuffer {
     func clearAll() {
         buffers.removeAll()
         rawBuffers.removeAll()
+        totalBytesAppended.removeAll()
         displayTextCache.removeAll()
         cachedLineCount.removeAll()
         logger.info("Cleared all buffers")
@@ -160,6 +188,9 @@ final class TerminalBuffer {
         let scrollbackText = lines.joined(separator: "\n") + "\n"
         let currentRaw = rawBuffers[agentId, default: ""]
         rawBuffers[agentId] = scrollbackText + currentRaw
+        // NOTE: we intentionally do NOT bump `totalBytesAppended` here. That counter
+        // tracks live-stream offset for SwiftTermBridge dedupe; scrollback is rendered
+        // by the fallback text view only. Bumping would make the bridge replay scrollback.
 
         // Invalidate cache since content changed at beginning
         displayTextCache.removeValue(forKey: agentId)
