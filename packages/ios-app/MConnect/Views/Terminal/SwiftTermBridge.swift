@@ -61,21 +61,22 @@ struct SwiftTermBridge: UIViewRepresentable {
 
     func updateUIView(_ tv: SwiftTerm.TerminalView, context: Context) {
         guard let agentId = viewModel.activeAgent?.id else { return }
-
-        let raw = viewModel.terminalBuffer.rawOutput(forAgent: agentId)
         let coord = context.coordinator
 
-        guard raw != coord.lastFedOutput else { return }
+        // UTF-8-safe incremental feed: ask the buffer for bytes appended since our
+        // last cursor. Avoids fetching the full 2MB raw string and slicing by
+        // Character (extended grapheme), which is incorrect for non-ASCII output.
+        let (bytes, newOffset) = viewModel.terminalBuffer.newBytes(
+            forAgent: agentId,
+            since: coord.lastFedByteCount
+        )
+        guard !bytes.isEmpty else { return }
+        coord.lastFedByteCount = newOffset
 
-        let newData = String(raw.dropFirst(coord.lastFedOutput.count))
-        coord.lastFedOutput = raw
-
-        if let bytes = newData.data(using: .utf8) {
-            let signposter = OSSignposter(logger: coord.log)
-            let state = signposter.beginInterval("output.feed")
-            tv.feed(byteArray: ArraySlice<UInt8>(bytes))
-            signposter.endInterval("output.feed", state)
-        }
+        let signposter = OSSignposter(logger: coord.log)
+        let state = signposter.beginInterval("output.feed")
+        tv.feed(byteArray: ArraySlice<UInt8>(bytes))
+        signposter.endInterval("output.feed", state)
     }
 
     // MARK: makeCoordinator
@@ -89,7 +90,10 @@ struct SwiftTermBridge: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, TerminalViewDelegate {
         let viewModel: TerminalViewModel
-        var lastFedOutput: String = ""
+        /// UTF-8 byte offset into the per-agent live stream that has already been
+        /// fed into SwiftTerm. Monotonic — survives raw buffer trims via
+        /// `TerminalBuffer.newBytes(forAgent:since:)`.
+        var lastFedByteCount: Int = 0
         var isFocused: Bool = false
         weak var terminalView: SwiftTerm.TerminalView?
 
