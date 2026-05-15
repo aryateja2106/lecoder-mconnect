@@ -89,7 +89,8 @@ class AuthService: ObservableObject {
 
         // Check for OAuth error from provider
         if let errorParam = queryItems.first(where: { $0.name == "error" })?.value {
-            let description = queryItems.first(where: { $0.name == "error_description" })?.value
+            let rawDescription = queryItems.first(where: { $0.name == "error_description" })?.value
+            let description = rawDescription.map(Self.decodeFormComponent)
             throw AuthError.providerError(errorParam, description)
         }
 
@@ -302,6 +303,13 @@ class AuthService: ObservableObject {
         var bytes = [UInt8](repeating: 0, count: 24)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         return Data(bytes).base64URLEncodedString()
+    }
+}
+
+private extension AuthService {
+    static func decodeFormComponent(_ value: String) -> String {
+        let normalized = value.replacingOccurrences(of: "+", with: " ")
+        return normalized.removingPercentEncoding ?? normalized
     }
 }
 

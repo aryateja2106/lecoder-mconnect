@@ -28,7 +28,7 @@ protocol WSClientDelegate: AnyObject {
     func wsClient(_ client: WSClient, didReceiveControlResponse response: ControlResponse)
     func wsClient(_ client: WSClient, didReceiveInputRejection response: InputRejectedResponse)
     func wsClient(_ client: WSClient, didReceiveScrollback response: ScrollbackResponse)
-    func wsClient(_ client: WSClient, clientJoined client: ClientInfo)
+    func wsClient(_ client: WSClient, clientJoined joinedClient: ClientInfo)
     func wsClient(_ client: WSClient, clientLeft clientId: String)
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse)
 }
@@ -45,7 +45,7 @@ extension WSClientDelegate {
     func wsClient(_ client: WSClient, didReceiveControlResponse response: ControlResponse) {}
     func wsClient(_ client: WSClient, didReceiveInputRejection response: InputRejectedResponse) {}
     func wsClient(_ client: WSClient, didReceiveScrollback response: ScrollbackResponse) {}
-    func wsClient(_ client: WSClient, clientJoined client: ClientInfo) {}
+    func wsClient(_ client: WSClient, clientJoined joinedClient: ClientInfo) {}
     func wsClient(_ client: WSClient, clientLeft clientId: String) {}
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse) {}
 }
@@ -133,13 +133,14 @@ class WSClient: ObservableObject {
     // MARK: - Init
 
     init(
-        tokenManager: TokenManager = .shared,
+        tokenManager: TokenManager? = nil,
         authService: AuthService? = nil,
-        networkMonitor: NetworkMonitoring = NetworkMonitor.shared
+        networkMonitor: NetworkMonitoring? = nil
     ) {
-        self.tokenManager = tokenManager
-        self.authService = authService ?? AuthService(tokenManager: tokenManager)
-        self.networkMonitor = networkMonitor
+        let resolvedTokenManager = tokenManager ?? .shared
+        self.tokenManager = resolvedTokenManager
+        self.authService = authService ?? AuthService(tokenManager: resolvedTokenManager)
+        self.networkMonitor = networkMonitor ?? NetworkMonitor.shared
         setupNetworkMonitor()
     }
 

@@ -15,9 +15,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Allow pinch-zoom inside the terminal — accessibility win.
+  // The terminal element opts out via `touch-action: pan-y` in globals.css.
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: "cover",
+  themeColor: "#000000",
 };
 
 // Demo mode banner component - rendered on server

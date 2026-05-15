@@ -34,6 +34,15 @@
 		A1B2C3D4E5F6A7B8C9D0E2FA /* VaultItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BA /* VaultItem.swift */; };
 		A1B2C3D4E5F6A7B8C9D0E2FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1BB /* Assets.xcassets */; };
 		A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */; };
+		/* Mobile-redesign sources (added 2026-05-07) */
+		A1B2C3D4E5F6A7B8C9D0E300 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F200 /* Theme.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E301 /* SessionHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F201 /* SessionHeaderView.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E302 /* FloatingControlPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F202 /* FloatingControlPill.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E303 /* HardwareKeyAccessory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F203 /* HardwareKeyAccessory.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E304 /* MobileTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F204 /* MobileTerminalView.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E305 /* StickyModifierState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F205 /* StickyModifierState.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E306 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F206 /* NetworkMonitor.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E307 /* TerminalBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A6B7C8D9E0F207 /* TerminalBuffer.swift */; };
 		/* Test target build files */
 		T1A2B3C4D5E6F7A8B9C0D1E0 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */; };
 		T1A2B3C4D5E6F7A8B9C0D1E2 /* BiometricAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */; };
@@ -83,6 +92,15 @@
 		B1C2D3E4F5A6B7C8D9E0F1BC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1BD /* MConnect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MConnect.entitlements; sourceTree = "<group>"; };
 		B1C2D3E4F5A6B7C8D9E0F1C0 /* BackgroundSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionManager.swift; sourceTree = "<group>"; };
+		/* Mobile-redesign file references (added 2026-05-07) */
+		B1C2D3E4F5A6B7C8D9E0F200 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F201 /* SessionHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHeaderView.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F202 /* FloatingControlPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingControlPill.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F203 /* HardwareKeyAccessory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareKeyAccessory.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F204 /* MobileTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileTerminalView.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F205 /* StickyModifierState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickyModifierState.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F206 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A6B7C8D9E0F207 /* TerminalBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalBuffer.swift; sourceTree = "<group>"; };
 		/* Test target file references */
 		T1A2B3C4D5E6F7A8B9C0D1E1 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		T1A2B3C4D5E6F7A8B9C0D1E3 /* BiometricAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthTests.swift; sourceTree = "<group>"; };
@@ -124,12 +142,21 @@
 			children = (
 				D1E2F3A4B5C6D7E8F9A0B1C5 /* App */,
 				D1E2F3A4B5C6D7E8F9A0B1C6 /* Views */,
+				D1E2F3A4B5C6D7E8F9A0B1D5 /* ViewModels */,
 				D1E2F3A4B5C6D7E8F9A0B1C7 /* Services */,
 				D1E2F3A4B5C6D7E8F9A0B1C8 /* Models */,
 				D1E2F3A4B5C6D7E8F9A0B1C9 /* Resources */,
 				B1C2D3E4F5A6B7C8D9E0F1BD /* MConnect.entitlements */,
 			);
 			path = MConnect;
+			sourceTree = "<group>";
+		};
+		D1E2F3A4B5C6D7E8F9A0B1D5 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				B1C2D3E4F5A6B7C8D9E0F205 /* StickyModifierState.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		D1E2F3A4B5C6D7E8F9A0B1C4 /* Products */ = {
@@ -170,8 +197,17 @@
 				D1E2F3A4B5C6D7E8F9A0B1D0 /* Auth */,
 				D1E2F3A4B5C6D7E8F9A0B1D1 /* Notifications */,
 				D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */,
+				D1E2F3A4B5C6D7E8F9A0B1D6 /* Network */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		D1E2F3A4B5C6D7E8F9A0B1D6 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				B1C2D3E4F5A6B7C8D9E0F206 /* NetworkMonitor.swift */,
+			);
+			path = Network;
 			sourceTree = "<group>";
 		};
 		D1E2F3A4B5C6D7E8F9A0B1D2 /* Background */ = {
@@ -208,6 +244,12 @@
 				B1C2D3E4F5A6B7C8D9E0F1A5 /* TerminalView.swift */,
 				B1C2D3E4F5A6B7C8D9E0F1A6 /* TerminalEmulatorView.swift */,
 				B1C2D3E4F5A6B7C8D9E0F1A7 /* KeyboardBarView.swift */,
+				B1C2D3E4F5A6B7C8D9E0F207 /* TerminalBuffer.swift */,
+				B1C2D3E4F5A6B7C8D9E0F200 /* Theme.swift */,
+				B1C2D3E4F5A6B7C8D9E0F201 /* SessionHeaderView.swift */,
+				B1C2D3E4F5A6B7C8D9E0F202 /* FloatingControlPill.swift */,
+				B1C2D3E4F5A6B7C8D9E0F203 /* HardwareKeyAccessory.swift */,
+				B1C2D3E4F5A6B7C8D9E0F204 /* MobileTerminalView.swift */,
 			);
 			path = Terminal;
 			sourceTree = "<group>";
@@ -413,6 +455,14 @@
 				A1B2C3D4E5F6A7B8C9D0E2F9 /* Agent.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E2FA /* VaultItem.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E3A0 /* BackgroundSessionManager.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E300 /* Theme.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E301 /* SessionHeaderView.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E302 /* FloatingControlPill.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E303 /* HardwareKeyAccessory.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E304 /* MobileTerminalView.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E305 /* StickyModifierState.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E306 /* NetworkMonitor.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E307 /* TerminalBuffer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

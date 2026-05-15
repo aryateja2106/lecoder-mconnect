@@ -1,377 +1,151 @@
-# LeCoder MConnect
+# MConnect
 
-**One command to control any AI coding agent from your phone.**
+**Run AI coding agents on any machine. Drive them from your phone.**
 
-[![npm version](https://img.shields.io/npm/v/lecoder-mconnect.svg)](https://www.npmjs.com/package/lecoder-mconnect)
+[![npm](https://img.shields.io/npm/v/lecoder-mconnect.svg)](https://www.npmjs.com/package/lecoder-mconnect)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Opik Traced](https://img.shields.io/badge/Opik-Traced-blue.svg)](https://www.comet.com/opik)
+[![TestFlight](https://img.shields.io/badge/iOS-TestFlight-black.svg?logo=apple)](https://testflight.apple.com/join/pB2TbMrX)
 
-[![App Store Coming Soon](https://img.shields.io/badge/App_Store-Coming_Soon-black.svg?logo=apple)](https://testflight.apple.com/join/pB2TbMrX)
-
-> Control your AI coding agents from your phone. Now available on [TestFlight](https://testflight.apple.com/join/pB2TbMrX), App Store review in progress.
-
----
-
-## The Problem
-
-AI coding agents like Claude Code, Gemini CLI, and Cursor are incredibly powerful, but they're chained to your laptop. Step away from your desk and your agent stalls, waiting for approval on a file deletion or a package install. You lose time. The agent loses momentum.
-
-Developers shouldn't have to babysit a terminal to stay productive.
-
-## What MConnect Does
-
-MConnect gives you full terminal control of your AI coding agents from your phone. One command, one QR scan, and you're connected.
+MConnect is a mobile-first remote shell for AI coding agents. Install one CLI on each machine you own — laptop, dev VM, home server — and connect to all of them from one place on your phone.
 
 ```bash
 npx lecoder-mconnect
 ```
 
-That's it. A QR code appears in your terminal. Scan it with your phone. You're now controlling your AI agent from anywhere, with every action traced through [Opik](https://www.comet.com/opik) for full observability.
-
-| Claude Code | Gemini CLI | Cursor Agent | Amp | OpenCode |
-|:---:|:---:|:---:|:---:|:---:|
-| <img src="apps/web/public/mobile-view-ss/claude-code-view.PNG" width="160" alt="Claude Code on mobile"> | <img src="apps/web/public/mobile-view-ss/gemini-cli-view.PNG" width="160" alt="Gemini CLI on mobile"> | <img src="apps/web/public/mobile-view-ss/cursor-agent-view.PNG" width="160" alt="Cursor Agent on mobile"> | <img src="apps/web/public/mobile-view-ss/amp-view.PNG" width="160" alt="Amp on mobile"> | <img src="apps/web/public/mobile-view-ss/opencode-view.PNG" width="160" alt="OpenCode on mobile"> |
-
-## Demo
-
-[Watch the demo video](https://youtu.be/y1kwYfyJZRY) showing MConnect controlling Claude Code from an iPhone, with live Opik tracing.
-
-**Live demo**: [lecoder.lesearch.ai](https://lecoder.lesearch.ai)
+A QR code prints. Scan it with the iOS app (or any phone browser). Your machine is now reachable from your pocket.
 
 ---
 
-## Opik Integration
+## What it's for
 
-Most remote terminal tools give you zero visibility into what your AI agents are actually doing. MConnect is different. Opik observability is built into the core, not bolted on as an afterthought. Every meaningful action that happens in a session gets traced, giving you a clear picture of how your agents behave over time.
+You step away from your desk. Your agent stalls on an approval prompt. You unlock your phone, see the prompt, tap Approve. The run continues.
 
-### What gets traced
+Or: you have three machines running different agents — Claude Code reviewing a PR on your laptop, an aider session on your dev VM, a long-running build on a home server. MConnect gives you one screen to see them all and a real terminal you can drive from a phone-sized keyboard.
 
-MConnect runs two complementary Opik tracers that capture different levels of detail:
+The goal is to be Jump Desktop for AI coding agents — fast, reliable, mobile-native, no signup.
 
-**Session-level tracing** tracks the full lifecycle of your MConnect session as a root trace, with nested spans for each event:
+## Quickstart
 
-- **Agent spans** — when an agent (Claude Code, Gemini CLI, etc.) spawns, what type it is, and when it exits
-- **Command spans** — every command that gets executed, whether it was blocked by guardrails, required approval, or ran directly
-- **Approval spans** — when a command needs user approval (like `rm -rf` or `npm publish`), the request and the user's decision are captured
-- **Client connection spans** — when a mobile or PC client connects/disconnects, including connection type and duration
-
-**Observability-level tracing** captures system-wide metrics across the session:
-
-- Input/output byte counts
-- Container lifecycle events (create, start, stop, error)
-- PTY process spawns and exits
-- Security events (injection detection, rate limiting, auth failures)
-- Tunnel creation success/failure
-- Component initialization status
-- Input arbitration decisions (who has control, accepted vs rejected inputs)
-
-### Metrics we track
-
-Every session accumulates these metrics, flushed to Opik on session end:
-
-| Metric | What it measures |
-|--------|-----------------|
-| `agentsSpawned` | Total AI agents started in session |
-| `commandsExecuted` | Commands that ran successfully |
-| `commandsBlocked` | Commands stopped by guardrails |
-| `commandsApproved` | Commands that needed and got user approval |
-| `mobileConnections` | Times a phone connected |
-| `pcConnections` | Times a PC reconnected |
-| `totalInputBytes` | All input sent to agents |
-| `totalOutputBytes` | All output received from agents |
-| `securityEvents` | Injection attempts, auth failures |
-| `containersCreated` | Docker containers spun up |
-
-### How to view your traces
-
-Once you have Opik configured (see setup below), all traces show up in your [Opik dashboard](https://www.comet.com/opik):
-
-- **Traces view** — see every session with duration, span count, and status
-- **Span hierarchy** — drill into Session > Agent > Command > Approval
-- **Metrics** — P50/P90 latency, error rates, throughput
-- **Timeline** — visual waterfall of what happened and when
-
-We've run 17+ traces in production with 0 errors. The integration is stable and production-ready.
-
-### Custom evaluation metrics
-
-Beyond raw tracing, MConnect includes purpose-built evaluation metrics (in `src/observability/metrics.ts`) that score trace data to give you actionable insights:
-
-- **Command Safety** — scores every guardrail decision: did it correctly block a dangerous command (1.0), flag a false positive (0.7), or miss something it shouldn't have (0.2)?
-- **Agent Tool Selection** — evaluates whether the right agent handled the right command. If you're running shell commands through Claude Code when a plain shell would do, this catches it.
-- **Session Health** — composite score combining command safety, security events, container health, auth failures, and input arbitration into a single 0-1 health indicator.
-- **Agent Coordination** — for multi-agent sessions, measures utilization (are all agents being used?), control transfer efficiency, and rate limiting incidents.
-
-These scores are attached as feedback on Opik traces and spans, so you can chart them over time in the dashboard and track whether your system is actually improving.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- Python 3 and a C++ compiler (for node-pty compilation — Xcode CLI tools on macOS, `build-essential` on Linux)
-- [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) (for the secure tunnel to your phone)
-- Docker (optional, for container isolation)
-
-### Install and run
+**1. Install on the machine you want to control:**
 
 ```bash
-# Install cloudflared first (needed for remote access)
-brew install cloudflared   # macOS
-# See link above for Linux
-
-# Then just run it
+# macOS / Linux
 npx lecoder-mconnect
-```
 
-Or install globally:
-
-```bash
+# or globally
 npm install -g lecoder-mconnect
 mconnect
 ```
 
-### First run walkthrough
+**2. Pair your phone:**
 
-1. Run `npx lecoder-mconnect` in your terminal
-2. Pick an agent preset (start with "Shell Session" to try it out)
-3. Choose a guardrails level (default is fine)
-4. A QR code appears — scan it with your phone's camera
-5. Your phone is now a remote terminal for your AI agent
+- Scan the QR code with the [TestFlight build](https://testflight.apple.com/join/pB2TbMrX), or
+- Open the printed URL in any phone browser, or
+- Type the 6-character pairing code
 
-### CLI commands
+**3. Pick an agent and go:**
 
-```bash
-mconnect                # Start a session (interactive wizard)
-mconnect start          # Same as above (start is the default command)
-mconnect start --preset shell-only --guardrails default  # Skip the wizard
-mconnect doctor         # Run diagnostics (checks node-pty, Docker, cloudflared)
-mconnect presets        # List available agent presets
-```
-
-| Flag | What it does |
-|------|-------------|
-| `-d, --dir <path>` | Set working directory (default: current dir) |
-| `-p, --preset <name>` | Skip preset selection (`shell-only`, `single`, `research-spec-test`, `dev-review`, `container-dev`) |
-| `-g, --guardrails <level>` | Skip guardrails selection (`default`, `strict`, `permissive`, `none`) |
-| `--port <number>` | Server port (default: 8765) |
-| `--no-tmux` | Disable tmux visualization |
-| `-c, --code` | Show pairing code for desktop use |
-
-## iOS App
-
-MConnect is also available as a native iOS app — the same terminal control experience, built for iPhone.
-
-**TestFlight (public beta):** [Join TestFlight](https://testflight.apple.com/join/pB2TbMrX)
-
-The iOS app connects to your MConnect CLI server and gives you:
-- Native terminal rendering
-- QR code and URL-based pairing
-- Touch-optimized controls
-- Works over any network via Cloudflare tunnel
-
-**App Store:** v1.0 submitted, currently in review.
-
-### Setting up Opik (for observability)
-
-MConnect works fine without Opik — you just won't get tracing. To enable it:
-
-**1. Create a free Opik account**
-
-Go to [comet.com/opik](https://www.comet.com/opik) and sign up. It's free and takes about a minute.
-
-**2. Get your API key**
-
-Once you're in, go to your account settings and copy your API key. Also note your workspace name (it's in the URL, something like `your-name-1234`).
-
-**3. Create a `.env` file**
-
-There's a `.env.example` in `packages/cli/` you can copy and fill in:
+| Preset | What it runs |
+|---|---|
+| `shell-only` | Just a remote shell. Good for first-time pairing. |
+| `single` | One agent — Claude Code, Gemini CLI, Cursor, aider, or codex |
+| `dev-review` | A coding agent + a review agent in tmux split |
+| `container-dev` | Same as `single` but inside a Docker dev container |
 
 ```bash
-cp packages/cli/.env.example packages/cli/.env
+mconnect --preset single --guardrails default
 ```
-
-Then edit it with your keys:
-
-```bash
-# Required for Opik tracing
-OPIK_API_KEY=your_api_key_here
-OPIK_WORKSPACE=your-workspace-name
-
-# Optional (these have sensible defaults)
-OPIK_PROJECT_NAME=lecoder-mconnect
-OPIK_URL_OVERRIDE=https://www.comet.com/opik/api
-```
-
-MConnect's built-in `.env` loader picks this up automatically on startup. It supports quoted values, inline comments, and `export` prefixes, so standard `.env` conventions work fine.
-
-**4. Run MConnect**
-
-When you start MConnect, you'll see Opik status in the component list:
-
-```
-✓ HTTP Server
-✓ WebSocket
-✓ PTY Manager
-✓ Tunnel          https://your-tunnel-url.trycloudflare.com
-✓ Opik            Tracing enabled
-```
-
-If Opik isn't configured, it'll say `OPIK_API_KEY not set` and everything else still works normally.
-
-**5. View your traces**
-
-Go to your Opik dashboard at `comet.com/opik` and you'll see traces flowing in as you use MConnect.
-
----
 
 ## How it works
 
-MConnect sits between your AI coding agents and your phone:
-
 ```
-Your Phone (any browser)
-        |
-        | QR scan → WebSocket over Cloudflare Tunnel
-        |
-  MConnect Server (runs on your laptop)
-        |
-   ┌────┼────┐
-   |    |    |
-Claude  Gemini  Cursor
-Code    CLI     Agent
-   |    |    |
-   └────┼────┘
-        |
-   Opik Tracing
-   (every action logged)
+  Phone (iOS app or browser)
+       │
+       │  WebSocket over Cloudflare Tunnel
+       ▼
+  MConnect daemon  ──►  Claude Code / Gemini / aider / shell
+  (your machine)        (each agent in its own PTY, optionally Dockerised)
 ```
 
-Under the hood:
-- **node-pty** manages pseudo-terminals for each agent
-- **WebSocket** handles real-time bidirectional communication between phone and server
-- **Cloudflare Tunnel** creates a secure public URL (no port forwarding needed)
-- **Opik SDK** traces all session events with nested spans
-- **Guardrails** filter dangerous commands before they reach the agent
+- **node-pty** runs each agent in a real pseudo-terminal so TUIs render correctly.
+- **WebSocket** ships keystrokes up and screen output down at near-zero latency.
+- **Cloudflare Tunnel** gives you a public HTTPS URL with no port-forwarding.
+- **Guardrails** filter destructive commands before they reach the shell.
 
-### Guardrails
-
-MConnect has 4 levels of command filtering:
-
-| Level | What it blocks | What needs approval |
-|-------|---------------|-------------------|
-| Default | `rm -rf /`, fork bombs, etc. | Force push, npm publish |
-| Strict | All destructive operations | Any `rm`, all `git push` |
-| Permissive | Only catastrophic commands | Force push only |
-| None | Nothing (use at your own risk) | Nothing |
-
-### Supported agents
-
-Anything that runs in a terminal works with MConnect:
-
-- **Claude Code** — fully tested, TUI support
-- **Gemini CLI** — fully tested, TUI support
-- **Cursor Agent** — fully tested, TUI support
-- **OpenAI Codex** — supported (shell mode)
-- **Aider** — supported (shell mode)
-- **Any CLI tool** — if it runs in a terminal, MConnect can wrap it
-
----
-
-## Project Structure
+## Repo layout
 
 ```
 lecoder-mconnect/
 ├── packages/
-│   └── cli/                 # Main CLI package
-│       └── src/
-│           ├── agents/      # Agent management
-│           ├── container/   # Docker/DevContainer support
-│           ├── opik/        # OpikTracer (session/agent/command tracing)
-│           ├── observability/# MConnectObservability (system-wide metrics)
-│           ├── pty/         # PTY management (node-pty)
-│           ├── security.ts  # Guardrails, injection detection
-│           └── server/      # WebSocket server
+│   ├── cli/          # The lecoder-mconnect CLI (Node, what you `npx`)
+│   ├── server/       # Bun-based orchestration server
+│   ├── shared/       # Shared types, protocol, guardrails
+│   └── ios-app/      # Native iOS app (SwiftUI)
 ├── apps/
-│   └── web/                 # Mobile web UI (xterm.js)
-└── docs/                    # Documentation
+│   ├── web/          # Phone-friendly web client (Next.js + xterm.js)
+│   └── website/      # Marketing site
+└── docs/
+    └── design/       # Design specs, including MOBILE-TERMINAL-DESIGN.md
 ```
 
-## Development
+## Develop
 
 ```bash
 git clone https://github.com/aryateja2106/lecoder-mconnect.git
 cd lecoder-mconnect
 npm install
-
-# Build
-npm run build --workspace=lecoder-mconnect
-
-# Run in dev mode
-cd packages/cli && npm run dev
-
-# Check everything is working
-npx lecoder-mconnect doctor
+npm run dev          # apps/web on :3000
+npm run dev:cli      # CLI in watch mode
+npx lecoder-mconnect doctor  # sanity check
 ```
 
-### Multi-agent development
+Prereqs: Node 20+, Python 3, a C++ toolchain (Xcode CLT on macOS, `build-essential` on Linux), and [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
 
-We use multiple AI coding agents in parallel to develop MConnect itself. The repo includes agent configuration files in `.github/agents/` with specialized roles (cli-dev, web-dev, test, planning) and a `.github/copilot-instructions.md` for context. This is the same workflow MConnect is designed to support — we're our own users.
+## Guardrails
 
-## Docker Support
+Four levels of command filtering — pick when you start a session:
 
-MConnect can run agents inside Docker containers for extra isolation:
+| Level | Blocks | Approval needed |
+|---|---|---|
+| `default` | `rm -rf /`, fork bombs | force push, `npm publish` |
+| `strict` | all destructive ops | any `rm`, all `git push` |
+| `permissive` | catastrophic only | force push only |
+| `none` | nothing | nothing |
+
+Every approval request shows on your phone with the exact command and a one-tap Approve / Deny.
+
+## Vault — secrets without leaks
+
+Use `{{PLACEHOLDER}}` in any command, opt in with `--vault lockshell`, and the resolved secret never reaches the agent, the WebSocket frame, the Cloudflare tunnel, or your phone screen.
 
 ```bash
-# Make sure Docker is running
-docker ps
+lockshell register OPENAI_KEY openai-personal token
+mconnect --vault lockshell
 
-# Select "Container Dev" preset when starting MConnect
-npx lecoder-mconnect
+# On your phone:
+# curl -H "Authorization: Bearer {{OPENAI_KEY}}" https://api.openai.com/v1/models
 ```
 
-It supports standard `.devcontainer/devcontainer.json` configs, so if your project already uses dev containers, MConnect picks them up automatically.
+[lockshell](https://github.com/aryateja2106/lockshell) ≥ 0.1.4. Strict template policy by default; widen with `--vault-permissive` only if you trust the operator. See `mconnect doctor` for installation status.
 
-## Troubleshooting
+## Supported agents
 
-If something isn't working, start with `mconnect doctor`. It checks Node.js version, node-pty compilation, Docker availability, cloudflared, and tmux.
+Anything that runs in a terminal. First-class TUI support for Claude Code, Gemini CLI, Cursor Agent, aider, and OpenAI Codex; everything else works in shell mode.
 
-```bash
-npx lecoder-mconnect doctor
-```
+## iOS app
 
-**node-pty not found?** You probably need the build tools:
-```bash
-# macOS
-xcode-select --install
+Native SwiftUI client — same protocol as the web client, designed for one-handed use. Sticky session header, full-bleed terminal, sticky-modifier hardware-key bar (`Esc Tab Ctrl Shift Alt Cmd Del` + arrows / `Home End PgUp PgDn`), and long-press copy/paste.
 
-# Linux
-sudo apt install build-essential python3
-
-# Then reinstall
-npm install && npm rebuild node-pty
-```
-
-**Tunnel not connecting?** Make sure cloudflared is installed: `cloudflared --version`
-
----
+[Join TestFlight](https://testflight.apple.com/join/pB2TbMrX) — App Store review in progress.
 
 ## Privacy
 
-No accounts required. No cloud storage. No telemetry. Sessions are ephemeral — when you stop MConnect, the tunnel URL expires and everything is gone. Your code never leaves your machine (unless you want it to via the agent).
-
-The only external call MConnect makes is to Opik if you've configured it, and that's just trace data (session events, not your code).
-
-## Team
-
-**Arya Teja Rudraraju** — [GitHub](https://github.com/aryateja2106)
-**Sujith Bellam**
-
-Built as part of [LeCoder](https://github.com/aryateja2106/lecoder).
+No accounts. No cloud storage. No telemetry by default. Sessions are ephemeral — when you stop MConnect the tunnel URL expires and everything is gone. Your code never leaves your machine.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Author
+
+[Arya Teja Rudraraju](https://github.com/aryateja2106) · [Sujith Bellam](https://github.com/sujithbellam)

@@ -3,40 +3,141 @@
 :root {
   --background: #09090b;
   --foreground: #fafafa;
+
+  /* Terminal design tokens — single source of truth.
+     Mirrors docs/design/MOBILE-TERMINAL-DESIGN.md and the SwiftUI Theme.swift. */
+  --bg-terminal: #000000;
+  --fg-terminal: #ffffff;
+  --accent-prompt: #4ade80;
+  --accent-dir: #818cf8;
+  --accent-image: #f472b6;
+  --accent-muted: #9ca3af;
+  --chip-bg: rgba(255, 255, 255, 0.95);
+  --chip-fg: #111827;
+  --pill-bg: rgba(0, 0, 0, 0.55);
+  --pill-fg: rgba(255, 255, 255, 0.92);
+  --status-connected: #22c55e;
+  --status-reconnecting: #f59e0b;
+  --status-disconnected: #ef4444;
+
+  /* Layout constants picked up from the design spec. */
+  --header-height: 56px;
+  --key-height: 36px;
+  --key-gap: 6px;
+  --hardware-key-toolbar: calc(2 * var(--key-height) + 3 * var(--key-gap));
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, "JetBrains Mono", Consolas, monospace;
+}
+
+html, body {
+  /* Lock the document so the terminal handles its own scroll. */
+  height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  /* Stop iOS from auto-zooming when the keyboard opens over a 16px<font input. */
+  -webkit-text-size-adjust: 100%;
 }
 
-/* Safe area for mobile notch/home indicator */
-.safe-area-inset-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0);
+/* ─── Safe-area helpers (used by the mobile terminal shell) ──────────────── */
+
+.safe-area-inset-top    { padding-top: env(safe-area-inset-top, 0); }
+.safe-area-inset-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+.safe-area-inset-left   { padding-left: env(safe-area-inset-left, 0); }
+.safe-area-inset-right  { padding-right: env(safe-area-inset-right, 0); }
+
+/* ─── Terminal viewport rules ───────────────────────────────────────────── */
+
+.mconnect-terminal-host {
+  background: var(--bg-terminal);
+  color: var(--fg-terminal);
+  /* Disable native long-press preview / call-out so we own the gesture. */
+  -webkit-touch-callout: none;
+  /* Let the terminal handle pan; block pinch-to-zoom on the page itself
+     so xterm's font-size hook can take over. */
+  touch-action: pan-y;
+  /* Don't propagate scroll past the terminal edges. */
+  overscroll-behavior: contain;
+  /* User-select on the *terminal* is still allowed via xterm's textarea. */
+  user-select: text;
 }
 
-/* Terminal scrollbar */
-.xterm-viewport::-webkit-scrollbar {
-  width: 8px;
-}
-
-.xterm-viewport::-webkit-scrollbar-track {
-  background: #18181b;
-}
-
+/* xterm's own scroll viewport — make the scrollbar mobile-friendly. */
+.xterm-viewport::-webkit-scrollbar { width: 6px; }
+.xterm-viewport::-webkit-scrollbar-track { background: transparent; }
 .xterm-viewport::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 4px;
 }
+.xterm-viewport::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.32); }
 
-.xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+/* ─── Chip / pill primitives shared with React components ────────────────── */
+
+.mconnect-chip {
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
 }
+
+.mconnect-pill {
+  background: var(--pill-bg);
+  color: var(--pill-fg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 9999px;
+  padding: 8px;
+}
+
+.mconnect-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  display: inline-block;
+}
+.mconnect-status-dot[data-state="connected"]    { background: var(--status-connected); }
+.mconnect-status-dot[data-state="reconnecting"] { background: var(--status-reconnecting); animation: mconnect-pulse 1.2s ease-in-out infinite; }
+.mconnect-status-dot[data-state="disconnected"] { background: var(--status-disconnected); }
+
+@keyframes mconnect-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ─── Hardware-key bar key styling ───────────────────────────────────────── */
+
+.mconnect-key {
+  height: var(--key-height);
+  min-width: 36px;
+  flex: 1 1 auto;
+  border-radius: 8px;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 80ms ease, transform 80ms ease;
+}
+.mconnect-key:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.78); }
+.mconnect-key[data-armed="true"]  { background: #93c5fd; color: #1e3a8a; }
+.mconnect-key[data-locked="true"] { background: #2563eb; color: #f8fafc; }

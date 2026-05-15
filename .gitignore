@@ -155,3 +155,4 @@ packages/ios-app/DerivedData/
 *.xcuserstate
 *.xcscmblueprint
 *.xccheckout
+.omc/

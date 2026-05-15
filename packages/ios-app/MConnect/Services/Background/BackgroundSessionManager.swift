@@ -22,7 +22,7 @@ class BackgroundSessionManager: ObservableObject {
     // MARK: - Constants
 
     /// BGTaskScheduler identifier for the WebSocket keepalive task.
-    static let keepAliveTaskIdentifier = "com.lecoder.mconnect.ws-keepalive"
+    nonisolated static let keepAliveTaskIdentifier = "com.lecoder.mconnect.ws-keepalive"
 
     // MARK: - Published State
 

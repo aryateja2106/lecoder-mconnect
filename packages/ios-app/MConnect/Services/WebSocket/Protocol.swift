@@ -32,7 +32,7 @@ enum SessionState: String, Codable {
 }
 
 /// Agent status.
-enum AgentStatus: String, Codable {
+enum AgentStatus: String, Codable, CaseIterable {
     case creating
     case running
     case idle
