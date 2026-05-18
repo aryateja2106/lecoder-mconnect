@@ -1,0 +1,8 @@
+{
+  "setup": [
+    "bun install",
+    "docker compose up -d"
+  ],
+  "teardown": [],
+  "run": []
+}

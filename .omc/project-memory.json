@@ -1,0 +1,268 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778099010474,
+  "projectRoot": "/Users/aryateja/.superset/worktrees/mconnect/Arya-Teja-Rudraraju/check-what-work-is-done-1",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=20.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 20.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "npm run dev --workspace=@lecoder/web",
+      "dev:cli": "npm run dev --workspace=lecoder-mconnect",
+      "build": "npm run build --workspaces --if-present",
+      "build:cli": "npm run build --workspace=lecoder-mconnect",
+      "build:web": "npm run build --workspace=@lecoder/web",
+      "start": "node packages/cli/dist/index.js",
+      "cli": "node packages/cli/dist/index.js",
+      "setup": "./scripts/setup-pty.sh",
+      "test": "npm run test --workspaces --if-present",
+      "test:cli": "npm run test --workspace=lecoder-mconnect",
+      "lint": "npm run lint --workspaces --if-present",
+      "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
+      "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "packages/*",
+      "apps/*"
+    ],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "Plans": {
+      "path": "Plans",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778099010462,
+      "keyFiles": []
+    },
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778099010462,
+      "keyFiles": []
+    },
+    "brand-assets": {
+      "path": "brand-assets",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778099010465,
+      "keyFiles": []
+    },
+    "demos": {
+      "path": "demos",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1778099010465,
+      "keyFiles": [
+        "mconnect-agents.tape",
+        "mconnect-opik.tape",
+        "mconnect-start.tape"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1778099010465,
+      "keyFiles": [
+        "ARCHITECTURE.md",
+        "COI-COLIMA-NOTES.md",
+        "IOS-TESTFLIGHT-RELEASE-RUNBOOK.md",
+        "SPEC-OBSERVABILITY.md",
+        "SWIFTTERM-INTEGRATION.md"
+      ]
+    },
+    "lecocer-mconnect-test1": {
+      "path": "lecocer-mconnect-test1",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778099010465,
+      "keyFiles": [
+        "MConnectInfo.plist"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778099010465,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 2,
+      "lastAccessed": 1778099010465,
+      "keyFiles": [
+        "mconnect-ios",
+        "setup-pty.sh"
+      ]
+    },
+    "docs/api": {
+      "path": "docs/api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1778099010466,
+      "keyFiles": [
+        "openapi.yaml"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "packages/ios-app/MConnect/Services/WebSocket/WSClient.swift",
+      "accessCount": 10,
+      "lastAccessed": 1778170794241,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Services/WebSocket/Protocol.swift",
+      "accessCount": 6,
+      "lastAccessed": 1778102870327,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/SwiftTermBridge.swift",
+      "accessCount": 6,
+      "lastAccessed": 1778108906937,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Hosts/HostDetailView.swift",
+      "accessCount": 5,
+      "lastAccessed": 1778103073770,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Hosts/HostListView.swift",
+      "accessCount": 5,
+      "lastAccessed": 1778110432387,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/TerminalView.swift",
+      "accessCount": 5,
+      "lastAccessed": 1778170810190,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/FloatingActionBar.swift",
+      "accessCount": 3,
+      "lastAccessed": 1778108803614,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/TerminalEmulatorView.swift",
+      "accessCount": 3,
+      "lastAccessed": 1778110643314,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Models/Host.swift",
+      "accessCount": 2,
+      "lastAccessed": 1778102209866,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Resources/Info.plist",
+      "accessCount": 2,
+      "lastAccessed": 1778102652932,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Screen/VNCBridge.swift",
+      "accessCount": 2,
+      "lastAccessed": 1778170806409,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Models/Session.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778102893357,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/KeyboardBarView.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778105757380,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/SwiftTermBridge+Selection.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778108535448,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Agents/AgentDashboard.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778108727839,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/FloatingActionItem.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778110106711,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Terminal/TerminalBuffer.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778170793486,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Screen/ScreenView.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778170806864,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Views/Screen/ScreenViewModel.swift",
+      "accessCount": 1,
+      "lastAccessed": 1778170807178,
+      "type": "file"
+    },
+    {
+      "path": "docs/VNC-INTEGRATION.md",
+      "accessCount": 1,
+      "lastAccessed": 1778170818807,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

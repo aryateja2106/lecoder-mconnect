@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__plugin_context-mode_context-mode__ctx_execute_file",
+  "tool_input_preview": "{\"path\":\"/Users/aryateja/.superset/worktrees/mconnect/Arya-Teja-Rudjaraju/check-what-work-is-done-1/packages/server/src/agents/AgentManager.ts\",\"language\":\"typescript\",\"code\":\"\\nconst lines = FILE_CON...",
+  "error": "Exit code: 1\n\nstdout:\n\n\nstderr:\n1 | const FILE_CONTENT_PATH = \"/Users/aryateja/.superset/worktrees/mconnect/Arya-Teja-Rudjaraju/check-what-work-is-done-1/packages/server/src/agents/AgentManager.ts\";\n2 | const file_path = FILE_CONTENT_PATH;\n3 | const FILE_CONTENT = require(\"fs\").readFileSync(FILE_CONTENT_PATH, \"utf-8\");\n                                       ^\nENOENT: no such file or directory, open '/Users/aryateja/.superset/worktrees/mconnect/Arya-Teja-Rudjaraju/check-what-work-is-done-1/packag...",
+  "timestamp": "2026-05-07T16:20:58.973Z",
+  "retry_count": 1
+}
