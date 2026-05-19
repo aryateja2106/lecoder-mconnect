@@ -28,7 +28,8 @@ protocol WSClientDelegate: AnyObject {
     func wsClient(_ client: WSClient, didReceiveControlResponse response: ControlResponse)
     func wsClient(_ client: WSClient, didReceiveInputRejection response: InputRejectedResponse)
     func wsClient(_ client: WSClient, didReceiveScrollback response: ScrollbackResponse)
-    func wsClient(_ client: WSClient, clientJoined client: ClientInfo)
+    func wsClient(_ client: WSClient, didReceiveUsageSnapshot response: UsageSnapshotResponse)
+    func wsClient(_ client: WSClient, clientJoined joinedClient: ClientInfo)
     func wsClient(_ client: WSClient, clientLeft clientId: String)
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse)
 }
@@ -45,7 +46,8 @@ extension WSClientDelegate {
     func wsClient(_ client: WSClient, didReceiveControlResponse response: ControlResponse) {}
     func wsClient(_ client: WSClient, didReceiveInputRejection response: InputRejectedResponse) {}
     func wsClient(_ client: WSClient, didReceiveScrollback response: ScrollbackResponse) {}
-    func wsClient(_ client: WSClient, clientJoined client: ClientInfo) {}
+    func wsClient(_ client: WSClient, didReceiveUsageSnapshot response: UsageSnapshotResponse) {}
+    func wsClient(_ client: WSClient, clientJoined joinedClient: ClientInfo) {}
     func wsClient(_ client: WSClient, clientLeft clientId: String) {}
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse) {}
 }
@@ -135,11 +137,11 @@ class WSClient: ObservableObject {
     init(
         tokenManager: TokenManager = .shared,
         authService: AuthService? = nil,
-        networkMonitor: NetworkMonitoring = NetworkMonitor.shared
+        networkMonitor: NetworkMonitoring? = nil
     ) {
         self.tokenManager = tokenManager
         self.authService = authService ?? AuthService(tokenManager: tokenManager)
-        self.networkMonitor = networkMonitor
+        self.networkMonitor = networkMonitor ?? NetworkMonitor.shared
         setupNetworkMonitor()
     }
 
@@ -271,6 +273,12 @@ class WSClient: ObservableObject {
     func ping() {
         guard connectionState == .connected else { return }
         send(PingMessage())
+    }
+
+    /// Request the configured token/cost usage snapshot.
+    func requestUsageSnapshot() {
+        guard connectionState == .connected else { return }
+        send(UsageRequestMessage())
     }
 
     // MARK: - Public API: Device Token
@@ -442,6 +450,8 @@ class WSClient: ObservableObject {
             handleHeartbeat(response)
         case .pong:
             break // latency measurement — no-op for now
+        case .usageSnapshot(let response):
+            delegate?.wsClient(self, didReceiveUsageSnapshot: response)
         case .error(let response):
             handleProtocolError(response)
         }

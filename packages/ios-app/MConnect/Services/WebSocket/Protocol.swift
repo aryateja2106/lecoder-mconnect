@@ -220,6 +220,15 @@ struct PingMessage: Codable {
     }
 }
 
+/// Request configured token/cost usage from the server.
+struct UsageRequestMessage: Codable {
+    let type: String
+
+    init() {
+        self.type = "usage_request"
+    }
+}
+
 /// Device token registration for push notifications.
 struct DeviceTokenRegisterMessage: Codable {
     let type: String
@@ -357,6 +366,13 @@ struct PongResponse: Codable, Equatable {
     let timestamp: Double
 }
 
+/// Configured token/cost usage snapshot.
+struct UsageSnapshotResponse: Codable, Equatable {
+    let type: String
+    let usage: WatchUsageSnapshot
+    let timestamp: Double
+}
+
 /// Protocol error message.
 struct ErrorResponse: Codable, Equatable {
     let type: String
@@ -386,6 +402,7 @@ enum ServerMessage: Equatable {
     case clientLeft(ClientLeftResponse)
     case heartbeat(HeartbeatResponse)
     case pong(PongResponse)
+    case usageSnapshot(UsageSnapshotResponse)
     case error(ErrorResponse)
 
     /// Parse a JSON data blob into a typed server message.
@@ -397,6 +414,7 @@ enum ServerMessage: Equatable {
         }
 
         let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
 
         switch type {
         case "auth_success":
@@ -444,6 +462,9 @@ enum ServerMessage: Equatable {
         case "pong":
             guard let msg = try? decoder.decode(PongResponse.self, from: data) else { return nil }
             return .pong(msg)
+        case "usage_snapshot":
+            guard let msg = try? decoder.decode(UsageSnapshotResponse.self, from: data) else { return nil }
+            return .usageSnapshot(msg)
         case "error":
             guard let msg = try? decoder.decode(ErrorResponse.self, from: data) else { return nil }
             return .error(msg)

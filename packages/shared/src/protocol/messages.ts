@@ -162,6 +162,13 @@ export interface PingMessage extends BaseMessage {
 }
 
 /**
+ * Request the configured token/cost usage snapshot.
+ */
+export interface UsageRequestMessage extends BaseMessage {
+  type: 'usage_request';
+}
+
+/**
  * Register device token for push notifications
  */
 export interface DeviceTokenRegisterMessage extends BaseMessage {
@@ -186,6 +193,7 @@ export type ClientMessage =
   | MCPForwardMessage
   | HeartbeatAckMessage
   | PingMessage
+  | UsageRequestMessage
   | DeviceTokenRegisterMessage;
 
 // ============================================================================
@@ -420,6 +428,30 @@ export interface PongMessage extends BaseMessage {
 }
 
 /**
+ * Token/cost usage snapshot for mobile and watch summaries.
+ */
+export interface UsageSnapshot {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  costUsd?: number;
+  window?: string;
+  model?: string;
+  updatedAt?: string;
+  errorMessage?: string;
+}
+
+/**
+ * Configured token/cost usage snapshot response.
+ */
+export interface UsageSnapshotMessage extends BaseMessage {
+  type: 'usage_snapshot';
+  usage: UsageSnapshot;
+  /** Server timestamp */
+  timestamp: number;
+}
+
+/**
  * Error codes for protocol errors
  */
 export type ErrorCode =
@@ -506,6 +538,7 @@ export type ServerMessage =
   | ClientLeftMessage
   | HeartbeatMessage
   | PongMessage
+  | UsageSnapshotMessage
   | ErrorMessage;
 
 // ============================================================================
@@ -527,6 +560,7 @@ export function isClientMessage(msg: BaseMessage): msg is ClientMessage {
     'mcp_forward',
     'heartbeat_ack',
     'ping',
+    'usage_request',
     'device_token_register',
   ].includes(msg.type);
 }
@@ -552,6 +586,7 @@ export function isServerMessage(msg: BaseMessage): msg is ServerMessage {
     'client_left',
     'heartbeat',
     'pong',
+    'usage_snapshot',
     'error',
   ].includes(msg.type);
 }

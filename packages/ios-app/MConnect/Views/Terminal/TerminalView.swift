@@ -260,6 +260,7 @@ class TerminalViewModel: ObservableObject {
         didSet {
             if activeAgent?.id != oldValue?.id {
                 updateDisplayText()
+                publishWatchSummary()
             }
         }
     }
@@ -273,6 +274,7 @@ class TerminalViewModel: ObservableObject {
     private let host: Host
     private let wsClient: WSClient
     private let inputArbiter: InputArbiter
+    private let watchRelay: WatchRelayService
     let terminalBuffer: TerminalBuffer
     private let logger = Logger(subsystem: "com.lecoder.mconnect", category: "TerminalViewModel")
 
@@ -288,10 +290,11 @@ class TerminalViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(host: Host, wsClient: WSClient) {
+    init(host: Host, wsClient: WSClient, watchRelay: WatchRelayService? = nil) {
         self.host = host
         self.wsClient = wsClient
         self.inputArbiter = InputArbiter(wsClient: wsClient)
+        self.watchRelay = watchRelay ?? WatchRelayService.shared
         self.terminalBuffer = TerminalBuffer()
     }
 
@@ -299,27 +302,39 @@ class TerminalViewModel: ObservableObject {
 
     func connect() {
         wsClient.delegate = self
+        watchRelay.registerCommandHandler { [weak self] draft in
+            self?.submitWatchCommand(draft) ?? false
+        }
+        watchRelay.registerUsageRefreshHandler { [weak self] in
+            self?.wsClient.requestUsageSnapshot()
+        }
         connectionState = wsClient.connectionState
         wsClient.connect(to: host)
+        publishWatchSummary()
     }
 
     func disconnect() {
         wsClient.delegate = nil
+        watchRelay.clearCommandHandler()
+        watchRelay.clearUsageRefreshHandler()
+        watchRelay.publish(.empty)
         wsClient.disconnect()
     }
 
     // MARK: - Input
 
-    func sendInput(_ text: String) {
+    @discardableResult
+    func sendInput(_ text: String) -> Bool {
         guard let agent = activeAgent else {
             logger.warning("No active agent for input")
-            return
+            return false
         }
 
         let accepted = inputArbiter.sendInput(text, agentId: agent.id)
         if !accepted {
             logger.info("Input rejected locally by arbiter")
         }
+        return accepted
     }
 
     func sendKey(_ key: String) {
@@ -381,6 +396,36 @@ class TerminalViewModel: ObservableObject {
             updateDisplayText()
         }
     }
+
+    private func submitWatchCommand(_ draft: WatchCommandDraft) -> Bool {
+        guard let agent = activeAgent else { return false }
+        let context = WatchCommandContext(
+            deviceClass: .watch,
+            hostName: host.name,
+            sessionId: wsClient.attachedSessionId,
+            agentName: agent.name,
+            requiresConciseResponse: true
+        )
+        let input = WatchCommandQueue.terminalInput(for: draft, context: context)
+        return sendInput(input)
+    }
+
+    private func publishWatchSummary(
+        usage refreshedUsage: WatchUsageSnapshot? = nil,
+        lastActivity: Date? = Date()
+    ) {
+        let usage = refreshedUsage ?? watchRelay.summary.usage
+        let summary = WatchSessionSummary(
+            hostName: host.name,
+            sessionId: wsClient.attachedSessionId,
+            connectionState: WatchConnectionState(connectionState),
+            agents: agents,
+            activeAgentId: activeAgent?.id,
+            usage: usage,
+            lastActivity: lastActivity
+        )
+        watchRelay.publish(summary)
+    }
 }
 
 // MARK: - WSClientDelegate
@@ -388,6 +433,10 @@ class TerminalViewModel: ObservableObject {
 extension TerminalViewModel: WSClientDelegate {
     func wsClient(_ client: WSClient, didChangeState state: ConnectionState) {
         connectionState = state
+        if state == .connected {
+            client.requestUsageSnapshot()
+        }
+        publishWatchSummary()
     }
 
     func wsClient(_ client: WSClient, didReceiveOutput data: String, fromAgent agentId: String) {
@@ -395,11 +444,13 @@ extension TerminalViewModel: WSClientDelegate {
         if agentId == activeAgent?.id {
             scheduleDisplayUpdate()
         }
+        publishWatchSummary()
     }
 
     func wsClient(_ client: WSClient, didReceiveAgentList agents: [AgentInfo]) {
         self.agents = agents
         selectFirstAgentIfNeeded()
+        publishWatchSummary()
     }
 
     func wsClient(_ client: WSClient, didReceiveAgentStatus agentId: String, status: AgentStatus) {
@@ -416,6 +467,7 @@ extension TerminalViewModel: WSClientDelegate {
         if activeAgent?.id == agentId {
             activeAgent = agents.first(where: { $0.id == agentId })
         }
+        publishWatchSummary()
     }
 
     func wsClient(_ client: WSClient, didReceiveControlStatus response: ControlStatusResponse) {
@@ -444,6 +496,10 @@ extension TerminalViewModel: WSClientDelegate {
             terminalBuffer.prependScrollback(response.lines, forAgent: agentId)
             updateDisplayText()
         }
+    }
+
+    func wsClient(_ client: WSClient, didReceiveUsageSnapshot response: UsageSnapshotResponse) {
+        publishWatchSummary(usage: response.usage)
     }
 
     func wsClient(_ client: WSClient, didReceiveError response: ErrorResponse) {

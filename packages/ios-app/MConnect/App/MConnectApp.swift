@@ -7,6 +7,10 @@ struct MConnectApp: App {
     @StateObject private var router = Router()
     @StateObject private var authService = AuthService()
 
+    init() {
+        WatchRelayService.shared.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -31,6 +35,8 @@ struct MConnectApp: App {
                     print("OAuth callback error: \(error.localizedDescription)")
                 }
             }
+        case "screen":
+            router.selectedTab = .screen
         default:
             break
         }
@@ -62,6 +68,12 @@ struct ContentView: View {
                     Label("Vault", systemImage: "lock.shield")
                 }
                 .tag(Router.Tab.vault)
+
+            LazyView { ScreenView() }
+                .tabItem {
+                    Label("Screen", systemImage: "display")
+                }
+                .tag(Router.Tab.screen)
         }
         .onAppear {
             let launchDuration = ProcessInfo.processInfo.systemUptime - Self.processStartTime

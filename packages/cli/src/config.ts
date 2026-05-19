@@ -126,6 +126,12 @@ export interface MConnectConfig {
     scrollbackLines?: number;
     fontSize?: number;
   };
+  usage?: {
+    /** Local command that prints a JSON token/cost snapshot. Never supplied by clients. */
+    command?: string;
+    /** Timeout for the usage command. Defaults to 5000ms. */
+    timeoutMs?: number;
+  };
 }
 
 const DEFAULT_CONFIG: MConnectConfig = {
@@ -292,5 +298,7 @@ Environment Variables:
   MCONNECT_LOG_LEVEL    Log level: debug, info, warn, error (default: info)
   MCONNECT_MAX_SESSIONS Max concurrent sessions (default: 5)
   MCONNECT_NO_TUNNEL    Disable tunnel (default: false)
+  MCONNECT_USAGE_COMMAND Local command that prints usage JSON for mobile/watch summaries
+  MCONNECT_USAGE_TIMEOUT_MS Timeout for MCONNECT_USAGE_COMMAND (default: 5000)
 `.trim();
 }

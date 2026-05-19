@@ -10,10 +10,16 @@ import type { Server as HTTPServer, IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentManager } from '../agents/agent-manager.js';
 import type { AgentConfig } from '../agents/types.js';
+import { loadConfig } from '../config.js';
 import { checkCommand, type GuardrailConfig } from '../guardrails.js';
 import { InputArbiter } from '../input/InputArbiter.js';
-import { getOpikTracer } from '../opik/index.js';
 import { getObservability } from '../observability/index.js';
+import {
+  resolveUsageCommand,
+  resolveUsageTimeoutMs,
+  runUsageCommand,
+} from '../observability/usage-command.js';
+import { getOpikTracer } from '../opik/index.js';
 import { detectInjection, RateLimiter, sanitizeInput } from '../security.js';
 import type { SessionManager } from '../session/SessionManager.js';
 import type { ClientType, ControlState, Priority } from '../session/types.js';
@@ -467,6 +473,10 @@ export class WSHub {
         this.sendToClient(ws, { type: 'pong', timestamp: Date.now() });
         break;
 
+      case 'usage_request':
+        void this.handleUsageRequest(ws);
+        break;
+
       // v2 Protocol Messages
       case 'session_attach':
         this.handleSessionAttach(ws, message as SessionAttachMessage);
@@ -524,6 +534,18 @@ export class WSHub {
       default:
         console.warn('[WSHub] Unknown message type:', (message as Record<string, unknown>).type);
     }
+  }
+
+  private async handleUsageRequest(ws: WebSocket): Promise<void> {
+    const config = loadConfig();
+    const usage = await runUsageCommand(resolveUsageCommand(config), {
+      timeoutMs: resolveUsageTimeoutMs(config),
+    });
+    this.sendToClient(ws, {
+      type: 'usage_snapshot',
+      usage,
+      timestamp: Date.now(),
+    });
   }
 
   /**

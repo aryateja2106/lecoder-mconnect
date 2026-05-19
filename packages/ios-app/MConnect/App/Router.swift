@@ -7,6 +7,7 @@ class Router: ObservableObject {
         case hosts
         case agents
         case vault
+        case screen
     }
 
     enum Destination: Hashable {

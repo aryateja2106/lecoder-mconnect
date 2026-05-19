@@ -173,9 +173,9 @@ class AgentDashboardViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(wsClient: WSClient = WSClient()) {
-        self.wsClient = wsClient
-        wsClient.delegate = self
+    init(wsClient: WSClient? = nil) {
+        self.wsClient = wsClient ?? WSClient()
+        self.wsClient.delegate = self
         observeConnectionState()
     }
 

@@ -88,13 +88,13 @@ class AuthService: ObservableObject {
         }
 
         // Check for OAuth error from provider
-        if let errorParam = queryItems.first(where: { $0.name == "error" })?.value {
-            let description = queryItems.first(where: { $0.name == "error_description" })?.value
+        if let errorParam = callbackValue(named: "error", in: components, fallback: queryItems) {
+            let description = callbackValue(named: "error_description", in: components, fallback: queryItems)
             throw AuthError.providerError(errorParam, description)
         }
 
-        guard let code = queryItems.first(where: { $0.name == "code" })?.value,
-              let state = queryItems.first(where: { $0.name == "state" })?.value,
+        guard let code = callbackValue(named: "code", in: components, fallback: queryItems),
+              let state = callbackValue(named: "state", in: components, fallback: queryItems),
               let pending = pendingOAuth
         else {
             throw AuthError.invalidCallback
@@ -106,7 +106,7 @@ class AuthService: ObservableObject {
             throw AuthError.stateMismatch
         }
 
-        let provider = queryItems.first(where: { $0.name == "provider" })?.value ?? "github"
+        let provider = callbackValue(named: "provider", in: components, fallback: queryItems) ?? "github"
 
         isLoading = true
         error = nil
@@ -138,6 +138,25 @@ class AuthService: ObservableObject {
             self.error = wrapped
             throw wrapped
         }
+    }
+
+    private func callbackValue(named name: String, in components: URLComponents, fallback queryItems: [URLQueryItem]) -> String? {
+        guard let query = components.percentEncodedQuery else {
+            return queryItems.first(where: { $0.name == name })?.value
+        }
+
+        for pair in query.split(separator: "&", omittingEmptySubsequences: false) {
+            let parts = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard let rawName = parts.first else { continue }
+            let decodedName = String(rawName).removingPercentEncoding ?? String(rawName)
+            guard decodedName == name else { continue }
+
+            let rawValue = parts.count > 1 ? String(parts[1]) : ""
+            let formEncodedValue = rawValue.replacingOccurrences(of: "+", with: " ")
+            return formEncodedValue.removingPercentEncoding ?? formEncodedValue
+        }
+
+        return queryItems.first(where: { $0.name == name })?.value
     }
 
     /// Attempt to refresh the access token using the stored refresh token.

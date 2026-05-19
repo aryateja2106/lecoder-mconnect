@@ -61,6 +61,11 @@ export interface PingMessage {
   type: 'ping';
 }
 
+/** Request the configured token/cost usage snapshot */
+export interface UsageRequestMessage {
+  type: 'usage_request';
+}
+
 /** Respond to an approval request */
 export interface ApprovalResponseMessage {
   type: 'approval_response';
@@ -78,6 +83,7 @@ export type ClientMessageV2 =
   | TerminalInputMessage
   | ResizeMessage
   | PingMessage
+  | UsageRequestMessage
   | ApprovalResponseMessage;
 
 // ============================================
@@ -209,6 +215,24 @@ export interface PongMessage {
   type: 'pong';
 }
 
+export interface UsageSnapshot {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  costUsd?: number;
+  window?: string;
+  model?: string;
+  updatedAt?: string;
+  errorMessage?: string;
+}
+
+/** Configured token/cost usage snapshot */
+export interface UsageSnapshotMessage {
+  type: 'usage_snapshot';
+  usage: UsageSnapshot;
+  timestamp: number;
+}
+
 /** Error response */
 export interface ErrorMessage {
   type: 'error';
@@ -238,6 +262,7 @@ export type ServerMessageV2 =
   | TerminalOutputMessage
   | AgentListMessage
   | PongMessage
+  | UsageSnapshotMessage
   | ErrorMessage;
 
 // ============================================
