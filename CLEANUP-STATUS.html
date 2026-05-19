@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MConnect — Cleanup &amp; Rewrite Status</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.5 -apple-system, ui-monospace, Menlo, monospace; background: #0a0a0a; color: #e5e5e5; margin: 0; padding: 32px; max-width: 1100px; margin-inline: auto; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 32px 0 12px; border-bottom: 1px solid #1f1f1f; padding-bottom: 6px; }
+  .meta { color: #6b6b6b; font-size: 12px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { background: #111; border: 1px solid #1f1f1f; border-radius: 10px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 13px; color: #e5e5e5; font-weight: 600; }
+  .card p { margin: 0; color: #999; font-size: 12px; }
+  .ok { color: #4ade80; }
+  .warn { color: #facc15; }
+  .err { color: #f87171; }
+  .dim { color: #666; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #1a1a1a; }
+  th { color: #888; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  td.path { font-family: ui-monospace, Menlo, monospace; color: #c9c9c9; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #bbb; }
+  .pill.ok { background: #052e1a; border-color: #14532d; color: #4ade80; }
+  .pill.warn { background: #2b1f02; border-color: #713f12; color: #facc15; }
+  .arch { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid #1a1a1a; }
+  .arch .label { color: #999; font-weight: 600; }
+  .arch code { background: #161616; padding: 1px 6px; border-radius: 4px; color: #d4d4d4; }
+  ol { padding-left: 18px; } ol li { margin-bottom: 8px; }
+  .next { background: #0f1812; border: 1px solid #16291e; border-radius: 10px; padding: 16px 20px; }
+  .next h2 { border: 0; margin-top: 0; color: #4ade80; }
+</style>
+</head>
+<body>
+
+<h1>MConnect — Cleanup &amp; Rewrite Map</h1>
+<div class="meta">Generated 2026-05-19 · Tommy · canonical: <code>~/Desktop/Work/mconnect</code></div>
+
+<h2>Cleanup outcome</h2>
+<div class="grid">
+  <div class="card">
+    <h3 class="ok">Canonical main repo — CLEAN</h3>
+    <p>30 dirty files (Forge's watch relay + VNC scaffold) committed to <code>feat/watch-relay-mobile-context</code> and pushed to origin. <span class="dim">Branch HEAD: <code>9b33ab5</code></span></p>
+  </div>
+  <div class="card">
+    <h3 class="ok">Tests green</h3>
+    <p>usage-command.test.ts: 5/5 · MConnectWatch xcodebuild: succeeded · iOS WatchRelayTests target: running on sim</p>
+  </div>
+  <div class="card">
+    <h3 class="warn">.claude/worktrees/* — locked</h3>
+    <p>Two agent worktrees still hanging off canonical (<code>agent-affd354256ddd02a3</code>, <code>sequential-jingling-noodle</code>). Locked, don't touch without confirming the agent owning them is done.</p>
+  </div>
+  <div class="card">
+    <h3 class="dim">Untracked agent state — left alone</h3>
+    <p><code>.omc/</code>, <code>.superset/</code>, <code>plugins/</code>, <code>skills-lock.json</code>. These are OMC/Superset session state — gitignore-worthy but I won't add <code>.gitignore</code> entries without your call.</p>
+  </div>
+</div>
+
+<h2>Worktree inventory</h2>
+<table>
+<tr><th>Path</th><th>Branch</th><th>State</th><th>Purpose</th></tr>
+<tr><td class="path">~/Desktop/Work/mconnect</td><td>feat/watch-relay-mobile-context</td><td><span class="pill ok">CLEAN</span></td><td>Canonical. Watch relay parked. Ready to checkout main and start fresh.</td></tr>
+<tr><td class="path">~/.superset/worktrees/.../agents-ssh-shared-workspa</td><td>agents-ssh-shared-workspa</td><td><span class="pill ok">CLEAN</span></td><td><strong>Empty playground</strong> — likely target for SSH-client + shared-workspace rewrite.</td></tr>
+<tr><td class="path">~/.superset/.../check-what-work-is-done-1</td><td>feat/ios-battle-test-2026-05-07</td><td><span class="pill warn">9 dirty</span></td><td>+11 / -204. Only 7 files. Small. Safe to stash or commit separately when needed.</td></tr>
+<tr><td class="path">.claude/worktrees/agent-affd354256ddd02a3</td><td>worktree-agent-...</td><td><span class="pill warn">LOCKED</span></td><td>Active agent run. Leave.</td></tr>
+<tr><td class="path">.claude/worktrees/sequential-jingling-noodle</td><td>worktree-sequential-...</td><td><span class="pill warn">LOCKED</span></td><td>Active agent run. Leave.</td></tr>
+</table>
+
+<h2>What got committed to feat/watch-relay-mobile-context</h2>
+<table>
+<tr><th>File</th><th>Kind</th><th class="num">Lines</th></tr>
+<tr><td class="path">MConnectWatch/MConnectWatchApp.swift</td><td>watchOS</td><td class="num">new</td></tr>
+<tr><td class="path">MConnectWatch/WatchRootView.swift</td><td>watchOS</td><td class="num">new</td></tr>
+<tr><td class="path">MConnectWatch/WatchSessionStore.swift</td><td>watchOS</td><td class="num">new</td></tr>
+<tr><td class="path">MConnect/Models/WatchRelayModels.swift</td><td>iOS shared</td><td class="num">new</td></tr>
+<tr><td class="path">MConnect/Services/Watch/WatchRelayService.swift</td><td>iOS relay</td><td class="num">new</td></tr>
+<tr><td class="path">MConnect/Views/Screen/{ScreenView,ScreenViewModel,VNCBridge}.swift</td><td>VNC scaffold</td><td class="num">new</td></tr>
+<tr><td class="path">MConnect/Views/Terminal/TerminalView.swift</td><td>iOS</td><td class="num">modified</td></tr>
+<tr><td class="path">cli/src/observability/usage-command.ts</td><td>CLI server</td><td class="num">new</td></tr>
+<tr><td class="path">cli/src/ws/{protocol,ws-hub}.ts</td><td>CLI WS</td><td class="num">modified</td></tr>
+<tr><td class="path">shared/src/protocol/messages.ts</td><td>TS proto</td><td class="num">modified</td></tr>
+<tr><td class="path">MConnectTests/{WatchRelayTests,ScreenViewModelTests}.swift</td><td>tests</td><td class="num">new</td></tr>
+<tr><td colspan="3" class="dim">Total: 30 files · +2070 / −55</td></tr>
+</table>
+
+<h2>Rewrite architecture — proposed</h2>
+
+<div class="arch">
+  <div class="label">Repo strategy</div>
+  <div>Keep <code>lecoder-mconnect</code> monorepo. New iOS-native SSH-client target lives at <code>packages/ios-app/</code>; reuse the project, swap the inside. Server (<code>packages/cli</code>) and shared protocol (<code>packages/shared</code>) stay — they're the agent control plane.</div>
+</div>
+
+<div class="arch">
+  <div class="label">Terminal renderer</div>
+  <div><strong>SwiftTerm</strong> (Miguel de Icaza). Already a known quantity in the codebase per the Forge feedback. Drop the WKWebView/xterm.js path entirely — that's the smoothness problem.</div>
+</div>
+
+<div class="arch">
+  <div class="label">SSH transport</div>
+  <div><strong>Citadel</strong> (SwiftNIO, modern, async/await). Falls back to <strong>NMSSH</strong> only if Citadel can't parse a specific key format you need at the hackathon.</div>
+</div>
+
+<div class="arch">
+  <div class="label">Host onboarding</div>
+  <div>QR-code handoff from <code>lecoder.lesearch.ai</code>. Drop key + IP into the web form, scan with the app, connection saved. Removes the "copy .pem to phone" friction Forge correctly flagged.</div>
+</div>
+
+<div class="arch">
+  <div class="label">Custom keyboard</div>
+  <div>System keyboard extension. App Group shared with main app for snippet sync. Esc / Tab / Ctrl / arrows / modifier combo bar + snippet ribbon. Works inside Termius, Blink, RVNC, anywhere.</div>
+</div>
+
+<div class="arch">
+  <div class="label">Agent bootstrap (Context Beam)</div>
+  <div>One-tap action on a connected SSH session: runs <code>curl -fsSL .../lemem-install.sh | bash</code> to install harness, then <code>openfuse sync &lt;laptop-id&gt;</code> to P2P-sync memories/hooks/rules from your always-on Mac. Phone is just the trigger, not the transport.</div>
+</div>
+
+<div class="arch">
+  <div class="label">Voice layer</div>
+  <div>SpeechAnalyzer (iOS 18+) → command transcription → agent over the same SSH session. Live Activity on lock screen shows in-flight command + last 5 lines of output. Apple Watch already wired via <code>WatchRelayService</code>.</div>
+</div>
+
+<div class="arch">
+  <div class="label">Distribution</div>
+  <div>TestFlight beta already live. Watch target piggybacks on the existing App Store record (bundle ID <code>com.lecoder.mconnect</code>). No new provisioning dance.</div>
+</div>
+
+<h2 class="next">Next moves — proposed sequence</h2>
+<div class="next">
+<ol>
+<li><strong>Tonight:</strong> Branch <code>feat/ssh-client-v2</code> off main in <code>~/.superset/.../agents-ssh-shared-workspa</code>. Scaffold a clean SwiftTerm + Citadel host-list → terminal session screen. No keyboard extension yet, no voice yet.</li>
+<li><strong>Tomorrow morning:</strong> Wire QR-code host onboarding. Web form on <code>lecoder.lesearch.ai</code> generates a signed payload → app scans → Keychain-stored connection.</li>
+<li><strong>Tomorrow afternoon:</strong> Custom keyboard extension. Ribbon bar + Ctrl/Alt/Esc/Tab. Test inside the new app first, then inside Termius/RVNC.</li>
+<li><strong>Day 3:</strong> Context Beam — bootstrap script + OpenFuse sync from connected session. Test on the Dallas Pi.</li>
+<li><strong>Day 4:</strong> Voice via SpeechAnalyzer, Live Activity, Watch quick prompts. The watch slice is already done; just expose it through the new shell.</li>
+</ol>
+<p style="margin-top: 12px;">Memory saved: <code>feedback-no-reality-checks.md</code> — I will execute instead of scoping out loud.</p>
+</div>
+
+</body>
+</html>
