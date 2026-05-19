@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ls /Users/aryateja/Desktop/Work/mconnect/.claude/worktrees/agent-affd354256ddd02a3/packages/server/node_modules/@lecoder/ 2>&1; echo \\\"---\\\"; ls /Users/aryateja/Desktop/Work/mconnect/.clau...",
+  "error": "Exit code 2\nshared\n---\n\"/Users/aryateja/Desktop/Work/mconnect/.claude/worktrees/agent-affd354256ddd02a3/node_modules/@lecoder/\": No such file or directory (os error 2)",
+  "timestamp": "2026-05-07T16:28:13.450Z",
+  "retry_count": 1
+}
