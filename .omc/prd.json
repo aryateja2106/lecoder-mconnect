@@ -1,0 +1,109 @@
+{
+  "version": "1.0",
+  "task": "MConnect v0.2.0 — Phase 0A1: CLI v3 catch-up + local_pairing_auth + capability negotiation",
+  "scope_note": "Plan v4 Phase 0A1 only. Phases 0A2 → 6 deferred to subsequent ralph runs. Direct push to main gated on full Phase 0A1 (auth-bridge + tests + server reject) + user confirmation.",
+  "iteration_status": "First slice landed. Auth integration + tests deferred to next ralph iteration to preserve v0.1.10-npm-published client safety.",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Bump CLI PROTOCOL_VERSION 2.0 → 3.0",
+      "priority": 1,
+      "passes": true,
+      "evidence": "packages/cli/src/ws/protocol.ts:259 = export const PROTOCOL_VERSION = '3.0'; CLI typecheck clean.",
+      "acceptanceCriteria": [
+        "packages/cli/src/ws/protocol.ts:259 contains exactly: export const PROTOCOL_VERSION = '3.0';",
+        "grep \"PROTOCOL_VERSION = '3.0'\" packages/cli/src/ws/protocol.ts exits 0",
+        "CLI typecheck passes after bump"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add v3.1 capability negotiation field to shared AuthMessage + AuthSuccessMessage",
+      "priority": 2,
+      "passes": true,
+      "evidence": "AuthMessage gained clientCapabilities?: string[]; AuthSuccessMessage gained serverCapabilities?: string[]; shared typecheck clean.",
+      "acceptanceCriteria": [
+        "AuthMessage.clientCapabilities?: string[] present",
+        "AuthSuccessMessage.serverCapabilities?: string[] present",
+        "Shared package typecheck passes"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add v3.1 LocalPairingAuthMessage type to shared (CLI-only auth path; server rejects)",
+      "priority": 3,
+      "passes": true,
+      "evidence": "LocalPairingAuthMessage defined with type 'local_pairing_auth', pairingToken, protocolVersion, clientType, clientCapabilities; ClientMessage union + isClientMessage updated; doc comment notes server REJECTS.",
+      "acceptanceCriteria": [
+        "LocalPairingAuthMessage interface defined",
+        "ClientMessage union includes LocalPairingAuthMessage",
+        "isClientMessage type guard recognizes 'local_pairing_auth'",
+        "Doc comment notes server REJECTS this message"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Add UnsupportedCapabilityMessage typed error to shared (replaces silent console.warn drop)",
+      "priority": 4,
+      "passes": true,
+      "evidence": "UnsupportedCapabilityMessage defined with type, capability, requestedMessageType?, reason?, timestamp; ServerMessage union + isServerMessage updated.",
+      "acceptanceCriteria": [
+        "UnsupportedCapabilityMessage interface defined",
+        "ServerMessage union includes UnsupportedCapabilityMessage",
+        "isServerMessage type guard recognizes 'unsupported_capability'"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Scaffold docs/protocol/v3.1-migration.md with all required sections",
+      "priority": 5,
+      "passes": true,
+      "evidence": "File exists with 6 ## headings: Capability matrix, Required for v0.2.0, Backward-compatible, Hard errors, Auth migration, Implementation status. Mentions all required capability ids.",
+      "acceptanceCriteria": [
+        "File exists with all required sections",
+        "Mentions desktop:session_list, desktop:fork, desktop:resume, worktree:lifecycle",
+        "Documents local_pairing_auth (CLI-only) vs auth (server JWT) split"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Verify whole-repo build still compiles after Phase 0A1 slice",
+      "priority": 6,
+      "passes": true,
+      "evidence": "shared typecheck clean; CLI typecheck clean; server typecheck clean (after shared build to populate dist). All package-level tsc --noEmit return 0.",
+      "acceptanceCriteria": [
+        "Shared, CLI, server all typecheck pass",
+        "No new TypeScript errors introduced",
+        "Existing v0.1.10 behavior preserved (legacy v2 query-token path untouched in this slice)"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Commit Phase 0A1 slice + push to feature branch (NOT main)",
+      "priority": 7,
+      "passes": true,
+      "evidence": "Commit 2235262 on worktree-sequential-jingling-noodle; pushed to origin; PR creation URL: https://github.com/aryateja2106/lecoder-mconnect/pull/new/worktree-sequential-jingling-noodle",
+      "acceptanceCriteria": [
+        "Conventional commit on feature branch",
+        "git push succeeds",
+        "No direct push to main"
+      ]
+    }
+  ],
+  "deferred_to_next_iteration": [
+    "packages/cli/src/ws/auth-bridge.ts (Exception A — needs test coverage before integration)",
+    "ws-hub.ts dispatch hook (≤30 lines — needs regression test for v0.1.10 clients first)",
+    "packages/server/src/ws/WSHub.ts clientCapabilities Set + reject local_pairing_auth",
+    "packages/cli/__tests__/regression/v0_1_10.test.ts (CRITICAL: protects npm-published behavior)",
+    "packages/cli/__tests__/protocol/local-pairing-auth.test.ts",
+    "packages/cli/__tests__/protocol/capability-negotiation.test.ts",
+    "packages/server/__tests__/protocol/reject-local-pairing-auth.test.ts"
+  ],
+  "deferred_phases": [
+    "0A2: Migration runner + sidecar contract (Week 2)",
+    "0B: Desktop scaffold + Tauri hard-gate + Windows CI (Weeks 3-4)",
+    "0C: Conditional Electron fallback (+1 wk if 0B fails)",
+    "1: Switchboard MVP + AC19 prereqs (Weeks 5-7)",
+    "2-6: Diff panel, fork/resume, polish, signing, release"
+  ]
+}

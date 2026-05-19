@@ -1,0 +1,210 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1777775349768,
+  "projectRoot": "/Users/aryateja/Desktop/Work/mconnect/.claude/worktrees/sequential-jingling-noodle",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=20.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 20.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "npm run dev --workspace=@lecoder/web",
+      "dev:cli": "npm run dev --workspace=lecoder-mconnect",
+      "build": "npm run build --workspaces --if-present",
+      "build:cli": "npm run build --workspace=lecoder-mconnect",
+      "build:web": "npm run build --workspace=@lecoder/web",
+      "start": "node packages/cli/dist/index.js",
+      "cli": "node packages/cli/dist/index.js",
+      "setup": "./scripts/setup-pty.sh",
+      "test": "npm run test --workspaces --if-present",
+      "test:cli": "npm run test --workspace=lecoder-mconnect",
+      "lint": "npm run lint --workspaces --if-present",
+      "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
+      "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "packages/*",
+      "apps/*"
+    ],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "apps": {
+      "path": "apps",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777775349745,
+      "keyFiles": []
+    },
+    "brand-assets": {
+      "path": "brand-assets",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777775349745,
+      "keyFiles": []
+    },
+    "demos": {
+      "path": "demos",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1777775349752,
+      "keyFiles": [
+        "mconnect-agents.tape",
+        "mconnect-opik.tape",
+        "mconnect-start.tape"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 3,
+      "lastAccessed": 1777775349754,
+      "keyFiles": [
+        "ARCHITECTURE.md",
+        "COI-COLIMA-NOTES.md",
+        "IOS-TESTFLIGHT-RELEASE-RUNBOOK.md"
+      ]
+    },
+    "lecocer-mconnect-test1": {
+      "path": "lecocer-mconnect-test1",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1777775349755,
+      "keyFiles": [
+        "MConnectInfo.plist"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1777775349756,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1777775349759,
+      "keyFiles": [
+        "setup-pty.sh"
+      ]
+    },
+    "docs/api": {
+      "path": "docs/api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1777775349760,
+      "keyFiles": [
+        "openapi.yaml"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "packages/shared/src/protocol/messages.ts",
+      "accessCount": 11,
+      "lastAccessed": 1777834341489,
+      "type": "file"
+    },
+    {
+      "path": "PRD-LECODER-AGENTOS.md",
+      "accessCount": 3,
+      "lastAccessed": 1777776028045,
+      "type": "file"
+    },
+    {
+      "path": "packages/cli/src/ws/ws-hub.ts",
+      "accessCount": 3,
+      "lastAccessed": 1777833774888,
+      "type": "file"
+    },
+    {
+      "path": "packages/cli/src/ws/protocol.ts",
+      "accessCount": 3,
+      "lastAccessed": 1777833846421,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1777775762651,
+      "type": "file"
+    },
+    {
+      "path": "ROADMAP.md",
+      "accessCount": 1,
+      "lastAccessed": 1777775763026,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 1,
+      "lastAccessed": 1777775763814,
+      "type": "file"
+    },
+    {
+      "path": "PLAN-v0.1.2.md",
+      "accessCount": 1,
+      "lastAccessed": 1777775764553,
+      "type": "file"
+    },
+    {
+      "path": "LECODER-AGENT-HUB-PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1777776025571,
+      "type": "file"
+    },
+    {
+      "path": "packages/ios-app/MConnect/Services/WebSocket/Protocol.swift",
+      "accessCount": 1,
+      "lastAccessed": 1777776632967,
+      "type": "file"
+    },
+    {
+      "path": "packages/server/src/auth/oauth.ts",
+      "accessCount": 1,
+      "lastAccessed": 1777776633738,
+      "type": "file"
+    },
+    {
+      "path": "docs/protocol/v3.1-migration.md",
+      "accessCount": 1,
+      "lastAccessed": 1777833956862,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

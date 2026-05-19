@@ -1,0 +1,16 @@
+{"t":0,"agent":"aedfadf","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a3a7ff2","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a9c294c","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"aa33189","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a75989e","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"ac6f3c3","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"afa58ff","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"system","event":"keyword_detected","keyword":"ralph"}
+{"t":0,"agent":"system","event":"mode_change","mode_from":"none","mode_to":"ralph"}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:ralph"}
+{"t":0,"agent":"aa6c076","agent_type":"code-reviewer","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"aa6c076","agent_type":"code-reviewer","event":"agent_stop","success":true,"duration_ms":56072}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:ai-slop-cleaner"}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:cancel"}
+{"t":0,"agent":"a4dc1ff","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"acfb774","agent_type":"unknown","event":"agent_stop","success":true}

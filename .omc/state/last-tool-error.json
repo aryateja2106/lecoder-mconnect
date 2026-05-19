@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"grep -c \\\"PROTOCOL_VERSION = '3.0'\\\" packages/cli/src/ws/protocol.ts; echo \\\"--shared client_capabilities--\\\"; grep -c \\\"clientCapabilities\\\" packages/shared/src/protocol/messages.ts; echo...",
+  "error": "Exit code 2\n1\n--shared client_capabilities--\n2\n--local_pairing_auth--\n5\n--unsupported_capability--\n5\n--migration doc sections--\n6\n--negative jose check (CLI auth-bridge not yet created, skipping)--\n\"packages/cli/src/ws/auth-bridge.ts\": No such file or directory (os error 2)",
+  "timestamp": "2026-05-03T18:46:03.848Z",
+  "retry_count": 1
+}
