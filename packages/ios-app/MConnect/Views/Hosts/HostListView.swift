@@ -28,10 +28,14 @@ struct HostListView: View {
             .navigationDestination(for: Router.Destination.self) { destination in
                 switch destination {
                 case .hostDetail(let host):
-                    HostDetailView(host: host, onSave: viewModel.updateHost, onDelete: viewModel.removeHost)
-                case .terminal:
-                    // Terminal view will be implemented in a later phase
-                    Text("Terminal")
+                    HostDetailView(
+                        host: host,
+                        onSave: viewModel.updateHost,
+                        onDelete: viewModel.removeHost,
+                        onConnect: openTerminal
+                    )
+                case .terminal(let host):
+                    TerminalView(host: host, wsClient: WSClient())
                 case .qrScanner:
                     QRScannerView { url in
                         viewModel.handleQRCode(url)
@@ -62,7 +66,7 @@ struct HostListView: View {
             }
             .sheet(isPresented: $viewModel.showAddHost) {
                 NavigationStack {
-                    HostDetailView(host: nil, onSave: viewModel.addHost, onDelete: nil)
+                    HostDetailView(host: nil, onSave: viewModel.addHost, onDelete: nil, onConnect: nil)
                 }
             }
             .alert("QR Code Error", isPresented: $viewModel.showQRError) {
@@ -71,6 +75,12 @@ struct HostListView: View {
                 Text(viewModel.qrErrorMessage)
             }
         }
+    }
+
+    private func openTerminal(_ host: Host) {
+        viewModel.updateHost(host)
+        router.hostPath = NavigationPath()
+        router.hostPath.append(Router.Destination.terminal(host))
     }
 }
 
@@ -89,6 +99,10 @@ struct HostRow: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+                Label(host.effectiveRole.displayName, systemImage: host.effectiveRole.iconName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -196,8 +210,21 @@ class HostListViewModel: ObservableObject {
         let queryItems = components?.queryItems ?? []
         let name = queryItems.first(where: { $0.name == "name" })?.value ?? host
         let tls = queryItems.first(where: { $0.name == "tls" })?.value != "false"
+        let role = queryItems.first(where: { $0.name == "role" })?.value.flatMap(HostRole.init(rawValue:))
+        let sshUser = queryItems.first(where: { $0.name == "sshUser" })?.value
+        let sshPort = queryItems.first(where: { $0.name == "sshPort" })?.value.flatMap(Int.init)
+        let preset = queryItems.first(where: { $0.name == "preset" })?.value.flatMap(AgentLoopPreset.init(rawValue:))
 
-        let newHost = Host(name: name, hostname: host, port: port, useTLS: tls)
+        let newHost = Host(
+            name: name,
+            hostname: host,
+            port: port,
+            useTLS: tls,
+            role: role,
+            sshUsername: sshUser,
+            sshPort: sshPort,
+            agentLoopPreset: preset
+        )
         addHost(newHost)
     }
 

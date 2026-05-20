@@ -3,7 +3,13 @@ import os
 
 struct AgentDashboard: View {
     @EnvironmentObject private var router: Router
-    @StateObject private var viewModel = AgentDashboardViewModel()
+    @StateObject private var viewModel: AgentDashboardViewModel
+
+    @MainActor
+    init(wsClient: WSClient? = nil) {
+        let client = wsClient ?? WSClient()
+        _viewModel = StateObject(wrappedValue: AgentDashboardViewModel(wsClient: client))
+    }
 
     var body: some View {
         NavigationStack(path: $router.agentPath) {
@@ -173,7 +179,7 @@ class AgentDashboardViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(wsClient: WSClient = WSClient()) {
+    init(wsClient: WSClient) {
         self.wsClient = wsClient
         wsClient.delegate = self
         observeConnectionState()
