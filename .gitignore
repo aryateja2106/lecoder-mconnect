@@ -161,3 +161,6 @@ packages/ios-app/DerivedData/
 .superset/
 plugins/
 skills-lock.json
+
+# Generated knowledge-graph output (regenerable via /graphify)
+graphify-out/
