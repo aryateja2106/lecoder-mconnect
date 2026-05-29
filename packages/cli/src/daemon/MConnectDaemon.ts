@@ -8,6 +8,9 @@
 import { existsSync, unlinkSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
 import { WebSocketServer } from 'ws';
+import { type HubClient, hubClientFromEnv } from '../hub/HubClient.js';
+import { TaskRunner, type AgentLauncher } from '../tasks/TaskRunner.js';
+import { WorktreeManager } from '../tasks/WorktreeManager.js';
 import { DaemonLogger } from './logging.js';
 import { setupSignalHandlers } from './signals.js';
 
@@ -16,6 +19,17 @@ export interface DaemonConfig {
   ipcPath: string;
   dataDir: string;
   logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  /**
+   * Workspace root the daemon manages tasks within. Defaults to process.cwd().
+   * Used by WorktreeManager when claiming tasks from the hub.
+   */
+  workspaceDir?: string;
+  /**
+   * Optional pluggable launcher for tasks. Tests pass a fake; production
+   * leaves this undefined and the daemon falls back to a no-op launcher
+   * (full agent integration lands in M2c).
+   */
+  agentLauncher?: AgentLauncher;
 }
 
 export interface DaemonStatus {
@@ -47,6 +61,8 @@ export class MConnectDaemon {
   private logger: DaemonLogger;
   private wsServer: WebSocketServer | null = null;
   private ipcServer: Server | null = null;
+  private hubClient: HubClient | null = null;
+  private taskRunner: TaskRunner | null = null;
   private startTime: number = 0;
   private isRunning = false;
 
@@ -77,9 +93,77 @@ export class MConnectDaemon {
     // Start IPC server for local CLI communication
     await this.startIPCServer();
 
+    // Optionally register with a remote LeSearch Hub
+    await this.startHubClient();
+
     this.isRunning = true;
     this.logger.info(`Daemon started on port ${this.config.port}`);
     this.logger.info(`IPC socket: ${this.config.ipcPath}`);
+  }
+
+  /**
+   * Initialize the optional HubClient if LECODER_HUB_URL is set.
+   * Failure to register is non-fatal — the daemon stays in single-machine mode.
+   */
+  private async startHubClient(): Promise<void> {
+    const client = hubClientFromEnv({
+      debug: (msg, meta) => this.logger.debug(msg, meta),
+      info: (msg, meta) => this.logger.info(msg, meta),
+      warn: (msg, meta) => this.logger.warn(msg, meta),
+      error: (msg, meta) => this.logger.error(msg, meta),
+    });
+
+    if (!client) {
+      this.logger.debug('LECODER_HUB_URL not set — running in single-machine mode');
+      return;
+    }
+
+    this.hubClient = client;
+    try {
+      const registration = await client.start();
+      this.logger.info(`Registered with hub`, { runtimeId: registration.runtimeId });
+      this.startTaskRunner(registration.runtimeId);
+    } catch (err) {
+      this.logger.warn(
+        `Hub registration failed; continuing in single-machine mode: ${
+          err instanceof Error ? err.message : 'unknown error'
+        }`
+      );
+      this.hubClient = null;
+    }
+  }
+
+  /**
+   * Spin up a TaskRunner that claims work from the hub and dispatches it
+   * to the (caller-provided) agent launcher. Skips silently when no
+   * launcher is configured — a launcher requires the AgentManager which
+   * lives outside the daemon process boundary today; full wiring lands in
+   * M2c via the bundled lecoder CLI.
+   */
+  private startTaskRunner(runtimeId: string): void {
+    if (!this.hubClient) return;
+    if (!this.config.agentLauncher) {
+      this.logger.debug('No agentLauncher configured — TaskRunner not started');
+      return;
+    }
+
+    const workspaceDir = this.config.workspaceDir ?? process.cwd();
+    const wm = new WorktreeManager({ workspaceRoot: workspaceDir });
+
+    this.taskRunner = new TaskRunner({
+      runtimeId,
+      hubApi: this.hubClient.asTaskClient(),
+      worktreeManager: wm,
+      launcher: this.config.agentLauncher,
+      logger: {
+        debug: (msg, meta) => this.logger.debug(msg, meta),
+        info: (msg, meta) => this.logger.info(msg, meta),
+        warn: (msg, meta) => this.logger.warn(msg, meta),
+        error: (msg, meta) => this.logger.error(msg, meta),
+      },
+    });
+    this.taskRunner.start();
+    this.logger.info(`TaskRunner started`, { runtimeId, workspaceDir });
   }
 
   /**
@@ -91,6 +175,25 @@ export class MConnectDaemon {
     }
 
     this.logger.info('Stopping MConnect daemon...');
+
+    // Stop the TaskRunner before disconnecting from the hub so we don't try
+    // to claim a task we can't finish.
+    if (this.taskRunner) {
+      this.taskRunner.stop();
+      this.taskRunner = null;
+    }
+
+    // Stop hub client first so we stop heartbeating before tearing down sockets.
+    if (this.hubClient) {
+      try {
+        await this.hubClient.stop();
+      } catch (err) {
+        this.logger.warn(
+          `HubClient stop failed: ${err instanceof Error ? err.message : 'unknown error'}`
+        );
+      }
+      this.hubClient = null;
+    }
 
     // Close WebSocket server
     if (this.wsServer) {

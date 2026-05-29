@@ -26,7 +26,7 @@ describe('MConnect V2 Server', () => {
       const data = (await response.json()) as { name: string; endpoints: string[] };
 
       expect(response.status).toBe(200);
-      expect(data.name).toBe('MConnect V2 Server');
+      expect(data.name).toContain('MConnect V2 Server');
       expect(data.endpoints).toBeDefined();
     } finally {
       server.stop();

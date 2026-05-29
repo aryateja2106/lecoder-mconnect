@@ -26,3 +26,36 @@ export {
   handleRemoveToken,
   handleDeviceRoutes,
 } from './devices.js';
+
+export {
+  handleFleetRoutes,
+  handleListFleet,
+  handleGetRuntime,
+  handleEnqueueTask,
+  handleRegisterRuntime,
+  handleHeartbeat,
+  handleTasksNext,
+  handleDeregister,
+} from './fleet.js';
+
+export {
+  handleTaskRoutes,
+  handleCreateTask,
+  handleListTasks,
+  handleGetTask,
+  handleUpdateTask,
+  handleCancelTask,
+  handleAddComment,
+  handleClaimNextTask,
+  handleStartRun,
+  handleUpdateRun,
+} from './tasks.js';
+
+export {
+  handleAutopilotRoutes,
+  handleCreateAutopilot,
+  handleListAutopilots,
+  handleGetAutopilot,
+  handleUpdateAutopilot,
+  handleDeleteAutopilot,
+} from './autopilots.js';
