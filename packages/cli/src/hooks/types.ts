@@ -8,7 +8,7 @@
 /**
  * Supported AI coding agent sources
  */
-export type HookSource = 'claude' | 'gemini' | 'copilot' | 'aider' | 'custom';
+export type HookSource = 'claude' | 'gemini' | 'cursor' | 'copilot' | 'aider' | 'custom';
 
 /**
  * Normalized event types
@@ -123,4 +123,48 @@ export interface GeminiHookEventData {
   session_id?: string;
   model?: string;
   exit_code?: number;
+}
+
+/**
+ * Cursor agent hook event names.
+ *
+ * Includes both Cursor's native hook lifecycle events (preToolUse,
+ * postToolUse, stop, afterAgentResponse) and the higher-level
+ * `loop_*` events emitted by `lecoder-mconnect`'s loop subsystem
+ * when its Cursor stop hook drives the agent.
+ */
+export type CursorHookEventName =
+  | 'pretooluse'
+  | 'posttooluse'
+  | 'stop'
+  | 'afteragentresponse'
+  | 'loop_iteration_complete'
+  | 'loop_complete'
+  | 'loop_error'
+  | 'loop_paused';
+
+/**
+ * Cursor hook event data structure.
+ *
+ * Cursor itself sends `conversation_id`, `status`, `loop_count`, etc. on
+ * the stop hook; the loop_* events MConnect emits add loop-specific fields.
+ */
+export interface CursorHookEventData {
+  event_type: CursorHookEventName;
+  conversation_id?: string;
+  cursor_conversation_id?: string;
+  cursor_status?: string;
+  cursor_loop_count?: number | null;
+  status?: string;
+  loop_count?: number;
+  transcript_path?: string;
+  tool_name?: string;
+  tool_input?: Record<string, unknown>;
+  loop_id?: string;
+  mode?: 'spec' | 'task';
+  completed?: number;
+  target?: number | 'infinite';
+  next_iteration?: number | null;
+  reason?: string | null;
+  message?: string;
 }

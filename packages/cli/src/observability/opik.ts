@@ -182,7 +182,10 @@ export class MConnectObservability {
       }
     } catch (err) {
       // Don't let scoring failures break session end
-      console.log('[Opik] Session health scoring error:', err instanceof Error ? err.message : 'Unknown');
+      console.log(
+        '[Opik] Session health scoring error:',
+        err instanceof Error ? err.message : 'Unknown'
+      );
     }
 
     // Score agent coordination
@@ -198,7 +201,10 @@ export class MConnectObservability {
         reason: coordResult.explanation,
       });
     } catch (err) {
-      console.log('[Opik] Agent coordination scoring error:', err instanceof Error ? err.message : 'Unknown');
+      console.log(
+        '[Opik] Agent coordination scoring error:',
+        err instanceof Error ? err.message : 'Unknown'
+      );
     }
 
     this.sessionTrace.end({
@@ -504,11 +510,7 @@ export class MConnectObservability {
   /**
    * Trace input decision (accepted or rejected)
    */
-  traceInputDecision(
-    decision: 'accepted' | 'rejected',
-    clientId: string,
-    reason?: string
-  ): void {
+  traceInputDecision(decision: 'accepted' | 'rejected', clientId: string, reason?: string): void {
     if (!this.sessionTrace) return;
 
     if (decision === 'rejected') {
@@ -659,12 +661,7 @@ export class MConnectObservability {
   /**
    * Trace container image build
    */
-  traceContainerBuild(
-    image: string,
-    success: boolean,
-    durationMs: number,
-    error?: string
-  ): void {
+  traceContainerBuild(image: string, success: boolean, durationMs: number, error?: string): void {
     if (!this.sessionTrace) return;
 
     const span = this.sessionTrace.span({
@@ -749,10 +746,7 @@ export class MConnectObservability {
   /**
    * Trace token validation
    */
-  traceTokenValidation(
-    result: 'valid' | 'invalid' | 'expired',
-    tokenHash: string
-  ): void {
+  traceTokenValidation(result: 'valid' | 'invalid' | 'expired', tokenHash: string): void {
     if (!this.sessionTrace) return;
 
     const span = this.sessionTrace.span({
@@ -872,7 +866,10 @@ export class MConnectObservability {
       try {
         await this.client.flush();
       } catch (error) {
-        console.log('[Opik] Flush error:', error instanceof Error ? error.message : 'Unknown error');
+        console.log(
+          '[Opik] Flush error:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
       }
     }
   }

@@ -182,6 +182,16 @@ export class HookReceiver {
   }
 
   /**
+   * Replace the broadcaster after construction.
+   *
+   * Useful when the broadcaster (e.g. a WebSocket hub) is created later
+   * in the session bootstrap than the receiver itself.
+   */
+  setBroadcaster(broadcaster: HookEventBroadcaster): void {
+    this.config.onEvent = broadcaster;
+  }
+
+  /**
    * Add event to history with size limit
    */
   private addToHistory(event: UniversalHookEvent): void {

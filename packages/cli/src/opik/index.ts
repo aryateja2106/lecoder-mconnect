@@ -89,7 +89,8 @@ export class OpikTracer {
       apiKey: config.apiKey || process.env.OPIK_API_KEY,
       apiUrl: config.apiUrl || process.env.OPIK_URL_OVERRIDE || 'https://www.comet.com/opik/api',
       projectName: config.projectName || process.env.OPIK_PROJECT_NAME || 'mconnect',
-      workspaceName: config.workspaceName || process.env.OPIK_WORKSPACE || process.env.OPIK_WORKSPACE_NAME,
+      workspaceName:
+        config.workspaceName || process.env.OPIK_WORKSPACE || process.env.OPIK_WORKSPACE_NAME,
       environment: config.environment || process.env.NODE_ENV || 'development',
     };
     this.debug = process.env.OPIK_DEBUG === 'true' || process.env.DEBUG?.includes('opik') === true;

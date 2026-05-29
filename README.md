@@ -149,7 +149,80 @@ mconnect start          # Same as above (start is the default command)
 mconnect start --preset shell-only --guardrails default  # Skip the wizard
 mconnect doctor         # Run diagnostics (checks node-pty, Docker, cloudflared)
 mconnect presets        # List available agent presets
+mconnect loop           # Cursor infinite agentic loop (see below)
 ```
+
+---
+
+## Cursor: Infinite Agentic Loop
+
+> Inspired by Disler's [`infinite-agentic-loop`](https://github.com/disler/infinite-agentic-loop), adapted for Cursor and designed to coexist with [`mksglu/context-mode`](https://github.com/mksglu/context-mode) hooks.
+
+Run **long, multi-turn tasks** in Cursor without babysitting it. MConnect installs a `stop` hook that fires when the agent finishes a turn, advances loop state, and tells Cursor what to do next. Cursor auto-continues until the loop hits its target — or runs forever if you ask it to.
+
+### One-time setup (per project)
+
+```bash
+npm install -g lecoder-mconnect
+cd your-project
+mconnect loop install
+```
+
+This writes (or merges into) `.cursor/hooks.json` and `.cursor/rules/lecoder-loop.mdc`. If you already use `context-mode`, MConnect's hook entries are appended next to context-mode's — both run on every event.
+
+Restart Cursor afterwards so it picks up the new hooks.
+
+### Run a loop
+
+```bash
+# Single iteration
+mconnect loop start specs/invent_new_ui.md src 1
+
+# Five sequential iterations
+mconnect loop start specs/invent_new_ui.md src 5
+
+# Twenty iterations
+mconnect loop start specs/invent_new_ui.md src 20
+
+# Run forever (with a 1000-iteration safety cap and progressive sophistication)
+mconnect loop start specs/invent_new_ui.md infinite_src/ infinite
+```
+
+The CLI prints a kickoff prompt — paste it into Cursor's agent chat. Cursor runs iteration 1, then the `stop` hook automatically continues the loop with iteration 2, then 3, and so on. Each turn's prompt embeds a creative-direction directive that escalates with the iteration band (foundation → refinement → innovation → revolutionary).
+
+### Long-running task mode
+
+For tasks that aren't "produce N files" but "keep working on this until done":
+
+```bash
+mconnect loop start TASK.md . 50 --mode task
+```
+
+Each turn the agent makes one chunk of progress and ends. The next turn picks up where it left off. The agent terminates the loop early by writing a single line `LECODER_LOOP_DONE`.
+
+### Watch from another terminal (or your phone)
+
+```bash
+mconnect loop status   # 7 / 20, last file: ui_hybrid_7.html
+mconnect loop tail     # the most recent iteration prompt
+mconnect loop list     # archived loops
+mconnect loop stop --pause   # pause without losing state
+mconnect loop stop           # archive the active loop
+```
+
+If MConnect is running (`mconnect` started in another terminal), the loop also POSTs `loop_iteration_complete` events to `/api/hooks` so the **mobile UI** can render progress and offer pause/stop buttons. Phone-driven control over a long Cursor task — exactly the use case MConnect was built for.
+
+### How it composes with context-mode
+
+| Concern | Owner |
+|---|---|
+| Sandbox routing (`ctx_execute`, `ctx_search`, ...) | context-mode |
+| Session continuity (FTS5 event log) | context-mode |
+| Per-turn continuation (`followup_message`) | lecoder-mconnect |
+| Loop state, target counts, output dir tracking | lecoder-mconnect |
+| Mobile/phone UI | lecoder-mconnect |
+
+context-mode's `stop` hook always emits `{"followup_message": ""}`, so it never drives the agent loop. MConnect's `stop` hook runs alongside it and provides the continuation — context-mode keeps doing its job (raw output sandboxing), MConnect drives turn-after-turn execution.
 
 | Flag | What it does |
 |------|-------------|
