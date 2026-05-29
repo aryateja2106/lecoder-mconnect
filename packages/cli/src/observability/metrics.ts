@@ -32,11 +32,7 @@ export class CommandSafetyMetric {
    * @param config - Optional guardrail configuration for context
    * @returns Score between 0 and 1
    */
-  score(
-    command: string,
-    result: CommandCheck,
-    config?: GuardrailConfig
-  ): CommandSafetyScore {
+  score(command: string, result: CommandCheck, config?: GuardrailConfig): CommandSafetyScore {
     const hasDangerousPatterns = this.containsDangerousPatterns(command);
 
     let score: number;
@@ -125,13 +121,7 @@ export class AgentToolSelectionMetric {
 
   // Expected tool patterns for each agent type
   private expectedPatterns: Record<string, RegExp[]> = {
-    'claude-code': [
-      /^claude\s+/i,
-      /^code\s+/i,
-      /^edit\s+/i,
-      /^write\s+/i,
-      /^read\s+/i,
-    ],
+    'claude-code': [/^claude\s+/i, /^code\s+/i, /^edit\s+/i, /^write\s+/i, /^read\s+/i],
     gemini: [/^gemini\s+/i, /^google\s+/i, /^search\s+/i],
     opencode: [/^opencode\s+/i, /^ai\s+/i],
     shell: [
@@ -226,8 +216,7 @@ export class SessionHealthMetric {
     // 1. Command Safety Rate (blocked/total)
     const totalCommands = metrics.commandsExecuted;
     if (totalCommands > 0) {
-      const safetyRate =
-        (totalCommands - metrics.commandsBlocked) / totalCommands;
+      const safetyRate = (totalCommands - metrics.commandsBlocked) / totalCommands;
       components.push({
         name: 'command_safety',
         score: safetyRate,
@@ -238,9 +227,7 @@ export class SessionHealthMetric {
 
     // 2. Security Events Rate
     const securityRate =
-      metrics.securityEvents > 0
-        ? Math.max(0, 1 - metrics.securityEvents / 10)
-        : 1.0;
+      metrics.securityEvents > 0 ? Math.max(0, 1 - metrics.securityEvents / 10) : 1.0;
     components.push({
       name: 'security_health',
       score: securityRate,
@@ -251,9 +238,7 @@ export class SessionHealthMetric {
     // 3. Container Health
     const containerTotal = metrics.containersCreated;
     const containerHealth =
-      containerTotal > 0
-        ? (containerTotal - metrics.containerErrors) / containerTotal
-        : 1.0;
+      containerTotal > 0 ? (containerTotal - metrics.containerErrors) / containerTotal : 1.0;
     components.push({
       name: 'container_health',
       score: containerHealth,
@@ -262,10 +247,7 @@ export class SessionHealthMetric {
     });
 
     // 4. Auth Health
-    const authRate =
-      metrics.authFailures > 0
-        ? Math.max(0, 1 - metrics.authFailures / 5)
-        : 1.0;
+    const authRate = metrics.authFailures > 0 ? Math.max(0, 1 - metrics.authFailures / 5) : 1.0;
     components.push({
       name: 'auth_health',
       score: authRate,
@@ -274,8 +256,7 @@ export class SessionHealthMetric {
     });
 
     // 5. Input Arbiter Health
-    const totalInputDecisions =
-      metrics.inputsRejected + metrics.commandsExecuted;
+    const totalInputDecisions = metrics.inputsRejected + metrics.commandsExecuted;
     const arbiterHealth =
       totalInputDecisions > 0
         ? (totalInputDecisions - metrics.inputsRejected) / totalInputDecisions
@@ -288,10 +269,7 @@ export class SessionHealthMetric {
     });
 
     // Calculate weighted average
-    const overallScore = components.reduce(
-      (sum, c) => sum + c.score * c.weight,
-      0
-    );
+    const overallScore = components.reduce((sum, c) => sum + c.score * c.weight, 0);
 
     // Determine health status
     let status: 'healthy' | 'degraded' | 'critical';
@@ -348,31 +326,20 @@ export class AgentCoordinationMetric {
   score(metrics: MConnectMetrics, activeAgents: number): AgentCoordinationScore {
     // 1. Agent utilization (are spawned agents being used?)
     const utilizationScore =
-      metrics.agentsSpawned > 0
-        ? Math.min(1, activeAgents / metrics.agentsSpawned)
-        : 0.5;
+      metrics.agentsSpawned > 0 ? Math.min(1, activeAgents / metrics.agentsSpawned) : 0.5;
 
     // 2. Control transfer efficiency (exclusive grants vs time)
     const sessionMinutes = (Date.now() - metrics.startTime) / 60000;
-    const transferRate =
-      sessionMinutes > 0 ? metrics.exclusiveGrants / sessionMinutes : 0;
+    const transferRate = sessionMinutes > 0 ? metrics.exclusiveGrants / sessionMinutes : 0;
     // Ideal: 0-2 transfers per minute
-    const transferScore =
-      transferRate <= 2
-        ? 1.0
-        : Math.max(0, 1 - (transferRate - 2) / 10);
+    const transferScore = transferRate <= 2 ? 1.0 : Math.max(0, 1 - (transferRate - 2) / 10);
 
     // 3. Rate limit incidents (fewer is better)
     const rateLimitScore =
-      metrics.rateLimitEvents > 0
-        ? Math.max(0, 1 - metrics.rateLimitEvents / 20)
-        : 1.0;
+      metrics.rateLimitEvents > 0 ? Math.max(0, 1 - metrics.rateLimitEvents / 20) : 1.0;
 
     // Weighted average
-    const overallScore =
-      utilizationScore * 0.4 +
-      transferScore * 0.3 +
-      rateLimitScore * 0.3;
+    const overallScore = utilizationScore * 0.4 + transferScore * 0.3 + rateLimitScore * 0.3;
 
     return {
       score: overallScore,
@@ -381,19 +348,11 @@ export class AgentCoordinationMetric {
       utilizationScore,
       transferScore,
       rateLimitScore,
-      explanation: this.generateExplanation(
-        utilizationScore,
-        transferScore,
-        rateLimitScore
-      ),
+      explanation: this.generateExplanation(utilizationScore, transferScore, rateLimitScore),
     };
   }
 
-  private generateExplanation(
-    utilization: number,
-    transfer: number,
-    rateLimit: number
-  ): string {
+  private generateExplanation(utilization: number, transfer: number, rateLimit: number): string {
     const issues: string[] = [];
 
     if (utilization < 0.7) {

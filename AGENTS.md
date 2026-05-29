@@ -32,10 +32,11 @@ lecoder-mconnect/
 ├── packages/
 │   └── cli/                    # Main CLI package (published to npm)
 │       ├── src/
-│       │   ├── cli/commands/   # CLI commands (start, attach, daemon)
+│       │   ├── cli/commands/   # CLI commands (start, attach, daemon, agent)
 │       │   ├── pty/            # PTY management for terminal sessions
 │       │   ├── web/            # Web client serving
 │       │   ├── input/          # Input arbitration & idle detection
+│       │   ├── agent-cli/      # Cursor SDK agent runner + git worktree isolation
 │       │   ├── tunnel.ts       # Cloudflare tunnel integration
 │       │   ├── session.ts      # Session management
 │       │   └── guardrails.ts   # Command safety filters
@@ -76,6 +77,10 @@ lecoder-mconnect/
 | `packages/cli/src/session.ts` | Core session logic |
 | `packages/cli/src/tunnel.ts` | Cloudflare tunnel setup |
 | `packages/cli/src/guardrails.ts` | Command filtering |
+| `packages/cli/src/cli/commands/agent.ts` | `mconnect agent run/ls/loop/...` subcommands |
+| `packages/cli/src/agent-cli/sdk-runner.ts` | `@cursor/sdk` wrapper (lazy-loaded peer dep) |
+| `packages/cli/src/agent-cli/worktree.ts` | Git worktree isolation |
+| `packages/cli/src/agent-cli/session-store.ts` | Per-session JSON state at `~/.lecoder/agent/sessions/` |
 | `apps/website/src/app/page.tsx` | Landing page |
 
 ## Development Commands

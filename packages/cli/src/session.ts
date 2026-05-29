@@ -14,16 +14,16 @@ import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
-import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
 import { getObservability, initObservabilityFromEnv } from './observability/index.js';
+import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
 import {
   generateSecureToken,
   generateSessionId,
   getPairingCodeManager,
   hashForLogging,
 } from './security.js';
-import { writeSessionFile, removeSessionFile } from './session-file.js';
 import type { SessionManager } from './session/SessionManager.js';
+import { removeSessionFile, writeSessionFile } from './session-file.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
 import { PRODUCT_NAME, VERSION } from './version.js';
@@ -129,7 +129,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     observability.startSessionTrace(sessionId, {
       workDir: config.workDir,
       guardrailsLevel: config.guardrails,
-      agents: config.agents.map(a => ({ ...a, cwd: config.workDir })),
+      agents: config.agents.map((a) => ({ ...a, cwd: config.workDir })),
       enableTmux: config.enableTmux !== false,
       version: VERSION,
     });
@@ -168,13 +168,15 @@ export async function startSession(config: SessionConfig): Promise<void> {
     if (url.pathname === '/health' || url.pathname === '/api/health') {
       setCorsHeaders();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'ok',
-        version: VERSION,
-        sessionId,
-        agents: currentSession?.agentManager?.getAllAgents()?.length ?? 0,
-        timestamp: new Date().toISOString(),
-      }));
+      res.end(
+        JSON.stringify({
+          status: 'ok',
+          version: VERSION,
+          sessionId,
+          agents: currentSession?.agentManager?.getAllAgents()?.length ?? 0,
+          timestamp: new Date().toISOString(),
+        })
+      );
       return;
     }
 
@@ -234,7 +236,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
     httpServer: { success: true }, // Already started at this point
     opik: {
       success: opikEnabled || obsEnabled,
-      error: (opikEnabled || obsEnabled) ? undefined : 'OPIK_API_KEY not set',
+      error: opikEnabled || obsEnabled ? undefined : 'OPIK_API_KEY not set',
     },
   };
 
@@ -491,13 +493,16 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const timeoutMinutes = config.timeout ?? 60;
   let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
   if (timeoutMinutes > 0) {
-    timeoutTimer = setTimeout(async () => {
-      if (!quiet) {
-        p.log.warning(`Session timed out after ${timeoutMinutes} minutes. Shutting down.`);
-      }
-      await cleanup();
-      process.exit(0);
-    }, timeoutMinutes * 60 * 1000);
+    timeoutTimer = setTimeout(
+      async () => {
+        if (!quiet) {
+          p.log.warning(`Session timed out after ${timeoutMinutes} minutes. Shutting down.`);
+        }
+        await cleanup();
+        process.exit(0);
+      },
+      timeoutMinutes * 60 * 1000
+    );
     timeoutTimer.unref();
   }
 
