@@ -1,0 +1,347 @@
+#![allow(dead_code)]
+// This helper module is compiled into multiple Windows integration test
+// binaries; each smoke owns a different subset of the shared harness.
+
+use std::error::Error;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::OnceLock;
+use std::time::Duration;
+
+use rmux_sdk::{
+    bootstrap::discovery::SDK_DAEMON_BINARY_ENV, PaneOutputChunk, PaneOutputStream, Rmux,
+    RmuxBuilder, SessionName,
+};
+use tokio::sync::Mutex;
+use tokio::time::{sleep, timeout, Instant};
+
+pub type TestResult<T = ()> = Result<T, Box<dyn Error>>;
+
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
+pub const OUTPUT_BUDGET: usize = 64 * 1024;
+
+pub static LIVE_DAEMON_LOCK: Mutex<()> = Mutex::const_new(());
+
+static UNIQUE_ID: AtomicUsize = AtomicUsize::new(0);
+
+pub struct Harness {
+    pipe_name: String,
+    rmux: Option<Rmux>,
+    armed: bool,
+}
+
+impl Harness {
+    pub async fn start(label: &str) -> TestResult<Self> {
+        let pipe_name = unique_pipe_name(label)?;
+        let daemon_binary = rmux_binary()?.to_path_buf();
+        let _daemon_binary_env = EnvGuard::set(SDK_DAEMON_BINARY_ENV, daemon_binary.as_os_str());
+        let rmux = builder(&pipe_name).connect_or_start().await?;
+        Ok(Self {
+            pipe_name,
+            rmux: Some(rmux),
+            armed: true,
+        })
+    }
+
+    pub fn rmux(&self) -> &Rmux {
+        self.rmux.as_ref().expect("harness rmux is available")
+    }
+
+    pub fn pipe_name(&self) -> &str {
+        &self.pipe_name
+    }
+
+    pub fn take_rmux(&mut self) -> TestResult<Rmux> {
+        self.rmux
+            .take()
+            .ok_or_else(|| "harness rmux was already taken".into())
+    }
+
+    pub async fn finish(mut self) -> TestResult {
+        if let Some(rmux) = self.rmux.take() {
+            rmux.shutdown().await?;
+            wait_for_daemon_unavailable(&self.pipe_name).await?;
+        }
+        self.armed = false;
+        Ok(())
+    }
+
+    pub async fn disarm_after_shutdown(mut self) -> TestResult {
+        wait_for_daemon_unavailable(&self.pipe_name).await?;
+        self.armed = false;
+        Ok(())
+    }
+}
+
+impl Drop for Harness {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        let _ = Command::new(rmux_binary().unwrap_or_else(|_| Path::new("rmux")))
+            .arg("-S")
+            .arg(&self.pipe_name)
+            .arg("kill-server")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+}
+
+pub fn builder(pipe_name: &str) -> RmuxBuilder {
+    RmuxBuilder::new()
+        .windows_pipe(pipe_name.to_owned())
+        .default_timeout(DEFAULT_TIMEOUT)
+}
+
+pub fn session_name(prefix: &str) -> SessionName {
+    SessionName::new(format!("{prefix}{}", unique_id())).expect("valid smoke session name")
+}
+
+pub fn cmd_interactive_command() -> Vec<String> {
+    vec![cmd_exe(), "/d".to_owned(), "/q".to_owned()]
+}
+
+pub fn cmd_echo_text(marker: &str) -> String {
+    format!("echo {marker}\r")
+}
+
+pub fn cmd_echo_once_command(text: &str) -> Vec<String> {
+    vec![
+        cmd_exe(),
+        "/d".to_owned(),
+        "/q".to_owned(),
+        "/c".to_owned(),
+        format!("echo {text}"),
+    ]
+}
+
+pub fn cmd_burst_once_command(start: &str, end: &str, exit_code: i32) -> Vec<String> {
+    vec![
+        cmd_exe(),
+        "/d".to_owned(),
+        "/q".to_owned(),
+        "/c".to_owned(),
+        format!(
+            "echo {start} & (for /L %i in (1,1,300) do @echo line-%i) & echo {end} & exit /b {exit_code}"
+        ),
+    ]
+}
+
+pub fn cmd_delayed_echo_once_command(text: &str) -> Vec<String> {
+    vec![
+        cmd_exe(),
+        "/d".to_owned(),
+        "/q".to_owned(),
+        "/c".to_owned(),
+        format!("ping -n 2 127.0.0.1 >NUL & echo {text}"),
+    ]
+}
+
+pub fn cmd_long_running_command(started_marker: &str) -> String {
+    format!("echo {started_marker} && ping -n 30 127.0.0.1 >NUL\r")
+}
+
+pub async fn wait_for_output_marker(stream: &mut PaneOutputStream, marker: &[u8]) -> TestResult {
+    let deadline = Instant::now() + DEFAULT_TIMEOUT;
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err("pane output stream did not emit expected marker".into());
+        }
+        match timeout(remaining, stream.next()).await?? {
+            Some(PaneOutputChunk::Bytes { bytes, .. })
+                if bytes.windows(marker.len()).any(|window| window == marker) =>
+            {
+                return Ok(());
+            }
+            Some(_) => {}
+            None => return Err("pane output stream closed before expected marker".into()),
+        }
+    }
+}
+
+pub async fn wait_for_snapshot_text_after_revision(
+    pane: &rmux_sdk::Pane,
+    previous_revision: u64,
+    marker: &str,
+) -> TestResult<rmux_sdk::PaneSnapshot> {
+    let deadline = Instant::now() + DEFAULT_TIMEOUT;
+    loop {
+        let snapshot = pane.snapshot().await?;
+        if snapshot.revision > previous_revision && snapshot.visible_text().contains(marker) {
+            return Ok(snapshot);
+        }
+        if Instant::now() >= deadline {
+            return Err(format!(
+                "snapshot did not advance past revision {previous_revision} with marker {marker:?}"
+            )
+            .into());
+        }
+        sleep(Duration::from_millis(25)).await;
+    }
+}
+
+pub async fn wait_for_stable_snapshot(
+    pane: &rmux_sdk::Pane,
+    minimum_revision: u64,
+) -> TestResult<rmux_sdk::PaneSnapshot> {
+    let deadline = Instant::now() + DEFAULT_TIMEOUT;
+    let mut previous = pane.snapshot().await?;
+    loop {
+        sleep(Duration::from_millis(100)).await;
+        let current = pane.snapshot().await?;
+        if current.revision >= minimum_revision
+            && current.revision == previous.revision
+            && current.visible_text() == previous.visible_text()
+        {
+            return Ok(current);
+        }
+        if Instant::now() >= deadline {
+            return Err(format!(
+                "snapshot did not stabilize after revision {minimum_revision}; last revision was {}",
+                current.revision
+            )
+            .into());
+        }
+        previous = current;
+    }
+}
+
+pub async fn wait_for_daemon_unavailable(pipe_name: &str) -> TestResult {
+    let deadline = Instant::now() + DEFAULT_TIMEOUT;
+    loop {
+        if builder(pipe_name).connect().await.is_err() {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err(format!("daemon endpoint remained reachable: {pipe_name}").into());
+        }
+        sleep(Duration::from_millis(25)).await;
+    }
+}
+
+pub async fn wait_for_pane_absent(pane: &rmux_sdk::Pane) -> TestResult {
+    let deadline = Instant::now() + DEFAULT_TIMEOUT;
+    loop {
+        if pane.id().await?.is_none() {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err("pane remained listed after expected process exit".into());
+        }
+        sleep(Duration::from_millis(25)).await;
+    }
+}
+
+fn unique_pipe_name(label: &str) -> TestResult<String> {
+    let local = format!("sdkv1win{}{}", std::process::id(), unique_id());
+    let endpoint = rmux_ipc::endpoint_for_label(format!("{local}{label}"))?;
+    Ok(endpoint
+        .as_path()
+        .as_os_str()
+        .to_string_lossy()
+        .into_owned())
+}
+
+fn unique_id() -> usize {
+    UNIQUE_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+fn cmd_exe() -> String {
+    std::env::var_os("SystemRoot")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(r"C:\Windows"))
+        .join("System32")
+        .join("cmd.exe")
+        .to_string_lossy()
+        .into_owned()
+}
+
+fn rmux_binary() -> TestResult<&'static Path> {
+    static RMUX_BINARY: OnceLock<Result<PathBuf, String>> = OnceLock::new();
+    match RMUX_BINARY.get_or_init(|| resolve_rmux_binary().map_err(|error| error.to_string())) {
+        Ok(path) => Ok(path.as_path()),
+        Err(error) => Err(std::io::Error::other(error.clone()).into()),
+    }
+}
+
+fn resolve_rmux_binary() -> TestResult<PathBuf> {
+    if let Some(path) = option_env!("CARGO_BIN_EXE_rmux") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Ok(path);
+        }
+    }
+
+    let target_dir = target_dir()?;
+    let candidate = target_dir.join("debug").join("rmux.exe");
+
+    let status = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+        .arg("build")
+        .arg("--bin")
+        .arg("rmux")
+        .arg("--locked")
+        .arg("--manifest-path")
+        .arg(workspace_root().join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", &target_dir)
+        .status()?;
+    if !status.success() {
+        return Err(format!("failed to build rmux binary for Windows SDK smoke: {status}").into());
+    }
+    if !candidate.is_file() {
+        return Err(format!(
+            "rmux binary build succeeded but '{}' was not created",
+            candidate.display()
+        )
+        .into());
+    }
+
+    Ok(candidate)
+}
+
+fn target_dir() -> TestResult<PathBuf> {
+    if let Some(target_dir) = std::env::var_os("CARGO_TARGET_DIR") {
+        return Ok(PathBuf::from(target_dir));
+    }
+
+    let current = std::env::current_exe()?;
+    current
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .map(Path::to_path_buf)
+        .ok_or_else(|| "test executable is not under a target directory".into())
+}
+
+fn workspace_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("rmux-sdk manifest lives under crates/rmux-sdk")
+        .to_path_buf()
+}
+
+struct EnvGuard {
+    key: &'static str,
+    previous: Option<OsString>,
+}
+
+impl EnvGuard {
+    fn set(key: &'static str, value: &std::ffi::OsStr) -> Self {
+        let previous = std::env::var_os(key);
+        std::env::set_var(key, value);
+        Self { key, previous }
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        match &self.previous {
+            Some(value) => std::env::set_var(self.key, value),
+            None => std::env::remove_var(self.key),
+        }
+    }
+}

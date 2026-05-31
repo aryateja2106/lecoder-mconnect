@@ -1,0 +1,51 @@
+[package]
+name = "rmux-sdk"
+version = "0.3.1"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Public, daemon-backed Rust SDK for the RMUX terminal multiplexer (facade, ensure-session, snapshots, events, detach helpers)."
+keywords = ["terminal", "multiplexer", "sdk"]
+categories = ["command-line-interface", "asynchronous"]
+publish = true
+
+[dependencies]
+crossterm = { version = "0.29.0", default-features = false, features = [
+    "events",
+    "windows",
+], optional = true }
+rmux-ipc = { path = "../rmux-ipc", version = "0.3.1" }
+rmux-os = { path = "../rmux-os", version = "0.3.1" }
+rmux-proto = { path = "../rmux-proto", version = "0.3.1" }
+regex = { version = "1", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.48.0", features = ["fs", "io-util", "rt", "signal", "sync"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+rustix = { version = "1.1.4", features = ["fs"] }
+# Bootstrap actor needs Unix-specific async I/O plumbing (UnixStream + sleep),
+# scoped to cfg(unix) so the SDK transport-actor manifest stays narrow on
+# every other target.
+tokio = { version = "1.48.0", features = ["net", "time"] }
+
+[target.'cfg(windows)'.dependencies]
+# Windows startup race serializes hidden-daemon launch behind a per-user named
+# mutex. The SDK keeps `forbid(unsafe_code)`; FFI lives in `rmux-ipc` and the
+# windows-sys constants imported here are pure data values.
+tokio = { version = "1.48.0", features = ["net", "time"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation"] }
+
+[dev-dependencies]
+bincode = "1.3.3"
+crossterm = { version = "0.29.0", default-features = false, features = [
+    "events",
+    "windows",
+] }
+tokio = { version = "1.48.0", features = ["io-util", "macros", "net", "rt", "rt-multi-thread", "sync", "time"] }
+
+[features]
+default = []
+crossterm = ["dep:crossterm"]
+regex = ["dep:regex"]

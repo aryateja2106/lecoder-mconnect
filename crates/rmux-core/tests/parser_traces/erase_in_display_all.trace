@@ -1,0 +1,53 @@
+# rmux-core parser trace
+# regenerate with: RMUX_REGEN_PARSER_TRACES=1 cargo test --package rmux-core --test parser_traces -- --nocapture
+fixture: erase_in_display_all
+feeds: 1
+size: cols=6 rows=3 history=2
+resize_after: (none)
+input_length: 15
+input_hex: 41 41 41 0a 42 42 42 0a 43 43 43 1b 5b 32 4a
+parser_state: Ground
+parser_pending_hex: (empty)
+parser_replies_hex: (empty)
+parser_ground_timer_active: false
+mode_bits: 0x00000011
+cursor_style: 0
+cursor: x=2 y=2
+cursor_absolute_y: 3
+alternate: false
+history_size: 1
+history_bytes: 4
+bell_count: 0
+title: ""
+path: ""
+size_runtime: cols=6 rows=3
+absolute_line_count: 4
+--- visible_lines ---
+[v=0] flags=- cells=6
+  (blank)
+[v=1] flags=- cells=6
+  (blank)
+[v=2] flags=- cells=6
+  (blank)
+--- history_lines ---
+[h=0] flags=- cells=6
+  c  0 . text="A" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  1 . text="A" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  2 . text="A" w=1 attr=0x0000 fg=default bg=default us=default link=0
+--- transcript ---
+| AAA
+|
+|
+|
+--- transcript_joined ---
+| AAA
+|
+|
+|
+--- transcript_with_sequences ---
+| AAA
+|
+|
+|
+--- saved_transcript ---
+(none)

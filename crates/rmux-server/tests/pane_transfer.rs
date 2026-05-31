@@ -1,0 +1,306 @@
+#![cfg(unix)]
+
+use std::error::Error;
+use std::fs;
+use std::io;
+use std::path::Path;
+use std::time::{Duration, Instant};
+
+mod common;
+
+use common::{session_name, start_server, ClientConnection, TestHarness, PTY_TEST_LOCK};
+use rmux_proto::{
+    BreakPaneRequest, JoinPaneRequest, KillPaneRequest, LastPaneRequest, NewSessionRequest,
+    NewWindowRequest, PaneTarget, Request, Response, SelectPaneRequest, SendKeysRequest,
+    SplitDirection, SplitWindowRequest, SplitWindowTarget, SwapPaneRequest, TerminalSize,
+    WindowTarget,
+};
+
+const FILE_TIMEOUT: Duration = Duration::from_secs(15);
+
+#[tokio::test]
+async fn pane_transfer_commands_move_live_ptys_between_windows() -> Result<(), Box<dyn Error>> {
+    let _guard = PTY_TEST_LOCK.lock().await;
+    let harness = TestHarness::new("pane-transfer-live-ptys");
+    let socket_path = harness.socket_path().to_path_buf();
+    let handle = start_server(&harness).await?;
+    let mut client = ClientConnection::connect(&socket_path).await?;
+    let session = session_name("alpha");
+    let root = socket_path
+        .parent()
+        .expect("socket path must have a parent");
+    let join_path = root.join("join.txt");
+    let break_path = root.join("break.txt");
+    let swap_source_path = root.join("swap-source.txt");
+    let swap_target_path = root.join("swap-target.txt");
+
+    assert!(matches!(
+        client
+            .send_request(&Request::NewSession(NewSessionRequest {
+                session_name: session.clone(),
+                detached: true,
+                size: Some(TerminalSize {
+                    cols: 120,
+                    rows: 40,
+                }),
+                environment: None,
+            }))
+            .await?,
+        Response::NewSession(_)
+    ));
+
+    assert_eq!(
+        client
+            .send_request(&Request::SplitWindow(SplitWindowRequest {
+                target: SplitWindowTarget::Session(session.clone()),
+                direction: SplitDirection::Vertical,
+                before: false,
+                environment: None,
+            }))
+            .await?,
+        Response::SplitWindow(rmux_proto::SplitWindowResponse {
+            pane: PaneTarget::new(session.clone(), 1),
+        })
+    );
+    assert_eq!(
+        client
+            .send_request(&Request::SelectPane(SelectPaneRequest {
+                target: PaneTarget::new(session.clone(), 1),
+                title: None,
+            }))
+            .await?,
+        Response::SelectPane(rmux_proto::SelectPaneResponse {
+            target: PaneTarget::new(session.clone(), 1),
+        })
+    );
+    assert_eq!(
+        client
+            .send_request(&Request::SelectPane(SelectPaneRequest {
+                target: PaneTarget::new(session.clone(), 0),
+                title: None,
+            }))
+            .await?,
+        Response::SelectPane(rmux_proto::SelectPaneResponse {
+            target: PaneTarget::new(session.clone(), 0),
+        })
+    );
+    assert_eq!(
+        client
+            .send_request(&Request::LastPane(LastPaneRequest {
+                target: WindowTarget::new(session.clone()),
+            }))
+            .await?,
+        Response::LastPane(rmux_proto::LastPaneResponse {
+            target: PaneTarget::new(session.clone(), 1),
+        })
+    );
+
+    assert!(matches!(
+        client
+            .send_request(&Request::SendKeys(SendKeysRequest {
+                target: PaneTarget::new(session.clone(), 1),
+                keys: vec![
+                    "export RMUX_TRANSFER_MARK=joined".to_owned(),
+                    "Enter".to_owned()
+                ],
+            }))
+            .await?,
+        Response::SendKeys(_)
+    ));
+
+    assert_eq!(
+        client
+            .send_request(&Request::NewWindow(NewWindowRequest {
+                target: session.clone(),
+                name: Some("dest".to_owned()),
+                detached: true,
+                start_directory: None,
+                environment: None,
+                command: None,
+                target_window_index: None,
+                insert_at_target: false,
+            }))
+            .await?,
+        Response::NewWindow(rmux_proto::NewWindowResponse {
+            target: WindowTarget::with_window(session.clone(), 1),
+        })
+    );
+    assert_eq!(
+        client
+            .send_request(&Request::JoinPane(JoinPaneRequest {
+                source: PaneTarget::new(session.clone(), 1),
+                target: PaneTarget::with_window(session.clone(), 1, 0),
+                direction: SplitDirection::Vertical,
+                detached: true,
+                before: false,
+                full_size: false,
+                size: None,
+            }))
+            .await?,
+        Response::JoinPane(rmux_proto::JoinPaneResponse {
+            target: PaneTarget::with_window(session.clone(), 1, 1),
+        })
+    );
+    assert!(matches!(
+        client
+            .send_request(&Request::SendKeys(SendKeysRequest {
+                target: PaneTarget::with_window(session.clone(), 1, 1),
+                keys: vec![
+                    format!("printf \"$RMUX_TRANSFER_MARK\" > {}", join_path.display()),
+                    "Enter".to_owned(),
+                ],
+            }))
+            .await?,
+        Response::SendKeys(_)
+    ));
+    wait_for_file_contents(&join_path, "joined").await?;
+
+    assert_eq!(
+        client
+            .send_request(&Request::BreakPane(BreakPaneRequest {
+                source: PaneTarget::with_window(session.clone(), 1, 1),
+                target: Some(WindowTarget::with_window(session.clone(), 2)),
+                name: Some("broken".to_owned()),
+                detached: true,
+                after: false,
+                before: false,
+                print_target: false,
+                format: None,
+            }))
+            .await?,
+        Response::BreakPane(rmux_proto::BreakPaneResponse {
+            target: PaneTarget::with_window(session.clone(), 2, 0),
+            output: None,
+        })
+    );
+    assert!(matches!(
+        client
+            .send_request(&Request::SendKeys(SendKeysRequest {
+                target: PaneTarget::with_window(session.clone(), 2, 0),
+                keys: vec![
+                    format!("printf \"$RMUX_TRANSFER_MARK\" > {}", break_path.display()),
+                    "Enter".to_owned(),
+                ],
+            }))
+            .await?,
+        Response::SendKeys(_)
+    ));
+    wait_for_file_contents(&break_path, "joined").await?;
+
+    assert!(matches!(
+        client
+            .send_request(&Request::NewWindow(NewWindowRequest {
+                target: session.clone(),
+                name: Some("swap".to_owned()),
+                detached: true,
+                start_directory: None,
+                environment: None,
+                command: None,
+                target_window_index: None,
+                insert_at_target: false,
+            }))
+            .await?,
+        Response::NewWindow(_)
+    ));
+    assert!(matches!(
+        client
+            .send_request(&Request::SplitWindow(SplitWindowRequest {
+                target: SplitWindowTarget::Pane(PaneTarget::with_window(session.clone(), 3, 0)),
+                direction: SplitDirection::Vertical,
+                before: false,
+                environment: None,
+            }))
+            .await?,
+        Response::SplitWindow(_)
+    ));
+    assert!(matches!(
+        client
+            .send_request(&Request::KillPane(KillPaneRequest {
+                target: PaneTarget::with_window(session.clone(), 3, 0),
+                kill_all_except: false,
+            }))
+            .await?,
+        Response::KillPane(_)
+    ));
+    assert!(matches!(
+        client
+            .send_request(&Request::SendKeys(SendKeysRequest {
+                target: PaneTarget::with_window(session.clone(), 3, 0),
+                keys: vec![
+                    "export RMUX_TRANSFER_MARK=swapped".to_owned(),
+                    "Enter".to_owned()
+                ],
+            }))
+            .await?,
+        Response::SendKeys(_)
+    ));
+
+    assert_eq!(
+        client
+            .send_request(&Request::SwapPane(SwapPaneRequest {
+                source: PaneTarget::with_window(session.clone(), 2, 0),
+                target: PaneTarget::with_window(session.clone(), 3, 0),
+                direction: None,
+                detached: true,
+                preserve_zoom: false,
+            }))
+            .await?,
+        Response::SwapPane(rmux_proto::SwapPaneResponse {
+            source: PaneTarget::with_window(session.clone(), 2, 0),
+            target: PaneTarget::with_window(session.clone(), 3, 0),
+        })
+    );
+    assert!(matches!(
+        client
+            .send_request(&Request::SendKeys(SendKeysRequest {
+                target: PaneTarget::with_window(session.clone(), 2, 0),
+                keys: vec![
+                    format!(
+                        "printf \"$RMUX_TRANSFER_MARK\" > {}",
+                        swap_source_path.display()
+                    ),
+                    "Enter".to_owned(),
+                ],
+            }))
+            .await?,
+        Response::SendKeys(_)
+    ));
+    assert!(matches!(
+        client
+            .send_request(&Request::SendKeys(SendKeysRequest {
+                target: PaneTarget::with_window(session.clone(), 3, 0),
+                keys: vec![
+                    format!(
+                        "printf \"$RMUX_TRANSFER_MARK\" > {}",
+                        swap_target_path.display()
+                    ),
+                    "Enter".to_owned(),
+                ],
+            }))
+            .await?,
+        Response::SendKeys(_)
+    ));
+    wait_for_file_contents(&swap_source_path, "swapped").await?;
+    wait_for_file_contents(&swap_target_path, "joined").await?;
+
+    handle.shutdown().await?;
+    Ok(())
+}
+
+async fn wait_for_file_contents(path: &Path, expected: &str) -> Result<(), Box<dyn Error>> {
+    let deadline = Instant::now() + FILE_TIMEOUT;
+
+    while Instant::now() < deadline {
+        match fs::read_to_string(path) {
+            Ok(contents) if contents == expected => return Ok(()),
+            Ok(_) | Err(_) => tokio::time::sleep(Duration::from_millis(25)).await,
+        }
+    }
+
+    Err(io::Error::other(format!(
+        "timed out waiting for '{}' to contain '{}'",
+        path.display(),
+        expected
+    ))
+    .into())
+}

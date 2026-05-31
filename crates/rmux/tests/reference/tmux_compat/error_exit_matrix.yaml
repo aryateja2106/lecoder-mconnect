@@ -1,0 +1,29 @@
+artifact: tmux_compat_error_exit_matrix
+scope: "Error and exit-code compatibility checks."
+authority:
+  tmux_source_sha: "31d77e29b6c9fbb07d032018da78db3a8a38d979"
+  frozen_tmux_binary_sha256: "525149cdac8d41b7e60ad68c4bab0670c8b769c646bab780e2a7b66239ad83a0"
+  authority_record: "tests/reference/tmux_compat/frozen_reference.yaml"
+checks:
+  - id: "wait-for-unlock-missing-channel"
+    argv_after_socket: ["wait-for", "-U", "unknownchan"]
+    expected:
+      stdout: ""
+      stderr: "channel unknownchan not locked\n"
+      exit_code: 1
+    coverage: "tests/tmux_compat_surface_matrix.rs::tmux_compat_wait_for_unlock_not_locked_channel_when_frozen_tmux_is_available"
+  - id: "wait-for-unlock-signaled-channel"
+    argv_after_socket: ["wait-for", "-U", "signaled-chan"]
+    setup_argv_after_socket: ["wait-for", "-S", "signaled-chan"]
+    expected:
+      stdout: ""
+      stderr: "channel signaled-chan not locked\n"
+      exit_code: 1
+    coverage: "tests/tmux_compat_surface_matrix.rs::tmux_compat_wait_for_unlock_not_locked_channel_when_frozen_tmux_is_available"
+  - id: "unknown-command"
+    argv_after_socket: ["nonexistent-command-xyz"]
+    expected:
+      stdout: ""
+      stderr: "non-empty command error without a server-error prefix"
+      exit_code: 1
+    coverage: "tests/tmux_compat_surface_matrix.rs::tmux_compat_unknown_command_error_exit_when_frozen_tmux_is_available"

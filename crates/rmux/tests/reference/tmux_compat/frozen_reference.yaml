@@ -1,0 +1,37 @@
+artifact: frozen_tmux_reference
+scope: "Frozen tmux reference used by the RMUX tmux compatibility harness."
+tmux_reference:
+  source_sha: "31d77e29b6c9fbb07d032018da78db3a8a38d979"
+  manpage_line_count: 8271
+  system_tmux:
+    path: "/usr/bin/tmux"
+    version: "3.4"
+    used_for_tmux_compat_observations: false
+frozen_tmux_binary_acquisition:
+  source_sha: "31d77e29b6c9fbb07d032018da78db3a8a38d979"
+  source_copy_path: "/tmp/rmux-frozen-tmux-31d77e29b6c9fbb07d032018da78db3a8a38d979/build-debian/source"
+  build_directory_path: "/tmp/rmux-frozen-tmux-31d77e29b6c9fbb07d032018da78db3a8a38d979/build-debian"
+  expected_binary_path: "/opt/rmux/reference/tmux-frozen/31d77e29b6c9fbb07d032018da78db3a8a38d979/tmux"
+  resulting_binary_path: "/opt/rmux/reference/tmux-frozen/31d77e29b6c9fbb07d032018da78db3a8a38d979/tmux"
+  binary_sha256: "525149cdac8d41b7e60ad68c4bab0670c8b769c646bab780e2a7b66239ad83a0"
+  result: "available"
+  dependency_inventory:
+    cc: "debian:bookworm-slim:/usr/bin/cc"
+    make: "debian:bookworm-slim:/usr/bin/make"
+    pkg_config: "debian:bookworm-slim:/usr/bin/pkg-config"
+    autoconf: "debian:bookworm-slim:/usr/bin/autoconf"
+    automake: "debian:bookworm-slim:/usr/bin/automake"
+    aclocal: "debian:bookworm-slim:/usr/bin/aclocal"
+    yacc: "debian:bookworm-slim:/usr/bin/yacc"
+    bison: "debian:bookworm-slim:/usr/bin/bison"
+    libevent_pkg_config: "debian:bookworm-slim:available"
+    ncurses_pkg_config: "debian:bookworm-slim:available"
+baseline_test_floor:
+  command: "cargo test --workspace --locked"
+  scope: "Historical baseline recorded before the tmux compatibility harness was added."
+  count_method: "Summed the numeric passed fields from each Cargo 'test result:' line in the complete log."
+  passed: 776
+  failed: 0
+  ignored: 0
+  measured: 0
+  filtered_out: 0

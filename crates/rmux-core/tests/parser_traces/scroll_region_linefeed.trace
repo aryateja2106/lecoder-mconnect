@@ -1,0 +1,64 @@
+# rmux-core parser trace
+# regenerate with: RMUX_REGEN_PARSER_TRACES=1 cargo test --package rmux-core --test parser_traces -- --nocapture
+fixture: scroll_region_linefeed
+feeds: 1
+size: cols=6 rows=5 history=4
+resize_after: (none)
+input_length: 22
+input_hex: 1b 5b 32 3b 34 72 1b 5b 32 3b 31 48 41 0a 42 0a 43 0a 44 0a 45 0a
+parser_state: Ground
+parser_pending_hex: (empty)
+parser_replies_hex: (empty)
+parser_ground_timer_active: false
+mode_bits: 0x00000011
+cursor_style: 0
+cursor: x=5 y=3
+cursor_absolute_y: 3
+alternate: false
+history_size: 0
+history_bytes: 0
+bell_count: 0
+title: ""
+path: ""
+size_runtime: cols=6 rows=5
+absolute_line_count: 5
+--- visible_lines ---
+[v=0] flags=- cells=6
+  (blank)
+[v=1] flags=- cells=6
+  c  0 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  1 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  2 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  3 . text="D" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=2] flags=- cells=6
+  c  0 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  1 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  2 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  3 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  4 . text="E" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=3] flags=- cells=6
+  (blank)
+[v=4] flags=- cells=6
+  (blank)
+--- history_lines ---
+(empty)
+--- transcript ---
+|
+|    D
+|     E
+|
+|
+--- transcript_joined ---
+|
+|    D
+|     E
+|
+|
+--- transcript_with_sequences ---
+|
+|    D
+|     E
+|
+|
+--- saved_transcript ---
+(none)

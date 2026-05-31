@@ -1,0 +1,17 @@
+[package]
+name = "rmux-types"
+version.workspace = true
+edition.workspace = true
+publish = true
+license.workspace = true
+repository.workspace = true
+description = "Shared platform-neutral value types for the RMUX terminal multiplexer workspace."
+keywords = ["terminal", "multiplexer", "types"]
+categories = ["command-line-interface"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[features]
+default = []
+serde = ["dep:serde"]

@@ -1,0 +1,62 @@
+# rmux-core parser trace
+# regenerate with: RMUX_REGEN_PARSER_TRACES=1 cargo test --package rmux-core --test parser_traces -- --nocapture
+fixture: alternate_screen_active_capture
+feeds: 3
+size: cols=8 rows=3 history=5
+resize_after: (none)
+input_length: 31
+input_hex: 70 72 69 6d 61 72 79 1b 5b 3f 31 30 34 39 68 61 6c 74 2d 63 6f 6e 74 65 6e 74 2d 6f 6e 6c 79
+parser_state: Ground
+parser_pending_hex: (empty)
+parser_replies_hex: (empty)
+parser_ground_timer_active: false
+mode_bits: 0x00000011
+cursor_style: 0
+cursor: x=7 y=1
+cursor_absolute_y: 1
+alternate: true
+history_size: 0
+history_bytes: 0
+bell_count: 0
+title: ""
+path: ""
+size_runtime: cols=8 rows=3
+absolute_line_count: 3
+--- visible_lines ---
+[v=0] flags=WRAPPED cells=8
+  c  0 . text="a" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  1 . text="l" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  2 . text="t" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  3 . text="-" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  4 . text="c" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  5 . text="o" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  6 . text="n" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  7 . text="t" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=1] flags=- cells=8
+  c  0 . text="e" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  1 . text="n" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  2 . text="t" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  3 . text="-" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  4 . text="o" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  5 . text="n" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  6 . text="l" w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  7 . text="y" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=2] flags=- cells=8
+  (blank)
+--- history_lines ---
+(empty)
+--- transcript ---
+| alt-cont
+| ent-only
+|
+--- transcript_joined ---
+| alt-content-only
+|
+--- transcript_with_sequences ---
+| alt-cont
+| ent-only
+|
+--- saved_transcript ---
+| primary
+|
+|

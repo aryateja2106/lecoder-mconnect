@@ -1,0 +1,141 @@
+# rmux-core parser trace
+# regenerate with: RMUX_REGEN_PARSER_TRACES=1 cargo test --package rmux-core --test parser_traces -- --nocapture
+fixture: ascii_wrap_reflow_widen
+feeds: 1
+size: cols=5 rows=16 history=10
+resize_after: cols=1 rows=16
+input_length: 11
+input_hex: 50 41 4e 45 31 2d 41 42 43 44 45
+parser_state: Ground
+parser_pending_hex: (empty)
+parser_replies_hex: (empty)
+parser_ground_timer_active: false
+mode_bits: 0x00000011
+cursor_style: 0
+cursor: x=0 y=2
+cursor_absolute_y: 10
+alternate: false
+history_size: 8
+history_bytes: 16
+bell_count: 0
+title: ""
+path: ""
+size_runtime: cols=1 rows=16
+absolute_line_count: 24
+--- visible_lines ---
+[v=0] flags=WRAPPED cells=1
+  c  0 . text="C" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=1] flags=WRAPPED cells=1
+  c  0 . text="D" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=2] flags=- cells=1
+  c  0 . text="E" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=3] flags=- cells=1
+  (blank)
+[v=4] flags=- cells=1
+  (blank)
+[v=5] flags=- cells=1
+  (blank)
+[v=6] flags=- cells=1
+  (blank)
+[v=7] flags=- cells=1
+  (blank)
+[v=8] flags=- cells=1
+  (blank)
+[v=9] flags=- cells=1
+  (blank)
+[v=10] flags=- cells=1
+  (blank)
+[v=11] flags=- cells=1
+  (blank)
+[v=12] flags=- cells=1
+  (blank)
+[v=13] flags=- cells=1
+  (blank)
+[v=14] flags=- cells=1
+  (blank)
+[v=15] flags=- cells=1
+  (blank)
+--- history_lines ---
+[h=0] flags=WRAPPED cells=1
+  c  0 . text="P" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=1] flags=WRAPPED cells=1
+  c  0 . text="A" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=2] flags=WRAPPED cells=1
+  c  0 . text="N" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=3] flags=WRAPPED cells=1
+  c  0 . text="E" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=4] flags=WRAPPED cells=1
+  c  0 . text="1" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=5] flags=WRAPPED cells=1
+  c  0 . text="-" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=6] flags=WRAPPED cells=1
+  c  0 . text="A" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[h=7] flags=WRAPPED cells=1
+  c  0 . text="B" w=1 attr=0x0000 fg=default bg=default us=default link=0
+--- transcript ---
+| P
+| A
+| N
+| E
+| 1
+| -
+| A
+| B
+| C
+| D
+| E
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+--- transcript_joined ---
+| PANE1-ABCDE
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+--- transcript_with_sequences ---
+| P
+| A
+| N
+| E
+| 1
+| -
+| A
+| B
+| C
+| D
+| E
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+--- saved_transcript ---
+(none)

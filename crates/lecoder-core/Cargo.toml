@@ -1,0 +1,10 @@
+[package]
+name = "lecoder-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "LeCoder MConnect orchestration core: session lifecycle state machine and resumable/forkable session IDs. (Async RmuxBridge/EventBus land in a later phase.)"
+
+[dependencies]
+lecoder-proto = { path = "../lecoder-proto" }
+lecoder-store = { path = "../lecoder-store" }

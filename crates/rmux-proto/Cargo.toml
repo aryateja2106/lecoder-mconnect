@@ -1,0 +1,16 @@
+[package]
+name = "rmux-proto"
+version = "0.3.1"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RMUX detached IPC protocol DTOs, framing, and wire-safe error types."
+keywords = ["terminal", "multiplexer", "protocol"]
+categories = ["command-line-interface", "asynchronous"]
+publish = true
+
+[dependencies]
+bincode = "1.3.3"
+rmux-types = { path = "../rmux-types", version = "0.3.1", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"

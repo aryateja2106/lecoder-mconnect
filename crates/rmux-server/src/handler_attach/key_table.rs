@@ -1,0 +1,129 @@
+use std::time::{Duration, Instant};
+
+use tokio::time::sleep;
+
+use super::super::RequestHandler;
+
+impl RequestHandler {
+    pub(in crate::handler) async fn set_attached_key_table(
+        &self,
+        attach_pid: u32,
+        key_table_name: Option<String>,
+        key_table_set_at: Option<Instant>,
+    ) -> Result<(), rmux_proto::RmuxError> {
+        let previous_key_table = {
+            let mut active_attach = self.active_attach.lock().await;
+            let active = active_attach.by_pid.get_mut(&attach_pid).ok_or_else(|| {
+                rmux_proto::RmuxError::Server("attached client disappeared".to_owned())
+            })?;
+            if active.key_table_name == key_table_name {
+                active.key_table_set_at = key_table_set_at.filter(|_| key_table_name.is_some());
+                return Ok(());
+            }
+
+            let previous = active.key_table_name.clone();
+            active.key_table_name = key_table_name.clone();
+            active.key_table_set_at = key_table_set_at.filter(|_| key_table_name.is_some());
+            previous
+        };
+
+        let mut state = self.state.lock().await;
+        if let Some(table_name) = key_table_name {
+            let _ = state.key_bindings.get_table(&table_name, true);
+        }
+        if let Some(table_name) = previous_key_table {
+            state.key_bindings.unref_table(&table_name);
+        }
+        Ok(())
+    }
+
+    pub(in crate::handler) fn schedule_attached_prefix_timeout(
+        &self,
+        attach_pid: u32,
+        key_table_set_at: Instant,
+        timeout_ms: u64,
+    ) {
+        let handler = self.clone();
+        tokio::spawn(async move {
+            sleep(Duration::from_millis(timeout_ms)).await;
+            handler
+                .clear_attached_prefix_table_if_current(attach_pid, key_table_set_at)
+                .await;
+        });
+    }
+
+    pub(in crate::handler) fn schedule_attached_repeat_timeout(
+        &self,
+        attach_pid: u32,
+        repeat_deadline: Instant,
+    ) {
+        let handler = self.clone();
+        tokio::spawn(async move {
+            sleep(repeat_deadline.saturating_duration_since(Instant::now())).await;
+            handler
+                .clear_attached_repeat_state_if_current(attach_pid, repeat_deadline)
+                .await;
+        });
+    }
+
+    async fn clear_attached_prefix_table_if_current(
+        &self,
+        attach_pid: u32,
+        key_table_set_at: Instant,
+    ) {
+        let previous_key_table = {
+            let mut active_attach = self.active_attach.lock().await;
+            let Some(active) = active_attach.by_pid.get_mut(&attach_pid) else {
+                return;
+            };
+            if active.key_table_name.as_deref() != Some("prefix")
+                || active.key_table_set_at != Some(key_table_set_at)
+                || active.repeat_active
+            {
+                return;
+            }
+
+            let previous = active.key_table_name.clone();
+            active.key_table_name = None;
+            active.key_table_set_at = None;
+            active.repeat_deadline = None;
+            active.repeat_active = false;
+            active.last_key = None;
+            previous
+        };
+
+        if let Some(table_name) = previous_key_table {
+            let mut state = self.state.lock().await;
+            state.key_bindings.unref_table(&table_name);
+        }
+    }
+
+    async fn clear_attached_repeat_state_if_current(
+        &self,
+        attach_pid: u32,
+        repeat_deadline: Instant,
+    ) {
+        let previous_key_table = {
+            let mut active_attach = self.active_attach.lock().await;
+            let Some(active) = active_attach.by_pid.get_mut(&attach_pid) else {
+                return;
+            };
+            if active.repeat_deadline != Some(repeat_deadline) {
+                return;
+            }
+
+            let previous = active.key_table_name.clone();
+            active.key_table_name = None;
+            active.key_table_set_at = None;
+            active.repeat_deadline = None;
+            active.repeat_active = false;
+            active.last_key = None;
+            previous
+        };
+
+        if let Some(table_name) = previous_key_table {
+            let mut state = self.state.lock().await;
+            state.key_bindings.unref_table(&table_name);
+        }
+    }
+}
