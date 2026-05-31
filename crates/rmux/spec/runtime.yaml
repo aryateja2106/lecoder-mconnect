@@ -1,0 +1,16 @@
+runtime:
+  working_directory: .
+  install:
+    - cargo fetch --locked
+  build:
+    - cargo build --workspace --locked
+  test:
+    - cargo test --workspace --locked
+    - cargo test --locked --test tmux_compat_harness -- --nocapture
+    - cargo test --locked --test tmux_compat_surface_matrix -- --nocapture
+  lint:
+    - cargo clippy --workspace --all-targets --locked -- -D warnings
+    - cargo fmt --all -- --check
+  build_required: true
+  test_required: true
+  lint_required: true

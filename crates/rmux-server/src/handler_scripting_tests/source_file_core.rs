@@ -1,0 +1,336 @@
+use super::*;
+
+#[tokio::test]
+async fn source_file_uses_shared_parser_for_conditions_comments_and_continuations() {
+    let handler = RequestHandler::new();
+    let root = temp_root("cwd-[glob]");
+    let config = root.join("main.conf");
+    write_config(
+        &config,
+        "# ignored comment\n%if #{current_file}\nset-buffer -b chosen yes\\\n-suffix\n%else\nset-buffer -b chosen no\n%endif\n",
+    );
+
+    let mut request = match source_file_request(vec!["main.conf".to_owned()], Some(root.clone())) {
+        Request::SourceFile(request) => request,
+        _ => unreachable!("source file request"),
+    };
+    request.verbose = true;
+    let response = handler.handle(Request::SourceFile(request)).await;
+
+    let output = response
+        .command_output()
+        .expect("source-file -v prints parsed commands");
+    assert!(
+        std::str::from_utf8(output.stdout())
+            .expect("verbose output is UTF-8")
+            .contains("set-buffer -b chosen yes-suffix"),
+        "{}",
+        std::str::from_utf8(output.stdout()).expect("verbose output is UTF-8")
+    );
+    assert_eq!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("chosen".to_owned()),
+            }))
+            .await
+            .command_output()
+            .expect("chosen buffer output")
+            .stdout(),
+        b"yes-suffix"
+    );
+}
+
+#[tokio::test]
+async fn source_file_parse_only_reports_parse_without_executing() {
+    let handler = RequestHandler::new();
+    let root = temp_root("parse-only");
+    let config = root.join("main.conf");
+    write_config(&config, "set-buffer -b parsed value\n");
+
+    let mut request = match source_file_request(vec!["main.conf".to_owned()], Some(root)) {
+        Request::SourceFile(request) => request,
+        _ => unreachable!("source file request"),
+    };
+    request.parse_only = true;
+    request.verbose = true;
+    let response = handler.handle(Request::SourceFile(request)).await;
+
+    assert!(std::str::from_utf8(
+        response
+            .command_output()
+            .expect("parse-only verbose output")
+            .stdout()
+    )
+    .expect("verbose output is UTF-8")
+    .contains("set-buffer -b parsed value"));
+    assert!(matches!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("parsed".to_owned()),
+            }))
+            .await,
+        Response::Error(_)
+    ));
+}
+
+#[tokio::test]
+async fn source_file_quiet_suppresses_missing_file_and_glob_miss() {
+    let handler = RequestHandler::new();
+    let root = temp_root("quiet");
+    fs::create_dir_all(&root).expect("quiet temp root");
+
+    let mut request = match source_file_request(vec!["missing*.conf".to_owned()], Some(root)) {
+        Request::SourceFile(request) => request,
+        _ => unreachable!("source file request"),
+    };
+    request.quiet = true;
+
+    assert_eq!(
+        handler.handle(Request::SourceFile(request)).await,
+        Response::SourceFile(rmux_proto::SourceFileResponse { output: None })
+    );
+}
+
+#[tokio::test]
+async fn source_file_format_expands_path_against_target_context() {
+    let handler = RequestHandler::new();
+    let alpha = session_name("alpha");
+    assert!(matches!(
+        handler
+            .handle(Request::NewSession(NewSessionRequest {
+                session_name: alpha.clone(),
+                detached: true,
+                size: Some(TerminalSize { cols: 80, rows: 24 }),
+                environment: None,
+            }))
+            .await,
+        Response::NewSession(_)
+    ));
+
+    let root = temp_root("format-path");
+    let config = root.join("alpha.conf");
+    write_config(&config, "set-buffer -b formatted ok\n");
+    let response = handler
+        .handle(Request::SourceFile(SourceFileRequest {
+            paths: vec![format!("{}/#{{session_name}}.conf", root.display())],
+            quiet: false,
+            parse_only: false,
+            verbose: false,
+            expand_paths: true,
+            target: Some(PaneTarget::with_window(alpha, 0, 0)),
+            caller_cwd: None,
+            stdin: None,
+        }))
+        .await;
+
+    assert_eq!(
+        response,
+        Response::SourceFile(rmux_proto::SourceFileResponse { output: None })
+    );
+    assert_eq!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("formatted".to_owned()),
+            }))
+            .await
+            .command_output()
+            .expect("formatted buffer output")
+            .stdout(),
+        b"ok"
+    );
+}
+
+#[tokio::test]
+async fn source_file_if_condition_uses_target_format_context_at_parse_time() {
+    let handler = RequestHandler::new();
+    let alpha = session_name("alpha");
+    assert!(matches!(
+        handler
+            .handle(Request::NewSession(NewSessionRequest {
+                session_name: alpha.clone(),
+                detached: true,
+                size: Some(TerminalSize { cols: 80, rows: 24 }),
+                environment: None,
+            }))
+            .await,
+        Response::NewSession(_)
+    ));
+
+    let root = temp_root("if-target-format");
+    write_config(
+        &root.join("target.conf"),
+        "%if #{session_name}\nset-buffer -b parse-target yes\n%else\nset-buffer -b parse-target no\n%endif\n",
+    );
+
+    let response = handler
+        .handle(Request::SourceFile(SourceFileRequest {
+            paths: vec!["target.conf".to_owned()],
+            quiet: false,
+            parse_only: false,
+            verbose: false,
+            expand_paths: false,
+            target: Some(PaneTarget::with_window(alpha, 0, 0)),
+            caller_cwd: Some(root),
+            stdin: None,
+        }))
+        .await;
+
+    assert_eq!(
+        response,
+        Response::SourceFile(rmux_proto::SourceFileResponse { output: None })
+    );
+    assert_eq!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("parse-target".to_owned()),
+            }))
+            .await
+            .command_output()
+            .expect("parse-target buffer output")
+            .stdout(),
+        b"yes"
+    );
+}
+
+#[tokio::test]
+async fn nested_source_file_format_expansion_sees_current_file() {
+    let handler = RequestHandler::new();
+    let root = temp_root("nested-current-file");
+    let config = root.join("main.conf");
+    let nested = root.join("main.conf.next");
+    write_config(&config, "source-file -F '#{current_file}.next'\n");
+    write_config(&nested, "set-buffer -b current-file ok\n");
+
+    let response = handler
+        .handle(source_file_request(
+            vec!["main.conf".to_owned()],
+            Some(root),
+        ))
+        .await;
+
+    assert_eq!(
+        response,
+        Response::SourceFile(rmux_proto::SourceFileResponse { output: None })
+    );
+    assert_eq!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("current-file".to_owned()),
+            }))
+            .await
+            .command_output()
+            .expect("current-file buffer output")
+            .stdout(),
+        b"ok"
+    );
+}
+
+#[tokio::test]
+async fn source_file_nested_limit_reports_too_many_nested_files() {
+    let handler = RequestHandler::new();
+    let root = temp_root("nested-limit");
+    let config = root.join("loop.conf");
+    write_config(&config, "source-file loop.conf\n");
+
+    let response = handler
+        .handle(source_file_request(
+            vec!["loop.conf".to_owned()],
+            Some(root),
+        ))
+        .await;
+
+    assert!(matches!(
+        response,
+        Response::Error(rmux_proto::ErrorResponse { error
+            })
+            if error.to_string().contains("too many nested files")
+    ));
+}
+
+#[tokio::test]
+async fn source_file_non_quiet_rejects_empty_glob_pattern() {
+    let handler = RequestHandler::new();
+    let root = temp_root("empty-glob");
+    fs::create_dir_all(&root).expect("create temp root");
+
+    let response = handler
+        .handle(source_file_request(
+            vec!["nonexistent*.conf".to_owned()],
+            Some(root),
+        ))
+        .await;
+
+    assert!(matches!(response, Response::Error(_)));
+}
+
+#[tokio::test]
+async fn source_file_multiple_paths_loads_all_in_order() {
+    let handler = RequestHandler::new();
+    let root = temp_root("multi-path");
+    write_config(&root.join("a.conf"), "set-buffer -b multi first\n");
+    write_config(&root.join("b.conf"), "set-buffer -b multi second\n");
+
+    let response = handler
+        .handle(source_file_request(
+            vec!["a.conf".to_owned(), "b.conf".to_owned()],
+            Some(root),
+        ))
+        .await;
+
+    assert_eq!(
+        response,
+        Response::SourceFile(rmux_proto::SourceFileResponse { output: None })
+    );
+    assert_eq!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("multi".to_owned()),
+            }))
+            .await
+            .command_output()
+            .expect("multi buffer output")
+            .stdout(),
+        b"second"
+    );
+}
+
+#[tokio::test]
+async fn source_file_continues_after_missing_paths_and_reports_one_clean_error_prefix() {
+    let handler = RequestHandler::new();
+    let root = temp_root("multi-path-missing");
+    write_config(&root.join("a.conf"), "set-buffer -b multi first\n");
+    write_config(&root.join("b.conf"), "set-buffer -b multi second\n");
+
+    let response = handler
+        .handle(source_file_request(
+            vec![
+                "a.conf".to_owned(),
+                "missing-a.conf".to_owned(),
+                "b.conf".to_owned(),
+                "missing-b.conf".to_owned(),
+            ],
+            Some(root),
+        ))
+        .await;
+
+    match response {
+        Response::Error(rmux_proto::ErrorResponse { error }) => {
+            assert_eq!(
+                error.to_string(),
+                "server error: missing-a.conf: No such file or directory\nmissing-b.conf: No such file or directory"
+            );
+        }
+        other => panic!("expected source-file error, got {other:?}"),
+    }
+    assert_eq!(
+        handler
+            .handle(Request::ShowBuffer(ShowBufferRequest {
+                name: Some("multi".to_owned()),
+            }))
+            .await
+            .command_output()
+            .expect("multi buffer output")
+            .stdout(),
+        b"second"
+    );
+}

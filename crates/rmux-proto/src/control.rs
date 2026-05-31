@@ -1,0 +1,240 @@
+//! tmux-compatible control-mode text protocol helpers.
+
+use serde::{Deserialize, Serialize};
+
+/// tmux-compatible control-mode transport flavor negotiated over the detached
+/// bincode RPC channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ControlMode {
+    /// Plain `-C` control mode.
+    Plain,
+    /// `-CC` control-control mode with DCS wrapping.
+    ControlControl,
+}
+
+impl ControlMode {
+    /// Returns the tmux top-level `-C` count as parsed by Clap.
+    #[must_use]
+    pub const fn from_count(count: u8) -> Self {
+        if count >= 2 {
+            Self::ControlControl
+        } else {
+            Self::Plain
+        }
+    }
+
+    /// Returns `true` when the client requested tmux control-control mode.
+    #[must_use]
+    pub const fn is_control_control(self) -> bool {
+        matches!(self, Self::ControlControl)
+    }
+}
+
+/// Low watermark for buffered control-mode output.
+pub const CONTROL_BUFFER_LOW: usize = 512;
+/// High watermark for buffered control-mode output.
+pub const CONTROL_BUFFER_HIGH: usize = 8192;
+/// Minimum control-mode write chunk tmux attempts before stopping.
+pub const CONTROL_WRITE_MINIMUM: usize = 32;
+/// Maximum age for queued control-mode pane output before disconnecting.
+pub const CONTROL_MAXIMUM_AGE_MS: u64 = 300_000;
+/// Startup prefix for control-control mode.
+pub const CONTROL_CONTROL_START: &str = "\u{1b}P1000p";
+/// Shutdown suffix for control-control mode.
+pub const CONTROL_CONTROL_END: &str = "\u{1b}\\";
+/// Private in-band marker used by Windows rmux clients to represent stdin EOF.
+///
+/// Windows named pipes do not provide a Unix-style write-half close while the
+/// same client handle keeps reading server output. This marker is consumed by
+/// the rmux server before command parsing and is never emitted as user output.
+pub const CONTROL_STDIN_EOF_MARKER: &str = "\0rmux-control-eof";
+
+/// Detached upgrade request that switches a connection into tmux-compatible
+/// control mode while leaving the underlying RPC framing unchanged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ClientTerminalContext {
+    /// Explicit terminal feature names contributed by top-level `-2` and `-T`.
+    #[serde(default)]
+    pub terminal_features: Vec<String>,
+    /// Whether the invoking client should be treated as UTF-8 capable.
+    #[serde(default)]
+    pub utf8: bool,
+}
+
+/// Detached upgrade request that switches a connection into tmux-compatible
+/// control mode while leaving the underlying RPC framing unchanged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ControlModeRequest {
+    /// The requested control-mode flavor.
+    pub mode: ControlMode,
+    /// Terminal/runtime hints captured from the invoking client.
+    #[serde(default)]
+    pub client_terminal: ClientTerminalContext,
+}
+
+/// Detached upgrade response acknowledging entry into control mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ControlModeResponse {
+    /// The accepted control-mode flavor.
+    pub mode: ControlMode,
+}
+
+/// Guard kind for `%begin`, `%end`, and `%error`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ControlGuardKind {
+    /// `%begin`
+    Begin,
+    /// `%end`
+    End,
+    /// `%error`
+    Error,
+}
+
+impl ControlGuardKind {
+    /// Returns the tmux control-guard keyword.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Begin => "begin",
+            Self::End => "end",
+            Self::Error => "error",
+        }
+    }
+}
+
+/// Formats a tmux-compatible guard line.
+#[must_use]
+pub fn format_guard_line(
+    kind: ControlGuardKind,
+    time_secs: i64,
+    command_number: u64,
+    flags: u8,
+) -> String {
+    format!(
+        "%{} {} {} {}\n",
+        kind.as_str(),
+        time_secs,
+        command_number,
+        flags
+    )
+}
+
+/// Formats a tmux-compatible `%output` line for pane bytes.
+#[must_use]
+pub fn format_output_line(pane_id: u32, bytes: &[u8]) -> String {
+    format!("%output %{} {}\n", pane_id, octal_escape(bytes))
+}
+
+/// Formats a tmux-compatible `%extended-output` line for pane bytes.
+#[must_use]
+pub fn format_extended_output_line(pane_id: u32, age_ms: u64, bytes: &[u8]) -> String {
+    format!(
+        "%extended-output %{} {} : {}\n",
+        pane_id,
+        age_ms,
+        octal_escape(bytes)
+    )
+}
+
+/// Formats a tmux-compatible `%pause` line.
+#[must_use]
+pub fn format_pause_line(pane_id: u32) -> String {
+    format!("%pause %{}\n", pane_id)
+}
+
+/// Formats a tmux-compatible `%continue` line.
+#[must_use]
+pub fn format_continue_line(pane_id: u32) -> String {
+    format!("%continue %{}\n", pane_id)
+}
+
+/// Formats a tmux-compatible `%exit` line.
+#[must_use]
+pub fn format_exit_line(reason: Option<&str>) -> String {
+    match reason {
+        Some(reason) if !reason.is_empty() => format!("%exit {reason}\n"),
+        _ => "%exit\n".to_owned(),
+    }
+}
+
+/// Formats a tmux-compatible control-mode data payload.
+///
+/// Bytes < 0x20 (control chars), DEL (0x7F), `\`, and bytes >= 0x80 are
+/// `\NNN` octal-escaped. tmux itself only escapes < 0x20 and `\`, but
+/// extending the escape set to include 0x7F+ guarantees correct
+/// round-tripping through UTF-8 strings without altering the wire
+/// semantics for any printable ASCII data.
+#[must_use]
+pub fn octal_escape(bytes: &[u8]) -> String {
+    let mut output = String::with_capacity(bytes.len());
+    for &byte in bytes {
+        if (b' '..0x7F).contains(&byte) && byte != b'\\' {
+            output.push(byte as char);
+        } else {
+            output.push('\\');
+            output.push(char::from(b'0' + ((byte >> 6) & 0x7)));
+            output.push(char::from(b'0' + ((byte >> 3) & 0x7)));
+            output.push(char::from(b'0' + (byte & 0x7)));
+        }
+    }
+    output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        format_exit_line, format_extended_output_line, format_guard_line, format_output_line,
+        octal_escape, ControlGuardKind, ControlMode,
+    };
+
+    #[test]
+    fn count_two_selects_control_control_mode() {
+        assert_eq!(ControlMode::from_count(0), ControlMode::Plain);
+        assert_eq!(ControlMode::from_count(1), ControlMode::Plain);
+        assert_eq!(ControlMode::from_count(2), ControlMode::ControlControl);
+        assert_eq!(ControlMode::from_count(3), ControlMode::ControlControl);
+    }
+
+    #[test]
+    fn octal_escape_matches_tmux_rules_for_control_bytes() {
+        assert_eq!(octal_escape(b"abc"), "abc");
+        assert_eq!(octal_escape(b"a\nb"), "a\\012b");
+        assert_eq!(octal_escape(b"\\\0"), "\\134\\000");
+        assert_eq!(octal_escape(b" "), " ");
+        assert_eq!(octal_escape(b"~"), "~");
+        // DEL and high bytes are octal-escaped for safe UTF-8 round-tripping.
+        assert_eq!(octal_escape(b"\x7f"), "\\177");
+        assert_eq!(octal_escape(b"\x80"), "\\200");
+        assert_eq!(octal_escape(b"\xff"), "\\377");
+        // All printable ASCII passes through literally.
+        for byte in b' '..b'\x7f' {
+            if byte == b'\\' {
+                continue;
+            }
+            let escaped = octal_escape(&[byte]);
+            assert_eq!(
+                escaped.len(),
+                1,
+                "byte {byte:#04x} should be literal, got {escaped:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn guard_and_output_lines_are_newline_terminated() {
+        assert_eq!(
+            format_guard_line(ControlGuardKind::Begin, 10, 22, 1),
+            "%begin 10 22 1\n"
+        );
+        assert_eq!(format_output_line(7, b"hi\n"), "%output %7 hi\\012\n");
+        assert_eq!(
+            format_extended_output_line(7, 15, b"hi"),
+            "%extended-output %7 15 : hi\n"
+        );
+        assert_eq!(format_exit_line(None), "%exit\n");
+        assert_eq!(
+            format_exit_line(Some("too far behind")),
+            "%exit too far behind\n"
+        );
+    }
+}

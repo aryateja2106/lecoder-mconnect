@@ -1,0 +1,57 @@
+# rmux-core parser trace
+# regenerate with: RMUX_REGEN_PARSER_TRACES=1 cargo test --package rmux-core --test parser_traces -- --nocapture
+fixture: sgr_basic_fg_bg_attrs
+feeds: 1
+size: cols=30 rows=2 history=10
+resize_after: (none)
+input_length: 36
+input_hex: 1b 5b 31 3b 33 31 6d 42 4f 4c 44 2d 52 45 44 1b 5b 30 6d 20 1b 5b 34 34 6d 62 6c 75 65 2d 62 67 1b 5b 30 6d
+parser_state: Ground
+parser_pending_hex: (empty)
+parser_replies_hex: (empty)
+parser_ground_timer_active: false
+mode_bits: 0x00000011
+cursor_style: 0
+cursor: x=16 y=0
+cursor_absolute_y: 0
+alternate: false
+history_size: 0
+history_bytes: 0
+bell_count: 0
+title: ""
+path: ""
+size_runtime: cols=30 rows=2
+absolute_line_count: 2
+--- visible_lines ---
+[v=0] flags=- cells=30
+  c  0 . text="B" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  1 . text="O" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  2 . text="L" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  3 . text="D" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  4 . text="-" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  5 . text="R" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  6 . text="E" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  7 . text="D" w=1 attr=0x0001(BOLD) fg=ansi=1 bg=default us=default link=0
+  c  8 . text=" " w=1 attr=0x0000 fg=default bg=default us=default link=0
+  c  9 . text="b" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+  c 10 . text="l" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+  c 11 . text="u" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+  c 12 . text="e" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+  c 13 . text="-" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+  c 14 . text="b" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+  c 15 . text="g" w=1 attr=0x0000 fg=default bg=ansi=4 us=default link=0
+[v=1] flags=- cells=30
+  (blank)
+--- history_lines ---
+(empty)
+--- transcript ---
+| BOLD-RED blue-bg
+|
+--- transcript_joined ---
+| BOLD-RED blue-bg
+|
+--- transcript_with_sequences ---
+| \033[1m\033[31mBOLD-RED\033[0m \033[44mblue-bg\033[49m
+|
+--- saved_transcript ---
+(none)

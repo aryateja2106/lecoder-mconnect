@@ -1,0 +1,245 @@
+use rmux_core::{key_code_lookup_bits, key_string_lookup_key, key_string_lookup_string};
+use rmux_proto::{
+    ErrorResponse, OptionName, Response, RmuxError, SendKeysResponse, SendPrefixResponse,
+};
+
+use super::super::RequestHandler;
+use super::{
+    encode_key_for_target, encode_mouse_for_target, encode_tokens_for_target,
+    expand_send_key_tokens, prepare_pane_input_write, resolve_input_target, write_bytes_to_target,
+};
+use crate::keys::{parse_key_code, resolve_hex_key};
+
+impl RequestHandler {
+    pub(in crate::handler) async fn handle_send_keys(
+        &self,
+        request: rmux_proto::SendKeysRequest,
+    ) -> Response {
+        let key_count = request.keys.len();
+        let prepared = {
+            let state = self.state.lock().await;
+            let resolved = match encode_tokens_for_target(&state, &request.target, &request.keys) {
+                Ok(resolved) => resolved,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            let write = match prepare_pane_input_write(&state, &request.target, &resolved) {
+                Ok(write) => write,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            (write, resolved)
+        };
+        write_bytes_to_target(prepared.0, prepared.1, key_count).await
+    }
+
+    #[async_recursion::async_recursion]
+    pub(in crate::handler) async fn handle_send_keys_ext(
+        &self,
+        requester_pid: u32,
+        request: rmux_proto::SendKeysExtRequest,
+    ) -> Response {
+        let attached_session = {
+            let active_attach = self.active_attach.lock().await;
+            active_attach.current_session_candidate(requester_pid)
+        };
+        let target = {
+            let state = self.state.lock().await;
+            match resolve_input_target(&state, request.target.as_ref(), attached_session.as_ref()) {
+                Ok(target) => target,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            }
+        };
+
+        let tokens = {
+            let state = self.state.lock().await;
+            match expand_send_key_tokens(&state, &target, &request.keys, request.expand_formats) {
+                Ok(tokens) => tokens,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            }
+        };
+
+        if request.copy_mode_command {
+            return Box::pin(self.handle_send_keys_copy_mode(
+                requester_pid,
+                &request,
+                target,
+                &tokens,
+            ))
+            .await;
+        }
+
+        if request.dispatch_key_table {
+            let attach_pid = match self
+                .resolve_attached_client_pid(requester_pid, "send-keys")
+                .await
+            {
+                Ok(attach_pid) => attach_pid,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            let repeat_count = request.repeat_count.unwrap_or(1).max(1);
+            for token in &tokens {
+                let key = if request.hex {
+                    resolve_hex_key(token).map(u64::from)
+                } else {
+                    parse_key_code(token)
+                };
+                let Some(key) = key else {
+                    return Response::Error(ErrorResponse {
+                        error: RmuxError::Server(format!("unknown key: {token}")),
+                    });
+                };
+                for _ in 0..repeat_count {
+                    if let Err(error) = Box::pin(self.dispatch_attached_key(
+                        attach_pid,
+                        requester_pid,
+                        &target,
+                        key,
+                    ))
+                    .await
+                    {
+                        return Response::Error(ErrorResponse { error });
+                    }
+                }
+            }
+            return Response::SendKeys(SendKeysResponse {
+                key_count: tokens.len(),
+            });
+        }
+
+        if request.forward_mouse_event {
+            match self.exit_clock_mode(&target).await {
+                Ok(true) => {
+                    return Response::SendKeys(SendKeysResponse { key_count: 0 });
+                }
+                Ok(false) => {}
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            }
+            let attach_pid = match self
+                .resolve_attached_client_pid(requester_pid, "send-keys")
+                .await
+            {
+                Ok(attach_pid) => attach_pid,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            let mouse_event = {
+                let active_attach = self.active_attach.lock().await;
+                active_attach
+                    .by_pid
+                    .get(&attach_pid)
+                    .and_then(|active| active.mouse.current_event.clone())
+            };
+            let Some(mouse_event) = mouse_event else {
+                return Response::SendKeys(SendKeysResponse { key_count: 0 });
+            };
+            let state = self.state.lock().await;
+            let bytes = match encode_mouse_for_target(&state, &target, &mouse_event) {
+                Ok(bytes) => bytes,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            let write = match prepare_pane_input_write(&state, &target, &bytes) {
+                Ok(write) => write,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            drop(state);
+            return write_bytes_to_target(write, bytes, 0).await;
+        }
+
+        let prepared = {
+            let state = self.state.lock().await;
+            let mut bytes = Vec::new();
+            if request.reset_terminal {
+                bytes.extend_from_slice(b"\x1bc");
+            }
+            if request.hex {
+                for token in &tokens {
+                    let Some(byte) = resolve_hex_key(token) else {
+                        return Response::Error(ErrorResponse {
+                            error: RmuxError::Server(format!("invalid hex byte: {token}")),
+                        });
+                    };
+                    bytes.push(byte);
+                }
+            } else if request.literal {
+                for token in &tokens {
+                    bytes.extend_from_slice(token.as_bytes());
+                }
+            } else {
+                match encode_tokens_for_target(&state, &target, &tokens) {
+                    Ok(encoded) => bytes.extend_from_slice(&encoded),
+                    Err(error) => return Response::Error(ErrorResponse { error }),
+                }
+            }
+            let repeat_count = request.repeat_count.unwrap_or(1).max(1);
+            let repeated = bytes.repeat(repeat_count);
+            let write = match prepare_pane_input_write(&state, &target, &repeated) {
+                Ok(write) => write,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            (write, repeated)
+        };
+        write_bytes_to_target(prepared.0, prepared.1, tokens.len()).await
+    }
+
+    pub(in crate::handler) async fn handle_send_prefix(
+        &self,
+        requester_pid: u32,
+        request: rmux_proto::SendPrefixRequest,
+    ) -> Response {
+        let attached_session = {
+            let active_attach = self.active_attach.lock().await;
+            active_attach.current_session_candidate(requester_pid)
+        };
+        let target = {
+            let state = self.state.lock().await;
+            match resolve_input_target(&state, request.target.as_ref(), attached_session.as_ref()) {
+                Ok(target) => target,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            }
+        };
+
+        let (write, encoded, canonical_key) = {
+            let state = self.state.lock().await;
+            let option = if request.secondary {
+                OptionName::Prefix2
+            } else {
+                OptionName::Prefix
+            };
+            let Some(value) = state.options.resolve(Some(target.session_name()), option) else {
+                return Response::Error(ErrorResponse {
+                    error: RmuxError::Server("prefix key is not configured".to_owned()),
+                });
+            };
+            let Some(key) = key_string_lookup_string(value) else {
+                return Response::Error(ErrorResponse {
+                    error: RmuxError::Server(format!("unknown key: {value}")),
+                });
+            };
+            let canonical_key = key_string_lookup_key(key_code_lookup_bits(key), false);
+            let encoded = match encode_key_for_target(&state, &target, key) {
+                Ok(Some(encoded)) => encoded,
+                Ok(None) => {
+                    return Response::Error(ErrorResponse {
+                        error: RmuxError::Server(format!(
+                            "key {} cannot be sent to a pane",
+                            canonical_key
+                        )),
+                    });
+                }
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            let write = match prepare_pane_input_write(&state, &target, &encoded) {
+                Ok(write) => write,
+                Err(error) => return Response::Error(ErrorResponse { error }),
+            };
+            (write, encoded, canonical_key)
+        };
+
+        match write_bytes_to_target(write, encoded, 1).await {
+            Response::SendKeys(_) => Response::SendPrefix(SendPrefixResponse {
+                target: Some(target),
+                key: canonical_key,
+                key_count: 1,
+            }),
+            other => other,
+        }
+    }
+}

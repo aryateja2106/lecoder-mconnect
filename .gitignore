@@ -5,6 +5,8 @@ node_modules/
 dist/
 build/
 .cache/
+.omc/
+crates/target/
 packages/cli/dist/
 packages/shared/dist/
 packages/server/dist/

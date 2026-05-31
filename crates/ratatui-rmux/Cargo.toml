@@ -1,0 +1,20 @@
+[package]
+name = "ratatui-rmux"
+version = "0.3.1"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Ratatui integration crate for the RMUX terminal multiplexer that paints daemon-backed pane state into a ratatui Buffer."
+keywords = ["terminal", "multiplexer", "ratatui"]
+categories = ["command-line-interface"]
+publish = true
+
+# Direct dependencies are intentionally minimal: `rmux-sdk` is the only
+# RMUX integration boundary, and one ratatui surface is linked under the
+# `ratatui-core` crate name for source compatibility.
+[dependencies]
+ratatui-core = { package = "ratatui", version = "=0.29.0", default-features = false }
+rmux-sdk = { path = "../rmux-sdk", version = "0.3.1" }
+
+[dev-dependencies]
+tokio = { version = "1.48.0", features = ["macros", "rt", "time"] }

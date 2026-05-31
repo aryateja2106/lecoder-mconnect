@@ -1,0 +1,34 @@
+[workspace]
+resolver = "2"
+members = [
+    # --- vendored rmux fork (github.com/helvesec/rmux @ v0.3.1) ---
+    "rmux-types",
+    "rmux-proto",
+    "rmux-os",
+    "rmux-ipc",
+    "rmux-pty",
+    "rmux-render-core",
+    "rmux-core",
+    "rmux-server",
+    "rmux-client",
+    "rmux-sdk",
+    "rmux",
+    # --- lecoder product crates (added as they are created) ---
+    "lecoder-proto",
+    "lecoder-store",
+    "lecoder-core",
+    "lecoder-rmux-smoke",
+]
+# ratatui-rmux is vendored but excluded from the Slice-1 build (pulls ratatui).
+exclude = ["ratatui-rmux"]
+
+[workspace.package]
+edition = "2021"
+version = "0.3.1"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/helvesec/rmux"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+strip = "symbols"

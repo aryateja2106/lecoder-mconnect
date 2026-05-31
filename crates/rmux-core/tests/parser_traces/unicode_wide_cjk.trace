@@ -1,0 +1,48 @@
+# rmux-core parser trace
+# regenerate with: RMUX_REGEN_PARSER_TRACES=1 cargo test --package rmux-core --test parser_traces -- --nocapture
+fixture: unicode_wide_cjk
+feeds: 1
+size: cols=10 rows=2 history=10
+resize_after: (none)
+input_length: 10
+input_hex: e6 97 a5 e6 9c ac e8 aa 9e 21
+parser_state: Ground
+parser_pending_hex: (empty)
+parser_replies_hex: (empty)
+parser_ground_timer_active: false
+mode_bits: 0x00000011
+cursor_style: 0
+cursor: x=7 y=0
+cursor_absolute_y: 0
+alternate: false
+history_size: 0
+history_bytes: 0
+bell_count: 0
+title: ""
+path: ""
+size_runtime: cols=10 rows=2
+absolute_line_count: 2
+--- visible_lines ---
+[v=0] flags=- cells=10
+  c  0 . text="日" w=2 attr=0x0000 fg=default bg=default us=default link=0
+  c  1 P text=" " w=0 attr=0x0000 fg=default bg=default us=default link=0
+  c  2 . text="本" w=2 attr=0x0000 fg=default bg=default us=default link=0
+  c  3 P text=" " w=0 attr=0x0000 fg=default bg=default us=default link=0
+  c  4 . text="語" w=2 attr=0x0000 fg=default bg=default us=default link=0
+  c  5 P text=" " w=0 attr=0x0000 fg=default bg=default us=default link=0
+  c  6 . text="!" w=1 attr=0x0000 fg=default bg=default us=default link=0
+[v=1] flags=- cells=10
+  (blank)
+--- history_lines ---
+(empty)
+--- transcript ---
+| 日本語!
+|
+--- transcript_joined ---
+| 日本語!
+|
+--- transcript_with_sequences ---
+| 日本語!
+|
+--- saved_transcript ---
+(none)

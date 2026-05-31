@@ -1,0 +1,11 @@
+[package]
+name = "lecoder-rmux-smoke"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Smoke demo: drives the forked rmux daemon through rmux-sdk the way lecoder-core's pump will (create session, send input, snapshot, reconnect after simulated daemon restart)."
+publish = false
+
+[dependencies]
+rmux-sdk = { path = "../rmux-sdk" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
