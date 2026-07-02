@@ -13,11 +13,13 @@
     "build": "npm run build --workspaces --if-present",
     "build:cli": "npm run build --workspace=lecoder-mconnect",
     "build:web": "npm run build --workspace=@lecoder/web",
+    "package:web": "npm run build:web && node scripts/package-web-client.mjs",
     "start": "node packages/cli/dist/index.js",
     "cli": "node packages/cli/dist/index.js",
     "setup": "./scripts/setup-pty.sh",
     "test": "npm run test --workspaces --if-present",
     "test:cli": "npm run test --workspace=lecoder-mconnect",
+    "test:web": "npm run test --workspace=@lecoder/web",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspace=lecoder-mconnect",
     "clean": "rm -rf packages/cli/dist apps/web/.next node_modules/.cache"

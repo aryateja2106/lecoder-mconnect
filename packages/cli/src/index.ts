@@ -54,6 +54,12 @@ import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { AGENT_PRESETS, type AgentConfig, getDefaultShell } from './agents/types.js';
+import {
+  analyticsStatus,
+  captureCliEvent,
+  disableAnalytics,
+  enableAnalytics,
+} from './analytics.js';
 import { createAttachCommand } from './cli/commands/attach.js';
 import { createDaemonCommand } from './cli/commands/daemon.js';
 import { createSessionCommand } from './cli/commands/session.js';
@@ -155,6 +161,59 @@ program
       console.log(chalk.dim(`    Agents: ${preset.agents.map((a) => a.name).join(', ')}`));
       console.log('');
     }
+  });
+
+const analyticsCmd = program
+  .command('analytics')
+  .description('Manage explicit opt-in product analytics');
+
+analyticsCmd
+  .command('status')
+  .description('Show analytics opt-in status')
+  .option('--json', 'Output as JSON')
+  .action((options) => {
+    const status = analyticsStatus();
+    if (options.json) {
+      console.log(JSON.stringify(status, null, 2));
+      return;
+    }
+    console.log(`\n${chalk.bold('MConnect Analytics')}\n`);
+    console.log(`  ${chalk.bold('Enabled:')}     ${status.enabled ? chalk.green('yes') : chalk.dim('no')}`);
+    console.log(`  ${chalk.bold('Host:')}        ${status.host}`);
+    console.log(`  ${chalk.bold('API key:')}     ${status.hasApiKey ? chalk.green('configured') : chalk.dim('not configured')}`);
+    console.log(`  ${chalk.bold('Install ID:')}  ${status.distinctId ? chalk.dim(status.distinctId) : chalk.dim('not created')}`);
+    console.log('');
+  });
+
+analyticsCmd
+  .command('enable')
+  .description('Opt in to privacy-safe product analytics')
+  .option('--api-key <key>', 'PostHog project API key')
+  .option('--host <url>', 'PostHog ingest host')
+  .option('--json', 'Output as JSON')
+  .action(async (options) => {
+    const status = enableAnalytics({ apiKey: options.apiKey, host: options.host });
+    await captureCliEvent('analytics_opt_in_changed', { enabled: true, hasApiKey: status.hasApiKey });
+    if (options.json) {
+      console.log(JSON.stringify(status, null, 2));
+      return;
+    }
+    console.log(chalk.green('\n  ✓ Analytics enabled.\n'));
+    console.log(chalk.dim('  MConnect captures product metadata only. Terminal text, commands, paths, tokens, URLs, and clipboard contents are never sent.\n'));
+  });
+
+analyticsCmd
+  .command('disable')
+  .description('Opt out of product analytics')
+  .option('--json', 'Output as JSON')
+  .action(async (options) => {
+    await captureCliEvent('analytics_opt_in_changed', { enabled: false });
+    const status = disableAnalytics();
+    if (options.json) {
+      console.log(JSON.stringify(status, null, 2));
+      return;
+    }
+    console.log(chalk.green('\n  ✓ Analytics disabled.\n'));
   });
 
 program

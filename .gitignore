@@ -156,3 +156,16 @@ packages/ios-app/DerivedData/
 *.xcscmblueprint
 *.xccheckout
 .omc/
+*.age-key.txt
+id_rsa
+id_ed25519
+*.p8
+service-account*.json
+credentials.json
+secrets.json
+.aws/
+target/
+.venv/
+venv/
+__pycache__/
+DerivedData/

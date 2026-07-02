@@ -126,6 +126,12 @@ export interface MConnectConfig {
     scrollbackLines?: number;
     fontSize?: number;
   };
+  analytics?: {
+    enabled?: boolean;
+    distinctId?: string;
+    posthogApiKey?: string;
+    posthogHost?: string;
+  };
 }
 
 const DEFAULT_CONFIG: MConnectConfig = {
@@ -139,6 +145,9 @@ const DEFAULT_CONFIG: MConnectConfig = {
   },
   terminal: {
     scrollbackLines: 10000,
+  },
+  analytics: {
+    enabled: false,
   },
 };
 

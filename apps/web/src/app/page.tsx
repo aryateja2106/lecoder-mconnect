@@ -3,8 +3,16 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useWebSocket, type SessionSummary } from '@/hooks/useWebSocket';
-import { ControlBar } from '@/components/terminal/ControlBar';
 import { DemoProvider, useDemoContext, isDemoModeEnabled } from '@/context/DemoContext';
+import { MobileTerminalShell } from '@/components/terminal/MobileTerminalShell';
+import type { ConnectionState } from '@/components/terminal/SessionHeader';
+import type { TerminalInputSource } from '@/lib/analytics';
+import {
+  captureProductEvent,
+  initProductAnalytics,
+  terminalInputMetadata,
+} from '@/lib/analytics';
+import type { TerminalSize, TerminalViewApi } from '@/components/terminal/TerminalView';
 import { Wifi, WifiOff, Terminal, Loader2, AlertCircle, RefreshCw, Lock, Play, Users, Clock, ArrowLeft, KeyRound, RotateCcw, ChevronDown, ChevronUp, ExternalLink, Copy, Check } from 'lucide-react';
 
 // Dynamic import for terminal (needs window)
@@ -390,6 +398,17 @@ function HomeContent() {
   const [noToken, setNoToken] = useState(false);
   const [serverUrl, setServerUrl] = useState<string>('');
   const [demoInitialized, setDemoInitialized] = useState(false);
+  const terminalApiRef = useRef<TerminalViewApi | null>(null);
+  const lastResizeRef = useRef<TerminalSize | null>(null);
+
+  useEffect(() => {
+    void initProductAnalytics();
+  }, []);
+
+  const writeSystemNotice = useCallback((message: string, tone: 'info' | 'warning' | 'danger') => {
+    const color = tone === 'danger' ? '\x1b[31m' : tone === 'warning' ? '\x1b[33m' : '\x1b[90m';
+    terminalApiRef.current?.writeln(`${color}${message}\x1b[0m`);
+  }, []);
 
   const resolveServerOrigin = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -498,6 +517,7 @@ function HomeContent() {
     sendKill,
     sendApproval,
     reconnect,
+    sendMessage,
     // v2 Protocol
     sessions,
     attachedSessionId: wsAttachedSessionId,
@@ -507,6 +527,11 @@ function HomeContent() {
   } = useWebSocket(isDemoMode ? '' : wsUrl, {
     protocolVersion: '1.0',  // Use v1.0 protocol for now until daemon is fully implemented
     clientType: 'mobile',
+    onTerminalOutput: (data) => terminalApiRef.current?.write(data),
+    onSystemNotice: writeSystemNotice,
+    onInputRejected: (reason) => {
+      void captureProductEvent('input_rejected', { reason });
+    },
   });
 
   // In demo mode, override status with demo state
@@ -515,6 +540,14 @@ function HomeContent() {
   const isReadOnly = isDemoMode ? true : wsIsReadOnly;
   const pendingApproval = isDemoMode ? demoContext.pendingApproval : wsPendingApproval;
   const attachedSessionId = isDemoMode ? demoContext.activeSessionId : wsAttachedSessionId;
+
+  useEffect(() => {
+    if (isConnected) {
+      void captureProductEvent(status === 'connected' ? 'ws_connected' : 'ws_reconnected', {
+        mode: isDemoMode ? 'demo' : 'live',
+      });
+    }
+  }, [isConnected, status, isDemoMode]);
 
   // Handle approval in demo mode
   const handleApprove = () => {
@@ -532,6 +565,47 @@ function HomeContent() {
       sendApproval(false, pendingApproval.command);
     }
   };
+
+  const handleTerminalReady = useCallback((api: TerminalViewApi) => {
+    terminalApiRef.current = api;
+    const size = api.getSize();
+    void captureProductEvent('terminal_ready', { cols: size.cols, rows: size.rows });
+  }, []);
+
+  const handleTerminalInput = useCallback((data: string, source: TerminalInputSource) => {
+    if (isDemoMode) {
+      terminalApiRef.current?.write(data);
+    } else {
+      sendInput(data);
+    }
+
+    void captureProductEvent(
+      source === 'paste' ? 'terminal_paste_sent' : 'terminal_input_sent',
+      terminalInputMetadata(data, source),
+    );
+  }, [isDemoMode, sendInput]);
+
+  const handleTerminalResize = useCallback((size: TerminalSize) => {
+    const previous = lastResizeRef.current;
+    if (previous?.cols === size.cols && previous.rows === size.rows) return;
+    lastResizeRef.current = size;
+    if (!isDemoMode && size.cols > 0 && size.rows > 0) {
+      sendMessage('resize', { cols: size.cols, rows: size.rows });
+    }
+    void captureProductEvent('terminal_resized', { cols: size.cols, rows: size.rows });
+  }, [isDemoMode, sendMessage]);
+
+  const connectionState: ConnectionState =
+    status === 'connected'
+      ? 'connected'
+      : status === 'disconnected' || status === 'error' || status === 'unauthorized'
+        ? 'disconnected'
+        : 'reconnecting';
+
+  const sessionTitle =
+    isDemoMode
+      ? 'Claude Code'
+      : sessionInfo?.agent || (attachedSessionId ? `Session ${attachedSessionId.slice(0, 6)}` : 'Shell');
 
   // No token provided - show pairing code entry (skip in demo mode)
   if (noToken && !isDemoMode) {
@@ -727,10 +801,8 @@ function HomeContent() {
   // In demo mode, we're always attached to the active demo session
   const showSessionSelection = !isDemoMode && isConnected && !attachedSessionId;
 
-  return (
-    <main className="h-screen w-screen bg-zinc-950 flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
+  const renderLegacyHeader = () => (
+    <header className="flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 shrink-0">
         <div className="flex items-center gap-2">
           {attachedSessionId && !isDemoMode && (
             <button
@@ -764,35 +836,82 @@ function HomeContent() {
           {renderConnectionStatus()}
         </div>
       </header>
+  );
+
+  return (
+    <main className="h-screen w-screen bg-zinc-950 flex flex-col overflow-hidden">
+      {showSessionSelection ? renderLegacyHeader() : null}
 
       {/* Main Content */}
       {showSessionSelection ? (
         renderSessionSelection()
       ) : (
-        <>
-          {/* Terminal */}
-          <div className="flex-1 overflow-hidden relative">
+        <MobileTerminalShell
+          sessionTitle={sessionTitle}
+          connectionState={connectionState}
+          onBack={isDemoMode ? () => history.back() : detachFromSession}
+          onTapSession={isDemoMode ? () => {} : detachFromSession}
+          onSend={(data) => handleTerminalInput(data, 'hardware_key')}
+          onAgentSheet={isDemoMode ? undefined : sendKill}
+        >
+          <>
             <TerminalView
-              isReadOnly={isReadOnly}
-              onData={isReadOnly ? undefined : sendInput}
+              readOnly={isReadOnly}
+              onInput={handleTerminalInput}
+              onReady={handleTerminalReady}
+              onResize={handleTerminalResize}
+              connectionState={connectionState}
+              reservedBottomPx={108}
             />
             {renderOverlay()}
             {/* Demo controls overlay */}
             {isDemoMode && <DemoControls />}
             {/* Try Locally section for demo mode */}
             {isDemoMode && <TryLocallySection />}
-          </div>
-
-          {/* Control Bar - v1.0 protocol doesn't show session selection */}
-          <ControlBar
-            isReadOnly={isReadOnly}
-            onToggleMode={isDemoMode ? () => {} : toggleMode}
-            onKill={isDemoMode ? () => {} : sendKill}
-            pendingApproval={pendingApproval}
-            onApprove={handleApprove}
-            onDeny={handleDeny}
-          />
-        </>
+            {!isDemoMode && (
+              <div className="fixed right-3 top-[calc(env(safe-area-inset-top,0px)+58px)] z-40 flex gap-2">
+                <button
+                  type="button"
+                  onClick={toggleMode}
+                  className="mconnect-chip h-9"
+                  title={isReadOnly ? 'Enable input' : 'Disable input'}
+                >
+                  {isReadOnly ? 'Read-only' : 'Input on'}
+                </button>
+                <button
+                  type="button"
+                  onClick={sendKill}
+                  className="mconnect-chip h-9"
+                  title="Send Ctrl+C"
+                >
+                  ^C
+                </button>
+              </div>
+            )}
+            {pendingApproval && (
+              <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+112px)] z-40 rounded-xl border border-white/20 bg-black/90 p-3 text-white shadow-2xl">
+                <div className="mb-2 text-sm font-semibold">Approval Required</div>
+                <div className="mb-3 text-xs text-white/70">{pendingApproval.reason}</div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDeny}
+                    className="flex-1 rounded-lg border border-white/20 px-3 py-2 text-sm"
+                  >
+                    Deny
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    className="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-black"
+                  >
+                    Approve
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        </MobileTerminalShell>
       )}
     </main>
   );

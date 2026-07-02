@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 const VERSION = "0.1.7";
 
+export const dynamic = "force-static";
+
 export async function GET() {
   const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 

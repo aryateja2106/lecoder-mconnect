@@ -118,3 +118,5 @@ See `STYLE.md` for full brand guidelines.
 - **Repo**: https://github.com/aryateja2106/lecoder-mconnect
 - **npm**: https://www.npmjs.com/package/lecoder-mconnect
 - **Issues**: https://github.com/aryateja2106/lecoder-mconnect/issues
+
+## Imported Claude Cowork project instructions

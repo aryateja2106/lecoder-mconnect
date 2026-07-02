@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { captureMarketingEvent, initMarketingAnalytics } from '@/lib/analytics';
 import {
   Terminal,
   Smartphone,
@@ -125,6 +126,19 @@ export default function Home() {
 
   const installCommand = 'npx lecoder-mconnect';
 
+  useEffect(() => {
+    void initMarketingAnalytics();
+    void captureMarketingEvent('marketing_page_view', { page: 'home' });
+  }, []);
+
+  const trackInstallClick = useCallback((surface: string) => {
+    void captureMarketingEvent('install_cta_clicked', { surface });
+  }, []);
+
+  const trackDocsClick = useCallback((surface: string) => {
+    void captureMarketingEvent('docs_install_viewed', { surface });
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#191919] text-[#e9e9e7]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
       {/* Toast */}
@@ -150,7 +164,7 @@ export default function Home() {
             <a href="https://github.com/aryateja2106/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#888] hover:text-[#e9e9e7] transition-colors text-sm">
               <Github size={18} />
             </a>
-            <a href="https://www.npmjs.com/package/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="border border-[#e9e9e7] px-4 py-2 text-sm hover:bg-[#e9e9e7] hover:text-[#191919] transition-colors">
+            <a href="https://www.npmjs.com/package/lecoder-mconnect" target="_blank" rel="noopener noreferrer" onClick={() => trackInstallClick('nav')} className="border border-[#e9e9e7] px-4 py-2 text-sm hover:bg-[#e9e9e7] hover:text-[#191919] transition-colors">
               Install
             </a>
           </div>
@@ -193,11 +207,11 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row justify-center gap-3 mb-16">
-            <a href="https://www.npmjs.com/package/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e9e9e7] text-[#191919] font-bold text-sm hover:bg-[#fff] transition-colors">
+            <a href="https://www.npmjs.com/package/lecoder-mconnect" target="_blank" rel="noopener noreferrer" onClick={() => trackInstallClick('hero')} className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e9e9e7] text-[#191919] font-bold text-sm hover:bg-[#fff] transition-colors">
               <Download size={16} />
               Get Started
             </a>
-            <a href="https://github.com/aryateja2106/lecoder-mconnect#readme" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-[#555] text-sm hover:border-[#e9e9e7] transition-colors">
+            <a href="https://github.com/aryateja2106/lecoder-mconnect#readme" target="_blank" rel="noopener noreferrer" onClick={() => trackDocsClick('hero')} className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-[#555] text-sm hover:border-[#e9e9e7] transition-colors">
               Documentation
               <ArrowRight size={16} />
             </a>
@@ -534,7 +548,7 @@ export default function Home() {
           <p className="text-[#888] mb-8 text-sm">Free, open source, and built for developers.</p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="https://www.npmjs.com/package/lecoder-mconnect" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-[#e9e9e7] text-[#191919] font-bold text-sm hover:bg-[#fff] transition-colors">
+            <a href="https://www.npmjs.com/package/lecoder-mconnect" target="_blank" rel="noopener noreferrer" onClick={() => trackInstallClick('bottom_cta')} className="inline-flex items-center gap-2 px-6 py-3 bg-[#e9e9e7] text-[#191919] font-bold text-sm hover:bg-[#fff] transition-colors">
               <Download size={18} />
               Install Now
             </a>

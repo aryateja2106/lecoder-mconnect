@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test": "../../packages/cli/node_modules/.bin/vitest run",
     "start": "next start"
   },
   "dependencies": {

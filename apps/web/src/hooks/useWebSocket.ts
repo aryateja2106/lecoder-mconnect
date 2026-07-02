@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { normalizeServerMessage } from '@/lib/protocol-adapter';
 
 interface SessionInfo {
   id: string;
@@ -47,6 +48,9 @@ export interface ControlResponseMessage {
 interface UseWebSocketOptions {
   clientType?: 'pc' | 'mobile';
   protocolVersion?: '1.0' | '2.0';
+  onTerminalOutput?: (data: string, agentId?: string) => void;
+  onSystemNotice?: (message: string, tone: 'info' | 'warning' | 'danger') => void;
+  onInputRejected?: (reason: string) => void;
   onScrollbackResponse?: (message: ScrollbackMessage) => void;
   onControlResponse?: (message: ControlResponseMessage) => void;
   onControlStatus?: (message: ControlStatusState) => void;
@@ -79,6 +83,9 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   const {
     clientType = 'mobile',
     protocolVersion = '2.0',
+    onTerminalOutput,
+    onSystemNotice,
+    onInputRejected,
     onScrollbackResponse,
     onControlResponse,
     onControlStatus,
@@ -185,44 +192,27 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   }, [connect]);
 
   const handleMessage = useCallback((message: Record<string, unknown>) => {
-    switch (message.type) {
-      // v1 Protocol messages
+    const normalized = normalizeServerMessage(message);
+
+    switch (normalized.kind) {
       case 'session_info':
-        // v1.0 protocol sends fields directly, not in payload
-        // In v1, receiving session_info means we're connected to this session
-        setSessionInfo({
-          id: message.sessionId as string,
-          agent: 'shell',
-          isReadOnly: message.isReadOnly as boolean,
-          workDir: '~',
-        });
-        setIsReadOnly(message.isReadOnly as boolean);
-        // For v1 protocol, auto-attach since there's only one session
-        setAttachedSessionId(message.sessionId as string);
+        setSessionInfo(normalized.session);
+        setIsReadOnly(normalized.session.isReadOnly);
+        setAttachedSessionId(normalized.session.id);
         break;
 
       case 'terminal_output':
-        // Write to terminal if available
-        if ((window as any).mconnectTerminal) {
-          (window as any).mconnectTerminal.write((message.payload as { data: string }).data);
-        }
-        break;
-
-      case 'output':
-        // v2 output message
-        if ((window as any).mconnectTerminal) {
-          (window as any).mconnectTerminal.write((message as { data: string }).data);
-        }
+        onTerminalOutput?.(normalized.data, normalized.agentId);
         break;
 
       case 'mode_changed':
-        setIsReadOnly((message as { isReadOnly: boolean }).isReadOnly);
+        setIsReadOnly(normalized.isReadOnly);
         break;
 
       case 'approval_request':
         setPendingApproval({
-          command: (message.payload as { command: string }).command,
-          reason: (message.payload as { reason: string }).reason,
+          command: normalized.command,
+          reason: normalized.reason,
         });
         // Vibrate on mobile if supported
         if (navigator.vibrate) {
@@ -231,34 +221,15 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
         break;
 
       case 'command_blocked':
-        if ((window as any).mconnectTerminal) {
-          const cmd = (message.payload as { command: string }).command;
-          const reason = (message.payload as { reason: string }).reason;
-          (window as any).mconnectTerminal.writeln(`\x1b[31m⛔ BLOCKED: ${cmd}\x1b[0m`);
-          (window as any).mconnectTerminal.writeln(`\x1b[90m   Reason: ${reason}\x1b[0m`);
-        }
+        onSystemNotice?.(`BLOCKED: ${normalized.command}\nReason: ${normalized.reason}`, 'danger');
         break;
 
-      case 'process_exit':
-        if ((window as any).mconnectTerminal) {
-          (window as any).mconnectTerminal.writeln(
-            `\x1b[33m\nProcess exited with code ${(message.payload as { code: number }).code}\x1b[0m`
-          );
-        }
-        break;
-
-      case 'process_killed':
-        if ((window as any).mconnectTerminal) {
-          (window as any).mconnectTerminal.writeln(`\x1b[33m\n^C Process killed\x1b[0m`);
-        }
+      case 'system_notice':
+        onSystemNotice?.(normalized.message, normalized.tone);
         break;
 
       case 'error':
-        if (message.payload) {
-          setError((message.payload as { message: string }).message);
-        } else {
-          setError((message as { message: string }).message);
-        }
+        setError(normalized.message);
         break;
 
       case 'pong':
@@ -267,30 +238,31 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
 
       // v2 Protocol messages
       case 'auth_success':
-        setClientId((message as { clientId: string }).clientId);
+        setClientId(normalized.clientId);
         break;
 
       case 'session_list':
-        setSessions((message as { sessions: SessionSummary[] }).sessions);
+        setSessions(normalized.sessions as SessionSummary[]);
         break;
 
       case 'session_state':
         // Update session in list
         setSessions((prev) =>
           prev.map((s) =>
-            s.id === (message as { sessionId: string }).sessionId
-              ? { ...s, state: (message as { state: SessionSummary['state'] }).state }
+            s.id === normalized.sessionId
+              ? { ...s, state: normalized.state as SessionSummary['state'], lastActivity: normalized.lastActivity ?? s.lastActivity }
               : s
           )
         );
         break;
 
       case 'control_status': {
+        const controlMessage = normalized.message;
         const cs: ControlStatusState = {
-          state: (message as { state: ControlStatusState['state'] }).state,
-          activeClient: (message as { activeClient?: string }).activeClient,
-          exclusiveExpires: (message as { exclusiveExpires?: number }).exclusiveExpires,
-          lastPcActivity: (message as { lastPcActivity?: number }).lastPcActivity,
+          state: (controlMessage as { state: ControlStatusState['state'] }).state,
+          activeClient: (controlMessage as { activeClient?: string }).activeClient,
+          exclusiveExpires: (controlMessage as { exclusiveExpires?: number }).exclusiveExpires,
+          lastPcActivity: (controlMessage as { lastPcActivity?: number }).lastPcActivity,
         };
         setControlStatus(cs);
         onControlStatus?.(cs);
@@ -299,29 +271,19 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
 
       case 'control_response':
         if (onControlResponse) {
-          onControlResponse(message as unknown as ControlResponseMessage);
+          onControlResponse(normalized.message as unknown as ControlResponseMessage);
         }
         break;
 
       case 'scrollback_response':
         if (onScrollbackResponse) {
-          onScrollbackResponse(message as unknown as ScrollbackMessage);
+          onScrollbackResponse(normalized.message as unknown as ScrollbackMessage);
         }
         break;
 
       case 'input_rejected':
-        if ((window as any).mconnectTerminal) {
-          const reason = (message as { reason: string }).reason;
-          (window as any).mconnectTerminal.writeln(`\x1b[33m⚠ Input blocked: ${reason}\x1b[0m`);
-        }
-        break;
-
-      case 'client_joined':
-        console.log('Client joined:', (message as { client: { id: string } }).client);
-        break;
-
-      case 'client_left':
-        console.log('Client left:', (message as { clientId: string }).clientId);
+        onInputRejected?.(normalized.reason);
+        onSystemNotice?.(`Input blocked: ${normalized.reason}`, 'warning');
         break;
 
       case 'heartbeat':
@@ -337,9 +299,11 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
         break;
 
       default:
-        console.log('Unknown message type:', message.type);
+        if (normalized.kind === 'unknown') {
+          console.log('Unknown message type:', normalized.type);
+        }
     }
-  }, [onScrollbackResponse, onControlResponse, onControlStatus]);
+  }, [onTerminalOutput, onSystemNotice, onInputRejected, onScrollbackResponse, onControlResponse, onControlStatus]);
 
   const sendMessage = useCallback((type: string, payload: Record<string, unknown>) => {
     if (ws.current?.readyState === WebSocket.OPEN) {
@@ -349,13 +313,9 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
 
   const sendInput = useCallback(
     (data: string) => {
-      if (protocolVersion === '2.0') {
-        sendMessage('terminal_input', { data });
-      } else {
-        sendMessage('terminal_input', { input: data });
-      }
+      sendMessage('terminal_input', { data });
     },
-    [sendMessage, protocolVersion]
+    [sendMessage]
   );
 
   const toggleMode = useCallback(() => {

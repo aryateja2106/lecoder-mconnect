@@ -12,6 +12,7 @@ import chalk from 'chalk';
 import qrcode from 'qrcode-terminal';
 import { AgentManager } from './agents/agent-manager.js';
 import type { AgentConfig } from './agents/types.js';
+import { captureCliEvent } from './analytics.js';
 import { type GuardrailConfig, loadGuardrails } from './guardrails.js';
 import type { InputArbiter } from './input/InputArbiter.js';
 import { getOpikTracer, initializeOpikTracer } from './opik/index.js';
@@ -27,6 +28,7 @@ import type { SessionManager } from './session/SessionManager.js';
 import { TmuxManager } from './tmux/tmux-manager.js';
 import { createTunnelWithFeedback } from './tunnel.js';
 import { PRODUCT_NAME, VERSION } from './version.js';
+import { serveStaticWebClient } from './web/static-client.js';
 import { getWebClientHTML } from './web/web-client.js';
 import { WSHub } from './ws/ws-hub.js';
 
@@ -152,6 +154,10 @@ export async function startSession(config: SessionConfig): Promise<void> {
   // Create pairing code
   const pairingManager = getPairingCodeManager();
   const pairingCode = pairingManager.createCode(sessionId, sessionToken);
+  void captureCliEvent('cli_pairing_code_shown', {
+    guardrails: config.guardrails,
+    agentCount: config.agents.length,
+  });
 
   // Create HTTP server
   const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -216,6 +222,12 @@ export async function startSession(config: SessionConfig): Promise<void> {
       return;
     }
 
+    // Static assets for the canonical React/PWA client are safe to serve
+    // without a token; the WebSocket remains token protected.
+    if (serveStaticWebClient(url.pathname, res, { allowIndex: false })) {
+      return;
+    }
+
     // Web client (requires token)
     const providedToken = url.searchParams.get('token');
 
@@ -226,11 +238,13 @@ export async function startSession(config: SessionConfig): Promise<void> {
       return;
     }
 
-    res.writeHead(200, {
-      'Content-Type': 'text/html',
-      'Cache-Control': 'no-store',
-    });
-    res.end(getWebClientHTML(sessionToken, sessionId, true));
+    if (!serveStaticWebClient('/', res, { allowIndex: true })) {
+      res.writeHead(200, {
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-store',
+      });
+      res.end(getWebClientHTML(sessionToken, sessionId, true));
+    }
   });
 
   // Start HTTP server (bind to 0.0.0.0 for tunnel/network accessibility)
@@ -354,6 +368,7 @@ export async function startSession(config: SessionConfig): Promise<void> {
   const tunnelUrl = tunnelResult?.url || null;
   if (tunnelUrl) {
     initStatus.tunnel = { success: true, url: tunnelUrl };
+    void captureCliEvent('cli_tunnel_ready', { provider: 'cloudflare' });
     // Trace tunnel success
     if (observability.isEnabled()) {
       observability.traceTunnelCreation(true, tunnelUrl);
@@ -378,6 +393,13 @@ export async function startSession(config: SessionConfig): Promise<void> {
     tunnelEnabled: initStatus.tunnel.success,
     tmuxEnabled: initStatus.tmux.success,
     ptyInitialized: initStatus.pty.success,
+  });
+  void captureCliEvent('cli_session_started', {
+    guardrails: config.guardrails,
+    agentCount: config.agents.length,
+    tunnelEnabled: initStatus.tunnel.success,
+    tmuxEnabled: initStatus.tmux.success,
+    timeoutMinutes: config.timeout,
   });
 
   // Store session
@@ -594,6 +616,11 @@ async function cleanup(): Promise<void> {
   // End Opik session traces (both tracers)
   const opikTracer = getOpikTracer();
   opikTracer.endSession(currentSession.id);
+  await captureCliEvent('cli_session_ended', {
+    agentCount: currentSession.agentManager.count,
+    tunnelEnabled: !!currentSession.tunnelUrl,
+    tmuxEnabled: !!currentSession.tmuxManager,
+  });
 
   const observability = getObservability();
   if (observability.isEnabled()) {
