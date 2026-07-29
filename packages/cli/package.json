@@ -74,7 +74,7 @@
     "@types/node": "^20.10.0",
     "@types/qrcode-terminal": "^0.12.2",
     "@types/ws": "^8.5.10",
-    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "tsup": "^8.0.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.0",
